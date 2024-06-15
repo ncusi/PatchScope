@@ -23,6 +23,7 @@ LEXER = Lexer()
 
 global_hunk_counter = Counter()
 
+
 def map_code_to_tokens(code, tokens):
     tokens = deque(tokens)
     idx_code = [i+1 for i, ltr in enumerate(code) if ltr == "\n"]
@@ -37,6 +38,7 @@ def map_code_to_tokens(code, tokens):
                 break
 
     return lines
+
 
 def fill_gaps_with_previous_value(d):
     if not d:
@@ -60,6 +62,7 @@ def fill_gaps_with_previous_value(d):
 
     return filled_dict
 
+
 def deep_update(d, u):
     for k, v in u.items():
         if isinstance(v, collections.abc.Mapping):
@@ -68,7 +71,9 @@ def deep_update(d, u):
             d[k].extend(v)
     return d
 
+
 TRANSLATION_TABLE = str.maketrans("","","*/\\\t\n")
+
 
 def clean_text(text):
     ret = text.translate(TRANSLATION_TABLE)
@@ -196,84 +201,6 @@ def is_comment(tokens_list):
         return True
 
     return False
-
-
-
-class AnnotateLine(object):
-
-    """Docstring for AnnotateLine."""
-
-    def __init__(self, patch_file, line):
-        """TODO: Docstring for __init__.
-
-        :patch: TODO
-        :file: TODO
-        :line: TODO
-        :returns: TODO
-
-        """
-        self.patch_file = patch_file
-        self.line = line
-
-    def is_comment(self, tokens_list):
-        tl = tokens_list
-
-        result = False
-        condition = True
-
-        for t in tl:
-            if t[0] in Token.Comment:
-                result = True
-            elif t[0] in Token.Text and t[1].isspace():
-                # white space in line is also ok
-                result = True
-                pass
-            else:
-                # other tokens
-                condition = False
-
-        # Debug
-        # if result and not condition:
-        #     print(self.line.value, end="")
-
-        if result and condition:
-            return True
-
-        return False
-
-    def get(self):
-        line = self.line
-
-        # Check if line was changed
-        if not ((line.source_line_no is None) ^ (line.target_line_no is None)):
-            return None, {}
-
-        if line.source_line_no:
-            line_no = line.source_line_no
-            fout = self.patch_file.fsource
-        else:
-            line_no = line.target_line_no
-            fout = self.patch_file.ftarget
-
-        purpose = self.patch_file.patch[fout]["purpose"]
-
-        ret = {"id": line_no, "type": purpose}
-
-        if self.patch_file.patch[fout]["type"] != "programming":
-            if purpose not in ["documentation", "test"]:
-                ret["type"] = "code"
-        else:
-            # For programming languages
-            tokens_list = LEXER.lex(fout, line.value)
-
-            if self.is_comment(tokens_list):
-                ret["type"] = "documentation"
-            elif purpose == "test":
-                ret["type"] = "test"
-            else:
-                ret["type"] = "code"
-
-        return fout, ret
 
 
 class PatchFile(object):
