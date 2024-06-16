@@ -49,7 +49,6 @@ def test_deep_update():
         "list": list('abc'),
     }
     dictionary = copy.deepcopy(original)
-    pprint(dictionary)
     update = {
         "level1": {
             "level2": {"level3-B": 10}
