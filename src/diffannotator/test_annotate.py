@@ -5,7 +5,7 @@ import pytest
 
 from new_annotate import (split_multiline_lex_tokens, line_ends_idx,
                           group_tokens_by_line, front_fill_gaps, deep_update,
-                          clean_text, line_is_comment)
+                          clean_text, line_is_comment, annotate_single_diff)
 
 
 # Example code to be tokenized
@@ -75,6 +75,30 @@ def test_clean_text():
     actual = clean_text(input)
 
     assert actual == expected
+
+
+def test_annotate_single_diff():
+    file_path = 'test_dataset/tqdm-1/c0dcf39b046d1b4ff6de14ac99ad9a1b10487512.diff'
+    patch = annotate_single_diff(file_path)
+
+    expected_language_data = {
+        'language': 'Python',
+        'purpose': 'programming',
+        'type': 'programming',
+    }
+
+    assert 'tqdm/contrib/__init__.py' in patch, \
+        "correct file name is used in patch data"
+    assert expected_language_data.items() <= patch['tqdm/contrib/__init__.py'].items(), \
+        "correct language is being detected"
+
+    file_path = 'test_dataset/empty.diff'
+    patch = annotate_single_diff(file_path)
+    assert patch == {}, "empty patch on empty diff"
+
+    file_path = 'test_dataset/this_patch_does_not_exist.diff'
+    with pytest.raises(FileNotFoundError):
+        annotate_single_diff(file_path)
 
 
 class TestCLexer:

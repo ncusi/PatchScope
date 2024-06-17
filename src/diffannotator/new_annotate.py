@@ -1,14 +1,22 @@
 import collections.abc
 from collections import defaultdict, deque
+import os
+from pathlib import Path
 import re
 from typing import List, Dict, Tuple, TypeVar
 from typing import Iterable, Generator  # should be imported from collections.abc
 
 from pygments.token import Token
+import unidiff
+
+from languages import Languages
 
 
 T = TypeVar('T')
+PathLike = TypeVar("PathLike", str, bytes, Path, os.PathLike)
 TRANSLATION_TABLE = str.maketrans("", "", "*/\\\t\n")
+
+LANGUAGES = Languages()
 
 
 def line_ends_idx(text: str) -> List[int]:
@@ -176,3 +184,82 @@ def line_is_comment(tokens_list: Iterable[Tuple]) -> bool:
             break
 
     return can_be_comment and not cannot_be_comment
+
+
+class AnnotatedPatchedFile:
+    """Annotations for diff for a single file in a patch
+
+    It includes metadata about the programming language associated with
+    the changed/patched file.
+
+    Note that major part of the annotation process is performed on demand,
+    during the `process()` method call.
+
+    Fixes some problems with `unidiff.PatchedFile`
+    """
+    def __init__(self, patched_file: unidiff.PatchedFile):
+        """Initialize AnnotatedPatchedFile with PatchedFile
+
+        Retrieve pre-image and post-image names of the changed file
+        (cleaning them up by removing the "a/" or "B/" prefixes, if
+        needed; unidiff does that for .path getter, if it is modern
+        enough).
+
+        TODO: handle c-quoted filenames, e.g. '"przyk\305\202ad"'
+        for 'przykład'.
+
+        Retrieves information about programming language and purpose
+        of the file based solely on the pathname of a source and of
+        a target file, using the :mod:`languages` module.
+
+        :param patched_file: patched file data parsed from unified diff
+        """
+        self.patch_data = defaultdict(lambda: defaultdict(list))
+
+        # save original diffutils.PatchedFile
+        self.patched_file = patched_file
+
+        # get the names and drop "a/" and "b/"
+        self.source_file = patched_file.source_file
+        self.target_file = patched_file.target_file
+
+        if self.source_file[:2] == "a/":
+            self.source_file = patched_file.source_file[2:]
+        if self.target_file[:2] == "b/":
+            self.target_file = patched_file.target_file[2:]
+
+        # add language metadata (based on filename only!)
+        source_meta_dict = LANGUAGES.annotate(self.source_file)
+        self.patch_data[self.source_file].update(source_meta_dict)
+
+        if self.source_file != self.target_file:
+            target_meta_dict = LANGUAGES.annotate(self.target_file)
+            self.patch_data[self.target_file].update(target_meta_dict)
+
+    def process(self):
+        # TODO: implement it
+        return self.patch_data
+
+
+def annotate_single_diff(diff_path: PathLike) -> dict:
+    """Annotate single unified diff patch file at given path
+
+    :param diff_path: patch filename
+    :return: annotation data
+    """
+    # patch = defaultdict(lambda: defaultdict(list))
+    patch = {}
+
+    # PatchSet.from_filename(diff_path, encoding="utf-8")
+    with Path(diff_path).open(mode="r", encoding="utf-8") as diff_f:
+        try:
+            patch_set = unidiff.PatchSet(diff_f)
+            for i, patched_file in enumerate(patch_set, start=1):
+                annotated_patch_file = AnnotatedPatchedFile(patched_file)
+                patch.update(annotated_patch_file.process())
+
+        except Exception as ex:
+            print(f"Error parsing patch file '{diff_path}': {ex}")
+            # raise ex
+
+    return patch
