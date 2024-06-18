@@ -1,4 +1,5 @@
 import copy
+from pathlib import Path
 from pprint import pprint
 from textwrap import dedent
 
@@ -8,7 +9,8 @@ import unidiff
 
 from new_annotate import (split_multiline_lex_tokens, line_ends_idx,
                           group_tokens_by_line, front_fill_gaps, deep_update,
-                          clean_text, line_is_comment, annotate_single_diff)
+                          clean_text, line_is_comment, annotate_single_diff,
+                          Bug)
 
 
 # Example code to be tokenized
@@ -175,6 +177,28 @@ def test_annotate_single_diff():
     file_path = 'test_dataset/this_patch_does_not_exist.diff'
     with pytest.raises(FileNotFoundError):
         annotate_single_diff(file_path)
+
+
+def test_Bug_constructor():
+    # code patch
+    file_path = Path('test_dataset/tqdm-1/c0dcf39b046d1b4ff6de14ac99ad9a1b10487512.diff')
+    # fiddle around if path does not have the default structure
+    saved_patches_dir = None
+    if file_path.parts[-2] != Bug.PATCHES_DIR:
+        saved_patches_dir = Bug.PATCHES_DIR
+        Bug.PATCHES_DIR = ""
+
+    bug = Bug('test_dataset', 'tqdm-1')
+    assert file_path.name in bug.patches, \
+        "retrieved annotations for the single *.diff file"
+    assert len(bug.patches) == 1, \
+        "there was only 1 patch file for a bug"
+    assert "tqdm/contrib/__init__.py" in bug.patches[file_path.name], \
+        "there is expected changed file in a bug patch"
+
+    # un-fiddle, if needed
+    if saved_patches_dir is not None:
+        Bug.PATCHES_DIR = saved_patches_dir
 
 
 class TestCLexer:

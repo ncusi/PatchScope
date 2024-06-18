@@ -1,9 +1,10 @@
 import collections.abc
 from collections import defaultdict, deque
+import json
 import os
 from pathlib import Path
 import re
-from typing import List, Dict, Tuple, TypeVar
+from typing import List, Dict, Tuple, TypeVar, Union
 from typing import Iterable, Generator  # should be imported from collections.abc
 
 from pygments.token import Token
@@ -369,3 +370,65 @@ def annotate_single_diff(diff_path: PathLike) -> dict:
             # raise ex
 
     return patch
+
+
+class Bug:
+    """Represents single bug in dataset"""
+    PATCHES_DIR = "patches"
+    ANNOTATIONS_DIR = "annotation"
+
+    def __init__(self, dataset_dir: PathLike, bug_id: str):
+        """Constructor for class representing single Bug
+
+        :dataset: path to the dataset
+        :bug: bug id
+        """
+        self._dataset: Path = Path(dataset_dir)
+        self._bug: str = bug_id
+        self._path: Path = self._dataset.joinpath(self._bug, self.PATCHES_DIR)
+
+        self.patches: dict = self._get_patches()
+        self.changes: list = []
+
+    def _get_patch(self, patch_file: PathLike) -> dict:
+        """Get and annotate a single patch
+
+        :param patch_file: basename of a patch
+        :return: annotated patch data
+        """
+        patch_path = self._path.joinpath(patch_file)
+
+        # Skip diffs between multiple versions
+        if "..." in str(patch_path):
+            return {}
+
+        return annotate_single_diff(patch_path)
+
+    def _get_patches(self) -> dict:
+        patches_data = {}
+
+        for patch_file in self._path.glob('*.diff'):
+            patch_data = self._get_patch(patch_file.name)
+            patches_data[patch_file.name] = patch_data
+
+        return patches_data
+
+    def save(self, annotate_path: Union[PathLike, None] = None):
+        """Save annotated patches in JSON format
+
+        :param annotate_path: Separate dir to save annotations, optional.
+            If not set, dataset path is used as a base path.
+        """
+        if annotate_path is not None:
+            base_path = Path(annotate_path).joinpath(self._bug, self.ANNOTATIONS_DIR)
+        else:
+            base_path = self._dataset.joinpath(self._bug, self.ANNOTATIONS_DIR)
+
+        # ensure that base_path exists in filesystem
+        base_path.mkdir(parents=True, exist_ok=True)
+
+        # save annotated patches data
+        for patch_file, patch_data in self.patches.items():
+            out_path = Path(patch_file).with_suffix('.json')
+            with out_path.open('w') as out_f:
+                json.dump(patch_data, out_f)
