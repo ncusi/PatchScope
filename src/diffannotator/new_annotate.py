@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import collections.abc
 from collections import defaultdict, deque
 import json
@@ -7,8 +9,10 @@ import re
 from typing import List, Dict, Tuple, TypeVar, Union
 from typing import Iterable, Generator  # should be imported from collections.abc
 
+import click
 from pygments.token import Token
 import unidiff
+import tqdm
 
 from languages import Languages
 from lexer import Lexer
@@ -478,3 +482,16 @@ class BugDataset:
         """Is bug with given id contained in the dataset?"""
         return item in self.bugs
 
+
+@click.command()
+@click.argument("datasets", nargs=-1)
+def run(datasets):
+    for dataset in datasets:
+        print(f"Dataset {dataset}")
+        bugs = BugDataset(dataset)
+        for bug in tqdm.tqdm(bugs):
+            bugs.get_bug(bug).save()
+
+
+if __name__ == "__main__":
+    run()
