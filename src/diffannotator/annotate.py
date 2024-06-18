@@ -1,52 +1,122 @@
-import codecs
-import glob
-import json
-import os
-import re
-from collections import defaultdict
+#!/usr/bin/env python
 
 import collections.abc
-
+from collections import defaultdict, deque
+import json
+import os
+from pathlib import Path
+import re
+from typing import List, Dict, Tuple, TypeVar, Union
+from typing import Iterable, Generator  # should be imported from collections.abc
 
 import click
-from unidiff import PatchSet, LINE_TYPE_ADDED, LINE_TYPE_REMOVED
+from pygments.token import Token
+import unidiff
 import tqdm
 
 from languages import Languages
 from lexer import Lexer
 
-from pygments.token import Token
-from collections import Counter, deque
+
+T = TypeVar('T')
+PathLike = TypeVar("PathLike", str, bytes, Path, os.PathLike)
+TRANSLATION_TABLE = str.maketrans("", "", "*/\\\t\n")
 
 LANGUAGES = Languages()
 LEXER = Lexer()
 
-global_hunk_counter = Counter()
+
+def line_ends_idx(text: str) -> List[int]:
+    """Return position+1 for each newline in text
+
+    This way each line can be extracted with text[pos[i-1]:pos[i]].
+
+    >>> text = "123\\n56\\n"
+    >>> line_ends_idx(text)
+    [4, 7]
+    >>> text[0:4]
+    '123\\n'
+    >>> text[4:7]
+    '56\\n'
+
+    :param text: str to process
+    :return: list of positions after end of line characters
+    """
+    return [i for i, ch in enumerate(text, start=1)
+            if ch == '\n']
 
 
-def map_code_to_tokens(code, tokens):
-    tokens = deque(tokens)
-    idx_code = [i+1 for i, ltr in enumerate(code) if ltr == "\n"]
-    lines = defaultdict(list)
+def split_multiline_lex_tokens(tokens_unprocessed: Iterable[T]) -> Generator[T, None, None]:
+    """Split multiline tokens into individual lines
+
+    :param tokens_unprocessed: Result of calling `get_tokens_unprocessed(text)`
+        method on a `pygments.lexer.Lexer` instance.  This is an iterable
+        of (index, token_type, value) tuples, where index is the starting
+        position of the token within the input text.
+
+    :return: An iterable of (index, token_type, value) tuples, where `index`
+        is the starting position of `value` in the input text, and each
+        `value` contains at most one newline.
+    """
+    for index, token_type, text_fragment in tokens_unprocessed:
+        lines = text_fragment.splitlines(keepends=True)
+
+        if len(lines) <= 1:
+            # no need for splitting, return original
+            yield index, token_type, text_fragment
+        else:
+            # split into lines, updating the index
+            running_count = 0
+            for line in lines:
+                yield index+running_count, token_type, line
+                running_count += len(line)
+
+
+def group_tokens_by_line(code: str, tokens: Iterable[T]) -> Dict[int, List[T]]:
+    """Group tokens by line in code
+
+    For each line in the source `code`, find all `tokens` that belong
+    to that line, and group tokens by line.  **Note** that `tokens` must
+    be result of parsing `code`.
+
+    :param code: Source code text that was parsed into tokens
+    :param tokens: An iterable of (index, token_type, value) tuples,
+        preferably with `value` split into individual lines with the
+        help of `split_multiline_lex_tokens` function.
+    :return: mapping from line number in `code` to list of tokens
+        in that line
+    """
+    tokens_deque = deque(tokens)
+    idx_code = line_ends_idx(code)
+
+    line_tokens = defaultdict(list)
     for no, idx in enumerate(idx_code):
-        while tokens:
-            token = tokens.popleft()
+        while tokens_deque:
+            token = tokens_deque.popleft()
             if token[0] < idx:
-                lines[no].append(token)
+                line_tokens[no].append(token)
             else:
-                tokens.appendleft(token)
+                tokens_deque.appendleft(token)
                 break
 
-    return lines
+    return line_tokens
 
 
-def fill_gaps_with_previous_value(d):
-    if not d:
+def front_fill_gaps(data: Dict[int, T]) -> Dict[int, T]:
+    """Fill any gaps in `data` keys with previous value
+
+    >>> front_fill_gaps({1: '1', 3: '3'})
+    {1: '1', 2: '1', 3: '3'}
+
+    :param data: Input data - dictionary with int keys
+    :return: Front filled input data
+    """
+    if not data:
         return {}
-    
+
     # Find the minimum and maximum keys
-    min_key = min(d.keys())
-    max_key = max(d.keys())
+    min_key = min(data.keys())
+    max_key = max(data.keys())
 
     # Create a new dictionary to store the result
     filled_dict = {}
@@ -56,306 +126,361 @@ def fill_gaps_with_previous_value(d):
 
     # Iterate through the range of keys
     for key in range(min_key, max_key + 1):
-        if key in d:
-            previous_value = d[key]
+        if key in data:
+            previous_value = data[key]
         filled_dict[key] = previous_value
 
     return filled_dict
 
 
-def deep_update(d, u):
+def deep_update(d: dict, u: collections.abc.Mapping) -> dict:
+    """Update nested dictionary of varying depth
+
+    Update dict `d` with the contents of dict `u`, without overwriting
+    deeply nested levels in input dictionary `d`.  **Note** that this
+    would also extend `d` with new keys from `u`.
+
+    :param d: dict to update
+    :param u: data to update with
+    :return: updated input dict
+    """
+    # modified from https://stackoverflow.com/a/3233356/46058
+    # see also https://github.com/pydantic/pydantic/blob/v2.7.4/pydantic/_internal/_utils.py#L103
     for k, v in u.items():
         if isinstance(v, collections.abc.Mapping):
             d[k] = deep_update(d.get(k, {}), v)
+        elif isinstance(v, collections.abc.MutableSequence):
+            list_value = d.get(k, [])
+            list_value.extend(v)
+            d[k] = list_value
         else:
-            d[k].extend(v)
+            d[k] = v
+
     return d
 
 
-TRANSLATION_TABLE = str.maketrans("","","*/\\\t\n")
-
-
-def clean_text(text):
+def clean_text(text: str) -> str:
     ret = text.translate(TRANSLATION_TABLE)
-    ret =  re.sub(r'\s+', ' ', ret)
+    ret = re.sub(pattern=r'\s+', repl=' ', string=ret)
     return ret
 
 
-class AnnotateHunk(object):
-    refactored_hunks = 0
-    refactored_complex_hunks = 0
-    all_hunks = 0
+def line_is_comment(tokens_list: Iterable[Tuple]) -> bool:
+    """Given results of parsing line, find if it is comment
 
-    def __init__(self, patch_file, hunk):
-        self.patch_file = patch_file
-        self.hunk = hunk
+    :param tokens_list: An iterable of (index, token_type, text_fragment) tuples,
+        supposedly from parsing some line of source code text
+    :return: Whether set of tokens in `tokens_list` can be all
+        considered to be a comment
+    """
+    can_be_comment = False
+    cannot_be_comment = False
 
-        self.patch = defaultdict(lambda: defaultdict(list))
-
-    def get(self):
-        hunk = self.hunk
-
-        fsource = self.patch_file.fsource
-        ftarget = self.patch_file.ftarget
-
-        if fsource == "/dev/null":
-            fout = ftarget
-        else:
-            fout = fsource 
-
-        purpose = self.patch_file.patch[fout]["purpose"]
-
-
-        changes_types = {}
-        changes_lines = {}
-
-        for i,l in enumerate(hunk):
-            if l.line_type in["+", "-"]:
-                changes_types[i] = l.line_type
-                changes_lines[i] = l.value
-
-                if purpose == "documentation":
-                    line_annotation = purpose
-                    self.add_annotation(i, ftarget, fsource, changes_types[i], line_annotation, purpose, [(0,0,l.value),])
-
-        if purpose == "documentation":
-            return self.patch
-
-        source = ''.join(str(line.value) for line in hunk)
-
-        tokens_list = LEXER.lex(fout, source)
-
-
-        lines = fill_gaps_with_previous_value(map_code_to_tokens(source, tokens_list))
-
-        max_correct_i = 0
-        for i, line in changes_lines.items():
-            if i in lines:
-                line_annotation = 'documentation' if is_comment(lines[i]) else 'code'
-                self.add_annotation(i, ftarget, fsource, changes_types[i], line_annotation, purpose, lines[i])
-                max_correct_i = i
-            else: # TODO: bug
-                line_annotation = 'documentation' if is_comment(lines[0]) else 'code'
-                self.add_annotation(i, ftarget, fsource, changes_types[i], line_annotation, purpose, lines[max_correct_i])
-
-        code_change = defaultdict(list)
-
-        for ct in ["+", "-"]:
-            for hunk in self.patch[ftarget][ct]:
-                for token in hunk["tokens"]:
-                    code_change[ct].append(clean_text(token[2]))
-
-        prefactoring = 0
-        intersection = set(code_change["+"]).intersection(set(code_change["-"]))
-        union = set(code_change["+"]).union(set(code_change["-"]))
-
-        if len(intersection) == len(union):
-            prefactoring += 1
-
-            print(f"Found {prefactoring} refactoring(s) possible refactoring Hunks ref(%)={AnnotateHunk.refactored_hunks / AnnotateHunk.all_hunks}, ref={AnnotateHunk.refactored_hunks}, ref complex={AnnotateHunk.refactored_complex_hunks} all={AnnotateHunk.all_hunks}")
-            AnnotateHunk.refactored_hunks += 1
-
-            is_complex_change = False
-            for t in intersection:
-                if t not in ['', ' ']:
-                    is_complex_change = True
-            if is_complex_change:
-                AnnotateHunk.refactored_complex_hunks += 1
-
-
-        AnnotateHunk.all_hunks += 1
-
-        return self.patch
-
-    def add_annotation(self, line_no, ftarget, fsource, change_type, line_annotation, purpose, tokens):
-        ret = {'id' : line_no, 
-               'type': line_annotation, 
-               'purpose': purpose,
-               'tokens': tokens}
-
-
-        if change_type == LINE_TYPE_ADDED:
-            self.patch[ftarget]["+"].append(ret)
-        elif  change_type == LINE_TYPE_REMOVED:
-            self.patch[fsource]["-"].append(ret)
-
-
-def is_comment(tokens_list):
-    tl = tokens_list
-
-    result = False
-    condition = True
-
-    for t in tl:
-        if t[1] in Token.Comment:
-            result = True
-        elif t[1] in Token.Text and t[2].isspace():
+    for _, token_type, text_fragment in tokens_list:
+        if token_type in Token.Comment:
+            can_be_comment = True
+        elif token_type in Token.Text.Whitespace:
             # white space in line is also ok
-            result = True
-            # pass
+            can_be_comment = True
+        elif token_type in Token.Text and text_fragment.isspace():
+            # white space in line is also ok
+            can_be_comment = True
         else:
             # other tokens
-            condition = False
+            cannot_be_comment = True
+            break
 
-    if result and condition:
-        return True
-
-    return False
+    return can_be_comment and not cannot_be_comment
 
 
-class PatchFile(object):
+class AnnotatedPatchedFile:
+    """Annotations for diff for a single file in a patch
 
-    """Docstring for PatchFile."""
+    It includes metadata about the programming language associated with
+    the changed/patched file.
 
-    def __init__(self, file):
-        """TODO: to be defined."""
+    Note that major part of the annotation process is performed on demand,
+    during the `process()` method call.
 
-        self.patch = defaultdict(lambda: defaultdict(list))
+    Fixes some problems with `unidiff.PatchedFile`
+    """
+    def __init__(self, patched_file: unidiff.PatchedFile):
+        """Initialize AnnotatedPatchedFile with PatchedFile
 
-        self.file = file
+        Retrieve pre-image and post-image names of the changed file
+        (cleaning them up by removing the "a/" or "B/" prefixes, if
+        needed; unidiff does that for .path getter, if it is modern
+        enough).
 
-        self.fsource = file.source_file
-        self.ftarget = file.target_file
+        TODO: handle c-quoted filenames, e.g. '"przyk\305\202ad"'
+        for 'przykład'.
+
+        Retrieves information about programming language and purpose
+        of the file based solely on the pathname of a source and of
+        a target file, using the :mod:`languages` module.
+
+        :param patched_file: patched file data parsed from unified diff
+        """
+        self.patch_data = defaultdict(lambda: defaultdict(list))
+
+        # save original diffutils.PatchedFile
+        self.patched_file = patched_file
 
         # get the names and drop "a/" and "b/"
-        if self.fsource[:2] == "a/":
-            self.fsource = file.source_file[2:]
-        if self.ftarget[:2] == "b/":
-            self.ftarget = file.target_file[2:]
+        self.source_file = patched_file.source_file
+        self.target_file = patched_file.target_file
 
-        source_meta_dict = LANGUAGES.annotate(self.fsource)
-        self.patch[self.fsource].update(source_meta_dict)
+        if self.source_file[:2] == "a/":
+            self.source_file = patched_file.source_file[2:]
+        if self.target_file[:2] == "b/":
+            self.target_file = patched_file.target_file[2:]
 
-        if self.fsource != self.ftarget:
-            target_meta_dict = LANGUAGES.annotate(self.ftarget)
-            self.patch[self.ftarget].update(target_meta_dict)
+        # add language metadata (based on filename only!)
+        source_meta_dict = LANGUAGES.annotate(self.source_file)
+        self.patch_data[self.source_file].update(source_meta_dict)
 
-        # Force each file to have changes list -- even if empty changes
-        for lt in ["+", "-"]:
-            self.patch[self.fsource][lt] = list()
-            self.patch[self.ftarget][lt] = list()
+        if self.source_file != self.target_file:
+            target_meta_dict = LANGUAGES.annotate(self.target_file)
+            self.patch_data[self.target_file].update(target_meta_dict)
 
     def process(self):
-        for hunk in self.file:
-            # print(hunk)
-            # global_hunk_counter.update(AnnotateHunk(self, hunk).get())
+        for hunk in self.patched_file:
+            hunk_data = AnnotatedHunk(self, hunk).process()
+            deep_update(self.patch_data, hunk_data)
 
-            patch = AnnotateHunk(self, hunk).get()
-            # print(patch)
-            deep_update(self.patch, patch)
-            # print(">>>>>>>>>>>>>>>>")
-            # print(patch)
-            # print(self.patch)
-            # print("END>>>>>>>>>>>>>>>>")
-            #self.patch.update(patch)
-            # print(self.patch)
+        return self.patch_data
 
-            
-            # for line in hunk:
-            #     fout, processed_line = AnnotateLine(self, line).get()
 
-            #     if fout:
-            #         ltype = line.line_type
-            #         self.patch[fout][ltype].append(processed_line)
+class AnnotatedHunk:
+    """Annotations for diff for a single hunk in a patch
 
-        return self.patch
+    It parses pre-image and post-image of a hunk using Pygments, and assigns
+    the type of "code" or "documentation" for each changed line.
 
-class Bug(object):
+    Note that major part of the annotation process is performed on demand,
+    during the `process()` method call.
+    """
 
+    PURPOSE_TO_ANNOTATION = {"documentation": "documentation"}
+    """Defines when purpose of the file is propagated to line annotation, without parsing"""
+
+    def __init__(self, patched_file: AnnotatedPatchedFile, hunk: unidiff.Hunk):
+        """Initialize AnnotatedHunk with AnnotatedPatchedFile and Hunk
+
+        The `patched_file` is used to examine file purpose, and possibly
+        annotate lines according to `PURPOSE_TO_ANNOTATION` mapping.
+        For example each changed line in a changed file which purpose is
+        "documentation" is also marked as having "documentation" type.
+
+        :param patched_file: changed file the hunk belongs to
+        :param hunk: diff hunk to annotate
+        """
+        self.patched_file = patched_file
+        self.hunk = hunk
+
+        self.patch_data = defaultdict(lambda: defaultdict(list))
+
+    def process(self):
+        # choose file name to be used to select file type and lexer
+        if self.patched_file.source_file == "/dev/null":
+            file_path = self.patched_file.target_file
+        else:
+            # NOTE: only one of source_file and target_file can be "/dev/null"
+            file_path = self.patched_file.source_file
+
+        file_purpose = self.patched_file.patch_data[file_path]["purpose"]
+
+        if file_purpose in self.PURPOSE_TO_ANNOTATION.values():
+            for line_idx, line in enumerate(self.hunk):
+                self.add_line_annotation(line_idx,
+                                         self.patched_file.source_file,
+                                         self.patched_file.target_file,
+                                         line.line_type,
+                                         self.PURPOSE_TO_ANNOTATION[file_purpose],
+                                         file_purpose,
+                                         [(0, Token.Text, line.value), ])
+
+            return self.patch_data
+
+        # lex pre-image and post-image, separately
+        for line_type in {unidiff.LINE_TYPE_ADDED, unidiff.LINE_TYPE_REMOVED}:
+            # TODO: use NamedTuple, or TypedDict, or dataclass
+            line_data = [{
+                'value': line.value,
+                'hunk_line_no': i,
+                'line_type': line.line_type,
+            } for i, line in enumerate(self.hunk)
+                # unexpectedly, there is no need to check for unidiff.LINE_TYPE_EMPTY
+                if line.line_type in {line_type, unidiff.LINE_TYPE_CONTEXT}]
+
+            source = ''.join([line['value'] for line in line_data])
+
+            tokens_list = LEXER.lex(file_path, source)
+            tokens_split = split_multiline_lex_tokens(tokens_list)
+            tokens_group = group_tokens_by_line(source, tokens_split)
+            # just in case, it should not be needed
+            tokens_group = front_fill_gaps(tokens_group)
+
+            for i, line_tokens in tokens_group.items():
+                line_info = line_data[i]
+                line_annotation = 'documentation' if line_is_comment(line_tokens) else 'code'
+
+                self.add_line_annotation(
+                    line_no=line_info['hunk_line_no'],
+                    source_file=self.patched_file.source_file,
+                    target_file=self.patched_file.target_file,
+                    change_type=line_info['line_type'],
+                    line_annotation=line_annotation,
+                    purpose=file_purpose,
+                    tokens=line_tokens
+                )
+
+        return self.patch_data
+
+    def add_line_annotation(self, line_no, source_file, target_file, change_type,
+                            line_annotation, purpose, tokens):
+        data = {
+            'id': line_no,
+            'type': line_annotation,
+            'purpose': purpose,
+            'tokens': tokens
+        }
+
+        # only changed lines are annotated, context lines are not interesting
+        if change_type == unidiff.LINE_TYPE_ADDED:
+            self.patch_data[target_file]["+"].append(data)
+        elif change_type == unidiff.LINE_TYPE_REMOVED:
+            self.patch_data[source_file]["-"].append(data)
+
+
+def annotate_single_diff(diff_path: PathLike) -> dict:
+    """Annotate single unified diff patch file at given path
+
+    :param diff_path: patch filename
+    :return: annotation data
+    """
+    patch = {}
+
+    # PatchSet.from_filename(diff_path, encoding="utf-8")
+    with Path(diff_path).open(mode="r", encoding="utf-8") as diff_f:
+        try:
+            patch_set = unidiff.PatchSet(diff_f)
+            for i, patched_file in enumerate(patch_set, start=1):
+                annotated_patch_file = AnnotatedPatchedFile(patched_file)
+                patch.update(annotated_patch_file.process())
+
+        except Exception as ex:
+            print(f"Error parsing patch file '{diff_path}': {ex}")
+            # raise ex
+
+    return patch
+
+
+class Bug:
     """Represents single bug in dataset"""
+    PATCHES_DIR = "patches"
+    ANNOTATIONS_DIR = "annotation"
 
-    def __init__(self, dataset, bug):
+    def __init__(self, dataset_dir: PathLike, bug_id: str):
         """Constructor for class representing single Bug
 
         :dataset: path to the dataset
         :bug: bug id
-
         """
-        self._dataset = dataset
-        self._bug = bug
-        self._path = os.path.join(self._dataset, self._bug, "patches")
+        self._dataset: Path = Path(dataset_dir)
+        self._bug: str = bug_id
+        self._path: Path = self._dataset.joinpath(self._bug, self.PATCHES_DIR)
 
-        self.patches = self._get_patches()
-        self.changes = []
+        self.patches: dict = self._get_patches()
+        self.changes: list = []
 
-    def _get_patch(self, patch_file):
-        fname = os.path.join(self._path, patch_file)
+    def _get_patch(self, patch_file: PathLike) -> dict:
+        """Get and annotate a single patch
 
-        patch = {}
+        :param patch_file: basename of a patch
+        :return: annotated patch data
+        """
+        patch_path = self._path.joinpath(patch_file)
 
         # Skip diffs between multiple versions
-        if "..." in fname:
+        if "..." in str(patch_path):
             return {}
 
-        with codecs.open(fname, "r", encoding="utf-8") as diff:
-            try:
-            # if True:
-                patch_set = PatchSet(diff)
-                for file in patch_set:
-                    patch_file = PatchFile(file)
-                    patch.update(patch_file.process())
-            except Exception as e:
-                print("Error", patch_file, e)
-                # raise e
-        return patch
+        return annotate_single_diff(patch_path)
 
-    def save(self, fname, patch):
-        base_path = os.path.join(self._dataset, self._bug, "annotation")
+    def _get_patches(self) -> dict:
+        patches_data = {}
 
-        os.makedirs(base_path, exist_ok=True)
+        for patch_file in self._path.glob('*.diff'):
+            patch_data = self._get_patch(patch_file.name)
+            patches_data[patch_file.name] = patch_data
 
-        fname = fname.split(".")[0] + ".json"
-        out_path = os.path.join(base_path, fname)
+        return patches_data
 
-        if patch:
-            with open(out_path, "w") as f:
-                json.dump(patch, f)
+    def save(self, annotate_path: Union[PathLike, None] = None):
+        """Save annotated patches in JSON format
 
+        :param annotate_path: Separate dir to save annotations, optional.
+            If not set, dataset path is used as a base path.
+        """
+        if annotate_path is not None:
+            base_path = Path(annotate_path).joinpath(self._bug, self.ANNOTATIONS_DIR)
+        else:
+            base_path = self._dataset.joinpath(self._bug, self.ANNOTATIONS_DIR)
 
-    def _get_patches(self):
-        "Gathers patches filenames"
+        # ensure that base_path exists in filesystem
+        base_path.mkdir(parents=True, exist_ok=True)
 
-        patch_files = glob.glob("*.diff", root_dir=self._path)
+        # save annotated patches data
+        for patch_file, patch_data in self.patches.items():
+            out_path = base_path / Path(patch_file).with_suffix('.json')
 
-        for patch_file in patch_files:
-            annotation = self._get_patch(patch_file)
-
-            self.save(patch_file, annotation)
+            with out_path.open('w') as out_f:
+                json.dump(patch_data, out_f)
 
 
-class Bugs(object):
-
+class BugDataset:
     """Bugs dataset class"""
 
-    def __init__(self, path):
+    def __init__(self, dataset_dir: PathLike):
         """Constructor of bug dataset.
 
-        :path: path to the dataset
-
+        :param dataset_dir: path to the dataset
         """
-        self._path = path
+        self._path = Path(dataset_dir)
+        self.bugs: List[str] = []
 
         try:
-            self.bugs = [d.rstrip() for d in os.listdir(self._path)]
-        except Exception as e:
-            print("error in Bugs exiting", e)
+            self.bugs = [str(d.name) for d in self._path.iterdir()
+                         if d.is_dir()]
+        except Exception as ex:
+            print(f"Error in BugDataset for '{self._path}': {ex}")
 
-    def get_bug(self, bug):
+    def get_bug(self, bug_id: str) -> Bug:
         """Return specified bug
 
-        :bug: TODO
-        :returns: TODO
-
+        :param bug_id: identifier of a bug in this dataset
+        :returns: Bug instance
         """
-        return Bug(self._path, bug)
+        return Bug(self._path, bug_id)
 
+    # NOTE: alternative would be inheriting from `list`,
+    # like many classes in the 'unidiff' library do
     def __iter__(self):
-        "Iterate over bugs in dataset"
+        """Iterate over bugs ids in the dataset"""
         return self.bugs.__iter__()
 
+    def __len__(self) -> int:
+        """Number of bugs in the dataset"""
+        return len(self.bugs)
 
-def process_bug():
-    glob.glob("*.diff", root_dir=os.path.join(path, cve_id, "patches"))
+    def __getitem__(self, idx: int) -> str:
+        """Get idx-th bug in the dataset"""
+        return self.bugs[idx]
+
+    def __contains__(self, item: str) -> bool:
+        """Is bug with given id contained in the dataset?"""
+        return item in self.bugs
 
 
 @click.command()
@@ -363,9 +488,10 @@ def process_bug():
 def run(datasets):
     for dataset in datasets:
         print(f"Dataset {dataset}")
-        bugs = Bugs(dataset)
+        bugs = BugDataset(dataset)
         for bug in tqdm.tqdm(bugs):
-            bugs.get_bug(bug)
+            bugs.get_bug(bug).save()
+
 
 if __name__ == "__main__":
     run()
