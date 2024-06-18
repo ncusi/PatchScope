@@ -10,6 +10,7 @@ from pygments.token import Token
 import unidiff
 
 from languages import Languages
+from lexer import Lexer
 
 
 T = TypeVar('T')
@@ -17,6 +18,7 @@ PathLike = TypeVar("PathLike", str, bytes, Path, os.PathLike)
 TRANSLATION_TABLE = str.maketrans("", "", "*/\\\t\n")
 
 LANGUAGES = Languages()
+LEXER = Lexer()
 
 
 def line_ends_idx(text: str) -> List[int]:
@@ -245,10 +247,29 @@ class AnnotatedPatchedFile:
 
 
 class AnnotatedHunk:
-    PURPOSE_TO_ANNOTATION = { "documentation": "documentation" }
-    """Purpose of file propagated to line annotation, without parsing"""
+    """Annotations for diff for a single hunk in a patch
+
+    It parses pre-image and post-image of a hunk using Pygments, and assigns
+    the type of "code" or "documentation" for each changed line.
+
+    Note that major part of the annotation process is performed on demand,
+    during the `process()` method call.
+    """
+
+    PURPOSE_TO_ANNOTATION = {"documentation": "documentation"}
+    """Defines when purpose of the file is propagated to line annotation, without parsing"""
 
     def __init__(self, patched_file: AnnotatedPatchedFile, hunk: unidiff.Hunk):
+        """Initialize AnnotatedHunk with AnnotatedPatchedFile and Hunk
+
+        The `patched_file` is used to examine file purpose, and possibly
+        annotate lines according to `PURPOSE_TO_ANNOTATION` mapping.
+        For example each changed line in a changed file which purpose is
+        "documentation" is also marked as having "documentation" type.
+
+        :param patched_file: changed file the hunk belongs to
+        :param hunk: diff hunk to annotate
+        """
         self.patched_file = patched_file
         self.hunk = hunk
 
@@ -267,8 +288,8 @@ class AnnotatedHunk:
         if file_purpose in self.PURPOSE_TO_ANNOTATION.values():
             for line_idx, line in enumerate(self.hunk):
                 self.add_line_annotation(line_idx,
-                                         self.patched_file.target_file,
                                          self.patched_file.source_file,
+                                         self.patched_file.target_file,
                                          line.line_type,
                                          self.PURPOSE_TO_ANNOTATION[file_purpose],
                                          file_purpose,
@@ -276,7 +297,39 @@ class AnnotatedHunk:
 
             return self.patch_data
 
-        # TODO: implement the rest of it
+        # lex pre-image and post-image, separately
+        for line_type in {unidiff.LINE_TYPE_ADDED, unidiff.LINE_TYPE_REMOVED}:
+            # TODO: use NamedTuple, or TypedDict, or dataclass
+            line_data = [{
+                'value': line.value,
+                'hunk_line_no': i,
+                'line_type': line.line_type,
+            } for i, line in enumerate(self.hunk)
+                # unexpectedly, there is no need to check for unidiff.LINE_TYPE_EMPTY
+                if line.line_type in {line_type, unidiff.LINE_TYPE_CONTEXT}]
+
+            source = ''.join([line['value'] for line in line_data])
+
+            tokens_list = LEXER.lex(file_path, source)
+            tokens_split = split_multiline_lex_tokens(tokens_list)
+            tokens_group = group_tokens_by_line(source, tokens_split)
+            # just in case, it should not be needed
+            tokens_group = front_fill_gaps(tokens_group)
+
+            for i, line_tokens in tokens_group.items():
+                line_info = line_data[i]
+                line_annotation = 'documentation' if line_is_comment(line_tokens) else 'code'
+
+                self.add_line_annotation(
+                    line_no=line_info['hunk_line_no'],
+                    source_file=self.patched_file.source_file,
+                    target_file=self.patched_file.target_file,
+                    change_type=line_info['line_type'],
+                    line_annotation=line_annotation,
+                    purpose=file_purpose,
+                    tokens=line_tokens
+                )
+
         return self.patch_data
 
     def add_line_annotation(self, line_no, source_file, target_file, change_type,
@@ -301,7 +354,6 @@ def annotate_single_diff(diff_path: PathLike) -> dict:
     :param diff_path: patch filename
     :return: annotation data
     """
-    # patch = defaultdict(lambda: defaultdict(list))
     patch = {}
 
     # PatchSet.from_filename(diff_path, encoding="utf-8")

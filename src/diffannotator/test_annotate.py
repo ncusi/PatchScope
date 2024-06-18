@@ -105,20 +105,52 @@ def test_post_image_from_diff():
 
 
 def test_annotate_single_diff():
+    # code patch
     file_path = 'test_dataset/tqdm-1/c0dcf39b046d1b4ff6de14ac99ad9a1b10487512.diff'
     patch = annotate_single_diff(file_path)
-
+    # check file data
     expected_language_data = {
         'language': 'Python',
         'purpose': 'programming',
         'type': 'programming',
     }
-
-    assert 'tqdm/contrib/__init__.py' in patch, \
+    changed_file_name = 'tqdm/contrib/__init__.py'
+    assert changed_file_name in patch, \
         "correct file name is used in patch data"
-    assert expected_language_data.items() <= patch['tqdm/contrib/__init__.py'].items(), \
+    assert expected_language_data.items() <= patch[changed_file_name].items(), \
         "correct language is being detected"
+    # check line data
+    # - check number of`changes
+    assert len(patch[changed_file_name]['-']) == 1, \
+        "there is only one removed line (one changed line)"
+    assert len(patch[changed_file_name]['+']) == 1, \
+        "there is only one added line (one changed line)"
+    # - check content of changes
+    actual_removed = ''.join([x[2]  # value, that is, text_fragment
+                              for x in patch[changed_file_name]['-'][0]['tokens']])
+    expected_removed = "    return enumerate(tqdm_class(iterable, start, **tqdm_kwargs))\n"
+    assert actual_removed == expected_removed, \
+        "data from '-' annotation matches expected removed line"
+    actual_added = ''.join([x[2]  # value, that is, text_fragment
+                            for x in patch[changed_file_name]['+'][0]['tokens']])
+    expected_added = "    return enumerate(tqdm_class(iterable, **tqdm_kwargs), start)\n"
+    assert actual_added == expected_added, \
+        "data from '+' annotation matches expected added line"
+    # - check position in hunk
+    hunk_line_no = 3   # there are usually 3 context lines before the change
+    hunk_line_no += 1  # first there is single removed line (for one changed line)
+    assert patch[changed_file_name]['-'][0]['id'] + 1 == hunk_line_no, \
+        "index of line in hunk for '-' annotation matches the patch"
+    hunk_line_no += 1  # then there is single added line (for one changed line)
+    assert patch[changed_file_name]['+'][0]['id'] + 1 == hunk_line_no, \
+        "index of line in hunk for '+' annotation matches the patch"
+    # - check type
+    assert patch[changed_file_name]['-'][0]['type'] == 'code', \
+        "removed line is marked as code"
+    assert patch[changed_file_name]['+'][0]['type'] == 'code', \
+        "added line is marked as code"
 
+    # documentation patch
     file_path = 'test_dataset/unidiff-1/3353080f357a36c53d21c2464ece041b100075a1.diff'
     patch = annotate_single_diff(file_path)
     # check file data
