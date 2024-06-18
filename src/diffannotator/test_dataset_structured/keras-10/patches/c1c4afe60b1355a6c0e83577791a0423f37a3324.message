@@ -1,0 +1,8 @@
+commit c1c4afe60b1355a6c0e83577791a0423f37a3324
+Author: omalleyt12 <omalleyt@google.com>
+Date:   Fri Dec 21 13:08:55 2018 -0800
+
+    Make `sample_weights` and `class_weights` multiplicative. (#11914)
+    
+    Previously `class_weights` was ignored with a logging warning if
+    `sample_weights` was also provided.

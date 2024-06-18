@@ -10,7 +10,7 @@ import unidiff
 from new_annotate import (split_multiline_lex_tokens, line_ends_idx,
                           group_tokens_by_line, front_fill_gaps, deep_update,
                           clean_text, line_is_comment, annotate_single_diff,
-                          Bug)
+                          Bug, BugDataset)
 
 
 # Example code to be tokenized
@@ -202,7 +202,7 @@ def test_Bug_constructor():
 
 
 def test_Bug_save(tmp_path: Path):
-    bug = Bug('test_dataset', 'keras-10')  # the one with the expected directory structure
+    bug = Bug('test_dataset_structured', 'keras-10')  # the one with the expected directory structure
     bug.save(tmp_path)
 
     save_path = tmp_path.joinpath('keras-10', Bug.ANNOTATIONS_DIR)
@@ -216,6 +216,22 @@ def test_Bug_save(tmp_path: Path):
         "there is only one JSON file saved in save directory"
     assert save_path.joinpath('c1c4afe60b1355a6c0e83577791a0423f37a3324.json').is_file(), \
         "this JSON file has expected filename"
+
+
+def test_BugDataset():
+    bugs = BugDataset('test_dataset_structured')
+    print(f"{bugs.bugs=}")
+
+    assert len(bugs) >= 1, \
+        "there is at least one bug in the dataset"
+    assert 'keras-10' in bugs, \
+        "the bug with 'keras-10' identifier is included in the dataset"
+    assert bugs.bugs == list(bugs), \
+        "iterating over bug identifiers works as expected"
+
+    bug = bugs.get_bug('keras-10')
+    assert isinstance(bug, Bug), \
+        "get_bug() method returns Bug object"
 
 
 class TestCLexer:

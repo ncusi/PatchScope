@@ -433,3 +433,48 @@ class Bug:
 
             with out_path.open('w') as out_f:
                 json.dump(patch_data, out_f)
+
+
+class BugDataset:
+    """Bugs dataset class"""
+
+    def __init__(self, dataset_dir: PathLike):
+        """Constructor of bug dataset.
+
+        :param dataset_dir: path to the dataset
+        """
+        self._path = Path(dataset_dir)
+        self.bugs: List[str] = []
+
+        try:
+            self.bugs = [str(d.name) for d in self._path.iterdir()
+                         if d.is_dir()]
+        except Exception as ex:
+            print(f"Error in BugDataset for '{self._path}': {ex}")
+
+    def get_bug(self, bug_id: str) -> Bug:
+        """Return specified bug
+
+        :param bug_id: identifier of a bug in this dataset
+        :returns: Bug instance
+        """
+        return Bug(self._path, bug_id)
+
+    # NOTE: alternative would be inheriting from `list`,
+    # like many classes in the 'unidiff' library do
+    def __iter__(self):
+        """Iterate over bugs ids in the dataset"""
+        return self.bugs.__iter__()
+
+    def __len__(self) -> int:
+        """Number of bugs in the dataset"""
+        return len(self.bugs)
+
+    def __getitem__(self, idx: int) -> str:
+        """Get idx-th bug in the dataset"""
+        return self.bugs[idx]
+
+    def __contains__(self, item: str) -> bool:
+        """Is bug with given id contained in the dataset?"""
+        return item in self.bugs
+
