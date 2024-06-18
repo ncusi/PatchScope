@@ -201,6 +201,23 @@ def test_Bug_constructor():
         Bug.PATCHES_DIR = saved_patches_dir
 
 
+def test_Bug_save(tmp_path: Path):
+    bug = Bug('test_dataset', 'keras-10')  # the one with the expected directory structure
+    bug.save(tmp_path)
+
+    save_path = tmp_path.joinpath('keras-10', Bug.ANNOTATIONS_DIR)
+    assert save_path.exists(), \
+        "directory path to save data exists"
+    assert save_path.is_dir(), \
+        "directory path to save data is directory"
+    assert len(list(save_path.iterdir())) == 1, \
+        "there is only one file saved in save directory"
+    assert len(list(save_path.glob("*.json"))) == 1, \
+        "there is only one JSON file saved in save directory"
+    assert save_path.joinpath('c1c4afe60b1355a6c0e83577791a0423f37a3324.json').is_file(), \
+        "this JSON file has expected filename"
+
+
 class TestCLexer:
     # Create a lexer instance
     lexer = CLexer()

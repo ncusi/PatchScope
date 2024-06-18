@@ -429,6 +429,7 @@ class Bug:
 
         # save annotated patches data
         for patch_file, patch_data in self.patches.items():
-            out_path = Path(patch_file).with_suffix('.json')
+            out_path = base_path / Path(patch_file).with_suffix('.json')
+
             with out_path.open('w') as out_f:
                 json.dump(patch_data, out_f)
