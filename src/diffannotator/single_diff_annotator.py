@@ -1,22 +1,23 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""Usage: {script_name} <diff_path> <result_path>
+Annotates single diff and saves result as json
+
+"""
 import codecs
-import glob
-import json
-import os
-import re
-from collections import defaultdict
-
 import collections.abc
+import json
+import re
+import sys
+from collections import Counter, deque
+from collections import defaultdict
+from pathlib import Path
 
-
-import click
+from pygments.token import Token
 from unidiff import PatchSet, LINE_TYPE_ADDED, LINE_TYPE_REMOVED
-import tqdm
 
 from languages import Languages
 from lexer import Lexer
-
-from pygments.token import Token
-from collections import Counter, deque
 
 LANGUAGES = Languages()
 LEXER = Lexer()
@@ -26,7 +27,7 @@ global_hunk_counter = Counter()
 
 def map_code_to_tokens(code, tokens):
     tokens = deque(tokens)
-    idx_code = [i+1 for i, ltr in enumerate(code) if ltr == "\n"]
+    idx_code = [i + 1 for i, ltr in enumerate(code) if ltr == "\n"]
     lines = defaultdict(list)
     for no, idx in enumerate(idx_code):
         while tokens:
@@ -43,7 +44,7 @@ def map_code_to_tokens(code, tokens):
 def fill_gaps_with_previous_value(d):
     if not d:
         return {}
-    
+
     # Find the minimum and maximum keys
     min_key = min(d.keys())
     max_key = max(d.keys())
@@ -72,12 +73,12 @@ def deep_update(d, u):
     return d
 
 
-TRANSLATION_TABLE = str.maketrans("","","*/\\\t\n")
+TRANSLATION_TABLE = str.maketrans("", "", "*/\\\t\n")
 
 
 def clean_text(text):
     ret = text.translate(TRANSLATION_TABLE)
-    ret =  re.sub(r'\s+', ' ', ret)
+    ret = re.sub(r'\s+', ' ', ret)
     return ret
 
 
@@ -101,22 +102,22 @@ class AnnotateHunk(object):
         if fsource == "/dev/null":
             fout = ftarget
         else:
-            fout = fsource 
+            fout = fsource
 
         purpose = self.patch_file.patch[fout]["purpose"]
-
 
         changes_types = {}
         changes_lines = {}
 
-        for i,l in enumerate(hunk):
-            if l.line_type in["+", "-"]:
+        for i, l in enumerate(hunk):
+            if l.line_type in ["+", "-"]:
                 changes_types[i] = l.line_type
                 changes_lines[i] = l.value
 
                 if purpose == "documentation":
                     line_annotation = purpose
-                    self.add_annotation(i, ftarget, fsource, changes_types[i], line_annotation, purpose, [(0,0,l.value),])
+                    self.add_annotation(i, ftarget, fsource, changes_types[i], line_annotation, purpose,
+                                        [(0, 0, l.value), ])
 
         if purpose == "documentation":
             return self.patch
@@ -124,7 +125,6 @@ class AnnotateHunk(object):
         source = ''.join(str(line.value) for line in hunk)
 
         tokens_list = LEXER.lex(fout, source)
-
 
         lines = fill_gaps_with_previous_value(map_code_to_tokens(source, tokens_list))
 
@@ -134,9 +134,10 @@ class AnnotateHunk(object):
                 line_annotation = 'documentation' if is_comment(lines[i]) else 'code'
                 self.add_annotation(i, ftarget, fsource, changes_types[i], line_annotation, purpose, lines[i])
                 max_correct_i = i
-            else: # TODO: bug
+            else:  # TODO: bug
                 line_annotation = 'documentation' if is_comment(lines[0]) else 'code'
-                self.add_annotation(i, ftarget, fsource, changes_types[i], line_annotation, purpose, lines[max_correct_i])
+                self.add_annotation(i, ftarget, fsource, changes_types[i], line_annotation, purpose,
+                                    lines[max_correct_i])
 
         code_change = defaultdict(list)
 
@@ -152,7 +153,8 @@ class AnnotateHunk(object):
         if len(intersection) == len(union):
             prefactoring += 1
 
-            print(f"Found {prefactoring} refactoring(s) possible refactoring Hunks ref(%)={AnnotateHunk.refactored_hunks / AnnotateHunk.all_hunks}, ref={AnnotateHunk.refactored_hunks}, ref complex={AnnotateHunk.refactored_complex_hunks} all={AnnotateHunk.all_hunks}")
+            print(
+                f"Found {prefactoring} refactoring(s) possible refactoring Hunks ref(%)={AnnotateHunk.refactored_hunks / AnnotateHunk.all_hunks}, ref={AnnotateHunk.refactored_hunks}, ref complex={AnnotateHunk.refactored_complex_hunks} all={AnnotateHunk.all_hunks}")
             AnnotateHunk.refactored_hunks += 1
 
             is_complex_change = False
@@ -162,21 +164,19 @@ class AnnotateHunk(object):
             if is_complex_change:
                 AnnotateHunk.refactored_complex_hunks += 1
 
-
         AnnotateHunk.all_hunks += 1
 
         return self.patch
 
     def add_annotation(self, line_no, ftarget, fsource, change_type, line_annotation, purpose, tokens):
-        ret = {'id' : line_no, 
-               'type': line_annotation, 
+        ret = {'id': line_no,
+               'type': line_annotation,
                'purpose': purpose,
                'tokens': tokens}
 
-
         if change_type == LINE_TYPE_ADDED:
             self.patch[ftarget]["+"].append(ret)
-        elif  change_type == LINE_TYPE_REMOVED:
+        elif change_type == LINE_TYPE_REMOVED:
             self.patch[fsource]["-"].append(ret)
 
 
@@ -204,7 +204,6 @@ def is_comment(tokens_list):
 
 
 class PatchFile(object):
-
     """Docstring for PatchFile."""
 
     def __init__(self, file):
@@ -247,10 +246,9 @@ class PatchFile(object):
             # print(patch)
             # print(self.patch)
             # print("END>>>>>>>>>>>>>>>>")
-            #self.patch.update(patch)
+            # self.patch.update(patch)
             # print(self.patch)
 
-            
             # for line in hunk:
             #     fout, processed_line = AnnotateLine(self, line).get()
 
@@ -260,112 +258,31 @@ class PatchFile(object):
 
         return self.patch
 
-class Bug(object):
 
-    """Represents single bug in dataset"""
-
-    def __init__(self, dataset, bug):
-        """Constructor for class representing single Bug
-
-        :dataset: path to the dataset
-        :bug: bug id
-
-        """
-        self._dataset = dataset
-        self._bug = bug
-        self._path = os.path.join(self._dataset, self._bug, "patches")
-
-        self.patches = self._get_patches()
-        self.changes = []
-
-    def _get_patch(self, patch_file):
-        fname = os.path.join(self._path, patch_file)
-
-        patch = {}
-
-        # Skip diffs between multiple versions
-        if "..." in fname:
-            return {}
-
-        with codecs.open(fname, "r", encoding="utf-8") as diff:
-            try:
-            # if True:
-                patch_set = PatchSet(diff)
-                for file in patch_set:
-                    patch_file = PatchFile(file)
-                    patch.update(patch_file.process())
-            except Exception as e:
-                print("Error", patch_file, e)
-                # raise e
-        return patch
-
-    def save(self, fname, patch):
-        base_path = os.path.join(self._dataset, self._bug, "annotation")
-
-        os.makedirs(base_path, exist_ok=True)
-
-        fname = fname.split(".")[0] + ".json"
-        out_path = os.path.join(base_path, fname)
-
-        if patch:
-            with open(out_path, "w") as f:
-                json.dump(patch, f)
-
-
-    def _get_patches(self):
-        "Gathers patches filenames"
-
-        patch_files = glob.glob("*.diff", root_dir=self._path)
-
-        for patch_file in patch_files:
-            annotation = self._get_patch(patch_file)
-
-            self.save(patch_file, annotation)
-
-
-class Bugs(object):
-
-    """Bugs dataset class"""
-
-    def __init__(self, path):
-        """Constructor of bug dataset.
-
-        :path: path to the dataset
-
-        """
-        self._path = path
-
+def annotate_single_diff(diff_path):
+    patch = defaultdict(lambda: defaultdict(list))
+    with codecs.open(str(diff_path), "r", encoding="utf-8") as diff:
         try:
-            self.bugs = [d.rstrip() for d in os.listdir(self._path)]
+            # if True:
+            patch_set = PatchSet(diff)
+            for file in patch_set:
+                patch_file = PatchFile(file)
+                patch.update(patch_file.process())
         except Exception as e:
-            print("error in Bugs exiting", e)
-
-    def get_bug(self, bug):
-        """Return specified bug
-
-        :bug: TODO
-        :returns: TODO
-
-        """
-        return Bug(self._path, bug)
-
-    def __iter__(self):
-        "Iterate over bugs in dataset"
-        return self.bugs.__iter__()
+            print("Error", patch_file, e)
+            # raise e
+    return patch
 
 
-def process_bug():
-    glob.glob("*.diff", root_dir=os.path.join(path, cve_id, "patches"))
+def main():
+    diff_path = Path(sys.argv[1])
+    result_path = Path(sys.argv[2])
+
+    result = annotate_single_diff(diff_path)
+    print(result)
+    with result_path.open(mode='w') as result_file:
+        json.dump(result, result_file, indent=4)
 
 
-@click.command()
-@click.argument("datasets", nargs=-1)
-def run(datasets):
-    for dataset in datasets:
-        print(f"Dataset {dataset}")
-        bugs = Bugs(dataset)
-        for bug in tqdm.tqdm(bugs):
-            bugs.get_bug(bug)
-
-if __name__ == "__main__":
-    run()
+if __name__ == '__main__':
+    main()
