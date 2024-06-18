@@ -237,8 +237,62 @@ class AnnotatedPatchedFile:
             self.patch_data[self.target_file].update(target_meta_dict)
 
     def process(self):
-        # TODO: implement it
+        for hunk in self.patched_file:
+            hunk_data = AnnotatedHunk(self, hunk).process()
+            deep_update(self.patch_data, hunk_data)
+
         return self.patch_data
+
+
+class AnnotatedHunk:
+    PURPOSE_TO_ANNOTATION = { "documentation": "documentation" }
+    """Purpose of file propagated to line annotation, without parsing"""
+
+    def __init__(self, patched_file: AnnotatedPatchedFile, hunk: unidiff.Hunk):
+        self.patched_file = patched_file
+        self.hunk = hunk
+
+        self.patch_data = defaultdict(lambda: defaultdict(list))
+
+    def process(self):
+        # choose file name to be used to select file type and lexer
+        if self.patched_file.source_file == "/dev/null":
+            file_path = self.patched_file.target_file
+        else:
+            # NOTE: only one of source_file and target_file can be "/dev/null"
+            file_path = self.patched_file.source_file
+
+        file_purpose = self.patched_file.patch_data[file_path]["purpose"]
+
+        if file_purpose in self.PURPOSE_TO_ANNOTATION.values():
+            for line_idx, line in enumerate(self.hunk):
+                self.add_line_annotation(line_idx,
+                                         self.patched_file.target_file,
+                                         self.patched_file.source_file,
+                                         line.line_type,
+                                         self.PURPOSE_TO_ANNOTATION[file_purpose],
+                                         file_purpose,
+                                         [(0, Token.Text, line.value), ])
+
+            return self.patch_data
+
+        # TODO: implement the rest of it
+        return self.patch_data
+
+    def add_line_annotation(self, line_no, source_file, target_file, change_type,
+                            line_annotation, purpose, tokens):
+        data = {
+            'id': line_no,
+            'type': line_annotation,
+            'purpose': purpose,
+            'tokens': tokens
+        }
+
+        # only changed lines are annotated, context lines are not interesting
+        if change_type == unidiff.LINE_TYPE_ADDED:
+            self.patch_data[target_file]["+"].append(data)
+        elif change_type == unidiff.LINE_TYPE_REMOVED:
+            self.patch_data[source_file]["-"].append(data)
 
 
 def annotate_single_diff(diff_path: PathLike) -> dict:

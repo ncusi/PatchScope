@@ -92,6 +92,10 @@ def test_annotate_single_diff():
     assert expected_language_data.items() <= patch['tqdm/contrib/__init__.py'].items(), \
         "correct language is being detected"
 
+    file_path = 'test_dataset/unidiff-1/3353080f357a36c53d21c2464ece041b100075a1.diff'
+    patch = annotate_single_diff(file_path)
+    pprint(patch)
+
     file_path = 'test_dataset/empty.diff'
     patch = annotate_single_diff(file_path)
     assert patch == {}, "empty patch on empty diff"
