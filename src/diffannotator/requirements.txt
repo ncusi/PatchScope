@@ -1,0 +1,5 @@
+click==8.1.7
+pygments==2.18.0
+pyyaml==6.0.1
+unidiff==0.7.5
+tqdm==4.66.4
