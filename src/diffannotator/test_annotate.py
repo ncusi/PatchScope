@@ -1,7 +1,10 @@
 import copy
 from pprint import pprint
+from textwrap import dedent
+
 from pygments.lexers import CLexer
 import pytest
+import unidiff
 
 from new_annotate import (split_multiline_lex_tokens, line_ends_idx,
                           group_tokens_by_line, front_fill_gaps, deep_update,
@@ -75,6 +78,30 @@ def test_clean_text():
     actual = clean_text(input)
 
     assert actual == expected
+
+
+def test_post_image_from_diff():
+    file_path = 'test_dataset/tqdm-1/c0dcf39b046d1b4ff6de14ac99ad9a1b10487512.diff'
+    patch = unidiff.PatchSet.from_filename(file_path, encoding='utf-8')
+    assert len(patch) == 1, "there is only one changed file in patch set"
+    hunk = patch[0][0]
+
+    line_type = unidiff.LINE_TYPE_ADDED
+    source = ''.join([str(line.value) for line in hunk
+                      # unexpectedly, there is no need to check for unidiff.LINE_TYPE_EMPTY
+                      if line.line_type in {line_type, unidiff.LINE_TYPE_CONTEXT}])
+
+    # end first line with \ to avoid the empty line
+    expected = dedent("""\
+            if isinstance(iterable, np.ndarray):
+                return tqdm_class(np.ndenumerate(iterable),
+                                  total=total or len(iterable), **tqdm_kwargs)
+        return enumerate(tqdm_class(iterable, **tqdm_kwargs), start)
+    
+    
+    def _tzip(iter1, *iter2plus, **tqdm_kwargs):""")
+
+    assert source == expected, "post image matches expected result"
 
 
 def test_annotate_single_diff():
