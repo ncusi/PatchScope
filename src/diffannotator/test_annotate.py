@@ -121,7 +121,20 @@ def test_annotate_single_diff():
 
     file_path = 'test_dataset/unidiff-1/3353080f357a36c53d21c2464ece041b100075a1.diff'
     patch = annotate_single_diff(file_path)
-    pprint(patch)
+    # check file data
+    assert 'README.rst' in patch, \
+        "correct file name is used in patch data"
+    assert patch['README.rst']['purpose'] == 'documentation', \
+        "'README.rst' file purpose is documentation"
+    # check line data
+    pre_image_lines = patch['README.rst']['-']
+    post_image_lines = patch['README.rst']['+']
+    assert all([line['purpose'] == 'documentation'
+                for line in pre_image_lines]), \
+        "all pre-image lines of 'README.rst' are marked as documentation"
+    assert all([line['purpose'] == 'documentation'
+                for line in post_image_lines]), \
+        "all post-image lines of 'README.rst' are marked as documentation"
 
     file_path = 'test_dataset/empty.diff'
     patch = annotate_single_diff(file_path)
