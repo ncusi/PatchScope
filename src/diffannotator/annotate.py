@@ -484,16 +484,20 @@ class BugDataset:
         return item in self.bugs
 
 
-def run(datasets: Annotated[
-            List[Path],
-            typer.Argument(
-                exists=True,
-                file_okay=False,
-                dir_okay=True,
-                readable=True,
-                writable=True,  # to save results
-            )
-        ]):
+app = typer.Typer(no_args_is_help=True)
+
+
+@app.command()
+def dataset(datasets: Annotated[
+    List[Path],
+    typer.Argument(
+        exists=True,
+        file_okay=False,
+        dir_okay=True,
+        readable=True,
+        writable=True,  # to save results
+    )
+]):
     """Annotate all bugs in provided DATASETS
 
     Each DATASET is expected to be existing directory with the following
@@ -511,5 +515,18 @@ def run(datasets: Annotated[
             bugs.get_bug(bug).save()
 
 
+@app.command()
+def patch(patch_file: Annotated[Path, typer.Argument(exists=True, dir_okay=False,
+                                                     help="unified diff file to annotate")],
+          result_json: Annotated[Path, typer.Argument(dir_okay=False,
+                                                      help="JSON file to write annotation to")]):
+    """Annotate a single PATCH_FILE, writing results to RESULT_JSON"""
+    print(f"Annotating '{patch_file}' file (expecting *.diff file)")
+    result = annotate_single_diff(patch_file)
+    print(f"Saving results to '{result_json}' JSON file")
+    with result_json.open(mode='w') as result_f:
+        json.dump(result, result_f, indent=4)
+
+
 if __name__ == "__main__":
-    typer.run(run)
+    app()
