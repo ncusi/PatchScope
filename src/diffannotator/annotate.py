@@ -9,7 +9,7 @@ import re
 from typing import List, Dict, Tuple, TypeVar, Union
 from typing import Iterable, Generator  # should be imported from collections.abc
 
-import click
+import typer
 from pygments.token import Token
 import unidiff
 import tqdm
@@ -483,9 +483,7 @@ class BugDataset:
         return item in self.bugs
 
 
-@click.command()
-@click.argument("datasets", nargs=-1)
-def run(datasets):
+def run(datasets: List[str]):
     for dataset in datasets:
         print(f"Dataset {dataset}")
         bugs = BugDataset(dataset)
@@ -494,4 +492,4 @@ def run(datasets):
 
 
 if __name__ == "__main__":
-    run()
+    typer.run(run)

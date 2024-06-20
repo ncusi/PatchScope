@@ -6,7 +6,7 @@
     - [ ] test annotate.py script
     - [ ] cleanup languages.py
     - [ ] cleanup lexer.py
-    - [ ] _maybe_ move from [click][] to [typer][]
+    - [x] _maybe_ move from [click][] to [typer][]
 - [ ] make it a separate package
     - [ ] directory structure
     - [ ] 'pyproject.toml' (and _optionally_ 'setup.py')
