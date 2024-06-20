@@ -484,6 +484,16 @@ class BugDataset:
 
 
 def run(datasets: List[str]):
+    """Annotate all bugs in provided DATASETS
+
+    Each DATASET is expected to be existing directory with the following
+    structure:
+
+        <dataset_directory>/<bug_directory>/patches/<patch_file>.diff
+
+    Each DATASET can consist of many BUGs, each BUG should include patch
+    to annotate as *.diff file in 'patches/' subdirectory.
+    """
     for dataset in datasets:
         print(f"Dataset {dataset}")
         bugs = BugDataset(dataset)
