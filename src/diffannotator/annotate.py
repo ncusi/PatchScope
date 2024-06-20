@@ -8,6 +8,7 @@ from pathlib import Path
 import re
 from typing import List, Dict, Tuple, TypeVar, Union
 from typing import Iterable, Generator  # should be imported from collections.abc
+from typing_extensions import Annotated
 
 import typer
 from pygments.token import Token
@@ -483,7 +484,16 @@ class BugDataset:
         return item in self.bugs
 
 
-def run(datasets: List[Path]):
+def run(datasets: Annotated[
+            List[Path],
+            typer.Argument(
+                exists=True,
+                file_okay=False,
+                dir_okay=True,
+                readable=True,
+                writable=True,  # to save results
+            )
+        ]):
     """Annotate all bugs in provided DATASETS
 
     Each DATASET is expected to be existing directory with the following
