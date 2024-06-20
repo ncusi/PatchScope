@@ -523,6 +523,11 @@ def patch(patch_file: Annotated[Path, typer.Argument(exists=True, dir_okay=False
     """Annotate a single PATCH_FILE, writing results to RESULT_JSON"""
     print(f"Annotating '{patch_file}' file (expecting *.diff file)")
     result = annotate_single_diff(patch_file)
+
+    if not result_json.parent.exists():
+        print(f"Ensuring that '{result_json.parent}' directory exists")
+        result_json.parent.mkdir(parents=True, exist_ok=True)
+
     print(f"Saving results to '{result_json}' JSON file")
     with result_json.open(mode='w') as result_f:
         json.dump(result, result_f, indent=4)
