@@ -483,7 +483,7 @@ class BugDataset:
         return item in self.bugs
 
 
-def run(datasets: List[str]):
+def run(datasets: List[Path]):
     """Annotate all bugs in provided DATASETS
 
     Each DATASET is expected to be existing directory with the following
