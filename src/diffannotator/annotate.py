@@ -6,7 +6,7 @@ import json
 import os
 from pathlib import Path
 import re
-from typing import List, Dict, Tuple, TypeVar, Union
+from typing import List, Dict, Tuple, TypeVar, Optional
 from typing import Iterable, Generator  # should be imported from collections.abc
 from typing_extensions import Annotated
 
@@ -418,7 +418,7 @@ class Bug:
 
         return patches_data
 
-    def save(self, annotate_path: Union[PathLike, None] = None):
+    def save(self, annotate_path: Optional[PathLike] = None):
         """Save annotated patches in JSON format
 
         :param annotate_path: Separate dir to save annotations, optional.
@@ -489,15 +489,23 @@ app = typer.Typer(no_args_is_help=True)
 
 @app.command()
 def dataset(datasets: Annotated[
-    List[Path],
-    typer.Argument(
-        exists=True,
-        file_okay=False,
-        dir_okay=True,
-        readable=True,
-        writable=True,  # to save results
-    )
-]):
+                List[Path],
+                typer.Argument(
+                    exists=True,
+                    file_okay=False,
+                    dir_okay=True,
+                    readable=True,
+                    writable=True,  # to save results
+                )
+            ],
+            output_prefix: Annotated[
+                Optional[Path],
+                typer.Option(
+                    file_okay=False,
+                    dir_okay=True,
+                    help="Where to save files with annotation data.",
+                )
+            ] = None):
     """Annotate all bugs in provided DATASETS
 
     Each DATASET is expected to be existing directory with the following
@@ -508,11 +516,22 @@ def dataset(datasets: Annotated[
     Each DATASET can consist of many BUGs, each BUG should include patch
     to annotate as *.diff file in 'patches/' subdirectory.
     """
-    for dataset in datasets:
-        print(f"Dataset {dataset}")
-        bugs = BugDataset(dataset)
+    for dataset_dir in datasets:
+        print(f"Dataset {dataset_dir}")
+        bugs = BugDataset(dataset_dir)
+
+        output_path: Optional[Path] = None
+        if output_prefix is not None:
+            if dataset_dir.is_absolute():
+                output_path = output_prefix.joinpath(dataset_dir.name)
+            else:
+                output_path = output_prefix.joinpath(dataset_dir)
+            # ensure that directory exists
+            output_path.mkdir(parents=True, exist_ok=True)
+
         for bug in tqdm.tqdm(bugs):
-            bugs.get_bug(bug).save()
+            # NOTE: Uses default path if annotate_path is None
+            bugs.get_bug(bug).save(annotate_path=output_path)
 
 
 @app.command()
