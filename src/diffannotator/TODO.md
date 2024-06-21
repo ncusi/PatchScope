@@ -3,7 +3,7 @@
 - [ ] cleanup
     - [x] cleanup annotate.py
     - [x] test annotate.py code
-    - [ ] test annotate.py script
+    - [x] test annotate.py script
     - [ ] cleanup languages.py
     - [ ] cleanup lexer.py
     - [x] _maybe_ move from [click][] to [typer][]
