@@ -8,8 +8,9 @@ from pathlib import Path
 import re
 from typing import List, Dict, Tuple, TypeVar, Union
 from typing import Iterable, Generator  # should be imported from collections.abc
+from typing_extensions import Annotated
 
-import click
+import typer
 from pygments.token import Token
 import unidiff
 import tqdm
@@ -483,9 +484,30 @@ class BugDataset:
         return item in self.bugs
 
 
-@click.command()
-@click.argument("datasets", nargs=-1)
-def run(datasets):
+app = typer.Typer(no_args_is_help=True)
+
+
+@app.command()
+def dataset(datasets: Annotated[
+    List[Path],
+    typer.Argument(
+        exists=True,
+        file_okay=False,
+        dir_okay=True,
+        readable=True,
+        writable=True,  # to save results
+    )
+]):
+    """Annotate all bugs in provided DATASETS
+
+    Each DATASET is expected to be existing directory with the following
+    structure:
+
+        <dataset_directory>/<bug_directory>/patches/<patch_file>.diff
+
+    Each DATASET can consist of many BUGs, each BUG should include patch
+    to annotate as *.diff file in 'patches/' subdirectory.
+    """
     for dataset in datasets:
         print(f"Dataset {dataset}")
         bugs = BugDataset(dataset)
@@ -493,5 +515,23 @@ def run(datasets):
             bugs.get_bug(bug).save()
 
 
+@app.command()
+def patch(patch_file: Annotated[Path, typer.Argument(exists=True, dir_okay=False,
+                                                     help="unified diff file to annotate")],
+          result_json: Annotated[Path, typer.Argument(dir_okay=False,
+                                                      help="JSON file to write annotation to")]):
+    """Annotate a single PATCH_FILE, writing results to RESULT_JSON"""
+    print(f"Annotating '{patch_file}' file (expecting *.diff file)")
+    result = annotate_single_diff(patch_file)
+
+    if not result_json.parent.exists():
+        print(f"Ensuring that '{result_json.parent}' directory exists")
+        result_json.parent.mkdir(parents=True, exist_ok=True)
+
+    print(f"Saving results to '{result_json}' JSON file")
+    with result_json.open(mode='w') as result_f:
+        json.dump(result, result_f, indent=4)
+
+
 if __name__ == "__main__":
-    run()
+    app()
