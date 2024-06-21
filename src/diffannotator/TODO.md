@@ -28,11 +28,15 @@
     - [ ] documentation on how to use API, and change behavior
     - [ ] configure output format (and what to output)
     - [ ] _maybe_ configuration options
-    - [ ] _maybe_ configuration callbacks (in Python)
-    - [ ] _maybe_ generate skeleton, like a framework
+    - [ ] _maybe_ configuration callbacks (in Python), like in [git-filter-repo][]
+    - [ ] _maybe_ generate skeleton, like a framework, like in [Scrapy][scrapy]
+    - [ ] _maybe_ provide an API to generate processing pipeline, like in [SciKit-Learn][sklearn]
 
 [click]: https://click.palletsprojects.com/
 [typer]: https://typer.tiangolo.com/
+[git-filter-repo]: https://htmlpreview.github.io/?https://github.com/newren/git-filter-repo/blob/docs/html/git-filter-repo.html#CALLBACKS
+[scrapy]: https://docs.scrapy.org/en/latest/intro/tutorial.html#creating-a-project
+[sklearn]: https://scikit-learn.org/stable/modules/compose.html
 
 [1]: https://stackoverflow.com/questions/70387750/how-to-manage-sub-projects-in-python
 [2]: https://github.com/github-linguist/linguist/blob/master/docs/overrides.md#using-gitattributes
