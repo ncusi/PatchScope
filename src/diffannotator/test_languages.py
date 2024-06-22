@@ -1,8 +1,12 @@
+import logging
+from pytest import LogCaptureFixture
+
 from languages import Languages
 
 
 # MAYBE: group assertions into separate tests
-def test_Languages():
+def test_Languages(caplog: LogCaptureFixture):
+    caplog.set_level(logging.WARNING)
     languages = Languages()
 
     actual = languages.annotate("src/main.cpp")
@@ -28,6 +32,10 @@ def test_Languages():
     # assert actual['type'] == 'data', "'requirements.txt' should be considered 'data'"
     # assert actual['language'] == 'Pip Requirements', "'requirements.txt' language is 'Pip Requirements'"
 
-    actual = languages.annotate(".unknownprojectrc")
+    caplog.clear()
+    file_name = ".unknownprojectrc"
+    actual = languages.annotate(file_name)
     expected = {'language': 'unknown', 'type': 'other', 'purpose': 'other'}
     assert actual == expected, "for unknown file"
+    assert "Unknown file type" in caplog.text, "warn about unknown file"
+    assert file_name in caplog.text, "mention file name in the warning"

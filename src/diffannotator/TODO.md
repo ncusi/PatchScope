@@ -4,7 +4,7 @@
     - [x] cleanup annotate.py
     - [x] test annotate.py code
     - [x] test annotate.py script
-    - [ ] cleanup languages.py
+    - [x] cleanup languages.py
     - [ ] cleanup lexer.py
     - [x] _maybe_ move from [click][] to [typer][]
     - [ ] add docstring for all files

@@ -1,8 +1,13 @@
 from collections import defaultdict
+import logging
 from pathlib import Path
 from typing import List
 
 import yaml
+
+
+# configure logging
+logger = logging.getLogger(__name__)
 
 # check if any project management files are present
 PROJECT_MANAGEMENT = [
@@ -143,7 +148,7 @@ class Languages(object):
             ret = languages_exceptions(file_path, self.ext_primary[ext])
             # DEBUG to catch extensions with language collisions
             if len(ret) > 1:
-                print(">>> P ", file_path, ret)
+                logger.warning(f"Extension collision in ext_primary for '{file_path}': {ret}")
 
             return ret[0]
 
@@ -151,7 +156,7 @@ class Languages(object):
             ret = languages_exceptions(file_path, self.ext_lang[ext])
             # Debug to catch extensions with language collisions
             if len(ret) > 1:
-                print(">>> E ", file_path, ret)
+                logger.warning(f"Extension collision in ext_lang for '{file_path}': {ret}")
 
             return ret[0]
 
@@ -170,7 +175,7 @@ class Languages(object):
             return "M4Sugar"
 
         # DEBUG information
-        print(">>>", file_path, "+", filename, "-", ext)
+        logger.warning(f"Unknown file type for '{file_path}' ({filename} + {ext})")
 
         return "unknown"
 
