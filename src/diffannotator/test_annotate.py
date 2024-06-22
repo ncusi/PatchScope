@@ -7,10 +7,10 @@ from pygments.lexers import CLexer
 import pytest
 import unidiff
 
-from new_annotate import (split_multiline_lex_tokens, line_ends_idx,
-                          group_tokens_by_line, front_fill_gaps, deep_update,
-                          clean_text, line_is_comment, annotate_single_diff,
-                          Bug, BugDataset)
+from annotate import (split_multiline_lex_tokens, line_ends_idx,
+                      group_tokens_by_line, front_fill_gaps, deep_update,
+                      clean_text, line_is_comment, annotate_single_diff,
+                      Bug, BugDataset)
 
 
 # Example code to be tokenized
