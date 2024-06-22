@@ -19,6 +19,8 @@ from languages import Languages
 from lexer import Lexer
 
 
+__version__ = "0.0.1"
+
 T = TypeVar('T')
 PathLike = TypeVar("PathLike", str, bytes, Path, os.PathLike)
 TRANSLATION_TABLE = str.maketrans("", "", "*/\\\t\n")
@@ -484,7 +486,28 @@ class BugDataset:
         return item in self.bugs
 
 
-app = typer.Typer(no_args_is_help=True)
+app = typer.Typer(no_args_is_help=True, add_completion=False)
+
+
+def version_callback(value: bool):
+    if value:
+        # TODO: extract the name from file docstring or variable
+        typer.echo(f"Diff Annotator version: {__version__}")
+        raise typer.Exit()
+
+
+# implementing options common to all subcommands
+@app.callback()
+def common(
+    ctx: typer.Context,
+    version: Annotated[
+        bool,
+        typer.Option("--version", "-V",
+                     help="Output version information and exit.",
+                     callback=version_callback)
+    ] = False,
+):
+    pass
 
 
 @app.command()
