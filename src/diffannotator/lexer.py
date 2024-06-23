@@ -1,20 +1,32 @@
-import os
-from collections import defaultdict
+from pathlib import Path
+from typing import Dict, Tuple, Iterable
 
 import pygments
 from pygments import lexers, util
-from pygments.token import Token
 
 
 class Lexer(object):
-    """Docstring for Lexer."""
+    """Holder and proxy for lexers
+
+    Made to be able to reuse lexer objects, and to call the lexing method
+    required by the :meth:`AnnotatedHunk.process()` method.
+    """
 
     def __init__(self):
-        """TODO: to be defined."""
-        self.lexers = {}
+        """Construct the Lexer object, creating the holder for lexers"""
+        self.lexers: Dict[str, pygments.lexer.Lexer] = {}
 
-    def get_lexer(self, filename):
-        base, suffix = os.path.splitext(filename)
+    def get_lexer(self, filename: str) -> pygments.lexer.Lexer:
+        """Get lexer suitable for file with given path
+
+        :param filename: path to a file inside repository
+        :return: appropriate lexer
+        """
+        suffix = Path(filename).suffix
+        # there are many different file types with an empty suffix
+        if not suffix:
+            # use basename of the file as key in self.lexers
+            suffix = Path(filename).name
 
         if suffix in self.lexers:
             return self.lexers[suffix]
@@ -22,18 +34,25 @@ class Lexer(object):
         try:
             lexer = pygments.lexers.get_lexer_for_filename(filename)
         except pygments.util.ClassNotFound:
-            print(f"Warrning: No lexer found for '{filename}' trying Text lexer")
+            print(f"Warning: No lexer found for '{filename}', trying Text lexer")
             lexer = lexers.get_lexer_for_filename("Test.txt")
 
         self.lexers[suffix] = lexer
 
         return lexer
 
-    def lex(self, fname, code):
-        lexer = self.get_lexer(fname)
+    def lex(self, filename: str, code: str) -> Iterable[Tuple]:
+        """Run lexer on a fragment of code from file with given filename
+
+        :param filename: path to file within the repository
+        :param code: source code or text to parse
+        :return: an iterable of (index, token_type, text_fragment) tuples
+        """
+        lexer = self.get_lexer(filename)
 
         if not lexer:
-            print("Error in lex: no lexer selected")
+            print(f"Error in lex: no lexer selected for file '{filename}'")
             return []
 
+        # TODO: consider returning generator, instead of list
         return list(lexer.get_tokens_unprocessed(code))

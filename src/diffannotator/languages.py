@@ -1,59 +1,89 @@
-import os
 from collections import defaultdict
+import logging
+from pathlib import Path
+from typing import List
 
 import yaml
 
+
+# configure logging
+logger = logging.getLogger(__name__)
+
 # check if any project management files are present
-PROJECT_MANAGMENT = [
-    "requirements.txt",
-    "makefile",
-    "cmake",
-    "dockerfile",
-    "requirements.txt",
-    "setup.cfg",
-    "info/index.json",
+PROJECT_MANAGEMENT = [
+    ".nuspec",
     "CMakeLists.txt",
-    "meson.build",
-    "conanfile.txt",
-    "manifest",
-    "CMakeLists.txt",
-    "vcpkg.json",
-    "pom.xml",
-    "ivy.xml",
+    "Cargo.toml",
+    "bower.json",
     "build.gradle",
     "build.sbt",
-    "Cargo.toml",
-    "go.mod",
-    "package.json",
-    "bower.json",
-    ".nuspec",
+    "cmake",
     "composer.json",
+    "conanfile.txt",
+    "dockerfile",
+    "go.mod",
+    "info/index.json",
+    "ivy.xml",
+    "Makefile",
+    "manifest",
+    "meson.build",
+    "package.json",
+    "pom.xml",
+    "pyproject.toml",
+    "requirements.txt",
+    "setup.cfg",
+    "vcpkg.json",
     ]
 
+# names without extensions to be considered text files
+TEXT_FILES = [
+    "AUTHORS",
+    "COPYING",
+    "ChangeLog",
+    "INSTALL",
+    "NEWS",
+    "PACKAGERS",
+    "README",
+    "THANKS",
+    "TODO",
+]
+
+
 FORCE_SIMPLIFY = {
-    ".txt": ["Text"],
-    ".json": ["JSON"],
-    ".yml": ["YAML"],
-    ".yaml": ["YAML"],
-    ".md": ["Markdown"],
-    ".html": ["HTML"],
-    ".h": ["C"],
-    ".cs": ["C#"],
+    ".as": ["ActionScript"],
+    ".asm": ["ASM"],
     ".cfg": ["INI"],
-    ".properties": ["INI"],
+    ".cs": ["C#"],
+    ".h": ["C"],
+    ".html": ["HTML"],
+    ".json": ["JSON"],
+    ".md": ["Markdown"],
     ".pl": ["Perl"],
+    ".pm": ["Perl"],
+    ".properties": ["INI"],
+    ".sql": ["SQL"],
     ".t": ["Perl"],
     ".ts": ["TypeScript"],
-    ".pm": ["Perl"],
-    ".sql": ["SQL"],
-    ".asm": ["ASM"],
-    ".as": ["ActionScript"],
+    ".txt": ["Text"],
+    ".yaml": ["YAML"],
+    ".yml": ["YAML"],
 }
 
-DOCS_PATTERNS = ["doc", "docs", "documentation", "man"]
+DOCS_PATTERNS = [
+    "doc",
+    "docs",
+    "documentation",
+    "man",
+]
 
 
-def languages_exceptions(path, lang):
+def languages_exceptions(path: str, lang: List[str]) -> List[str]:
+    """Handle exceptions in determining language of a file
+
+    :param path: file path in the repository
+    :param lang: file language determined so far
+    :return: single element list of languages
+    """
     if "spark" in path.lower() and "Roff" in lang:
         return ["Text"]
 
@@ -75,7 +105,7 @@ def languages_exceptions(path, lang):
 class Languages(object):
     """Linguists file support with some simplification"""
 
-    def __init__(self, yaml="languages.yml"):
+    def __init__(self, yaml: Path = "languages.yml"):
         super(Languages, self).__init__()
         self.yaml = yaml
 
@@ -83,6 +113,7 @@ class Languages(object):
         self._simplify()
 
     def _read(self):
+        """Read, parse, and extract information from 'languages.yml'"""
         with open(self.yaml, "r") as stream:
             self.languages = yaml.safe_load(stream)
             self.ext_primary = defaultdict(list)
@@ -99,7 +130,6 @@ class Languages(object):
 
     def _simplify(self):
         """simplify languages assigned to file extensions"""
-
         for fix in FORCE_SIMPLIFY:
             if fix in self.ext_primary:
                 self.ext_primary[fix] = FORCE_SIMPLIFY[fix]
@@ -107,65 +137,64 @@ class Languages(object):
             if fix in self.ext_lang:
                 self.ext_lang[fix] = FORCE_SIMPLIFY[fix]
 
-    def _path2lang(self, path):
-        filename, ext = os.path.splitext(path)
-        if ".gitignore" in path:
+    def _path2lang(self, file_path: str) -> str:
+        """Convert path of file in repository to programming language of file"""
+        # TODO: consider switching from Path.stem to Path.name (basename)
+        filename, ext = Path(file_path).stem, Path(file_path).suffix  # os.file_path.splitext(file_path)
+        if ".gitignore" in file_path:
             return "Ignore List"
 
         if ext in self.ext_primary:
-            ret = languages_exceptions(path, self.ext_primary[ext])
-            # Debug to catch extensions with language collisions
+            ret = languages_exceptions(file_path, self.ext_primary[ext])
+            # DEBUG to catch extensions with language collisions
             if len(ret) > 1:
-                print(">>> P ", path, ret)
+                logger.warning(f"Extension collision in ext_primary for '{file_path}': {ret}")
 
             return ret[0]
 
         if ext in self.ext_lang:
-            ret = languages_exceptions(path, self.ext_lang[ext])
+            ret = languages_exceptions(file_path, self.ext_lang[ext])
             # Debug to catch extensions with language collisions
             if len(ret) > 1:
-                print(">>> E", path, ret)
+                logger.warning(f"Extension collision in ext_lang for '{file_path}': {ret}")
 
             return ret[0]
 
-        TEXT_FILES = ["INSTALL", "AUTHORS", "ChangeLog", "COPYING", 
-                      "NEWS", "PACKAGERS", "TODO", "THANKS", "README"]
-
         for f in TEXT_FILES:
-            if f in path:
+            if f in file_path:
                 return "Text"
 
-        if "/dev/null" in path:
+        # TODO: move those exceptions to languages_exceptions()
+        if "/dev/null" in file_path:
             return "/dev/null"
 
-        if "Makefile" in path:
+        if "Makefile" in file_path:
             return "Makefile"
 
-        if "configure.ac" in path:
+        if "configure.ac" in file_path:
             return "M4Sugar"
 
-        print(">>>", path, "+", filename, "-", ext)
+        # DEBUG information
+        logger.warning(f"Unknown file type for '{file_path}' ({filename} + {ext})")
 
         return "unknown"
 
-    def _path2purpose(self, path, filetype):
-        """Parameter is a filepath and filetype.
-        Returns file purpose as a string."""
-
-
+    def _path2purpose(self, path: str, filetype: str) -> str:
+        """Parameter is a filepath and filetype. Returns file purpose as a string."""
         # everything that has test in filename -> test
+        # TODO: should it consider only basename?
         if "test" in path.lower():
             return "test"
 
-        # any project managment in filename -> project
-        if any(pattern in path.lower() for pattern in PROJECT_MANAGMENT ):
+        # any project management in filename -> project
+        if any(pattern in path.lower() for pattern in PROJECT_MANAGEMENT):
             return "project"
 
         # any documentation in filename -> documentation
         if any(pattern in path.lower() for pattern in DOCS_PATTERNS):
             return "documentation"
 
-        # let's assume that prose (ie. txt, markdown, rst, etc) is documentation
+        # let's assume that prose (i.e. txt, markdown, rst, etc.) is documentation
         if "prose" in filetype:
             return "documentation"
 
@@ -176,14 +205,20 @@ class Languages(object):
         # default unknown
         return "unknown"
 
-    def annotate(self, path):
+    def annotate(self, path: str) -> dict:
+        """Annotate file with its primary language metadata
+
+        :param path: file path in the repository
+        :return: metadata about language, file type, and purpose of file
+        """
         language = self._path2lang(path)
 
+        # TODO: maybe convert to .get() with default value
         try:
             filetype = self.languages[language]["type"]
         except KeyError:
             filetype = "other"
 
-        filepurpose = self._path2purpose(path, filetype)
+        file_purpose = self._path2purpose(path, filetype)
 
-        return {"language": language, "type": filetype, "purpose": filepurpose}
+        return {"language": language, "type": filetype, "purpose": file_purpose}
