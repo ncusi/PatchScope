@@ -263,7 +263,7 @@ class AnnotatedHunk:
     Note that major part of the annotation process is performed on demand,
     during the `process()` method call.
     """
-
+    # TODO: move to a global variable (so that one does not need to remember where it is defined)
     PURPOSE_TO_ANNOTATION = {"documentation": "documentation"}
     """Defines when purpose of the file is propagated to line annotation, without parsing"""
 
@@ -496,6 +496,29 @@ def version_callback(value: bool):
         raise typer.Exit()
 
 
+def parse_purpose_to_annotation(values: List[str]):
+    """Update purpose to annotation mapping with '<key>:<value>'s
+
+    If there is no ':' (colon) separating key from value, add
+    the original both as key and as value.  This means that
+    using '<value>' adds {<value>: <value>} mapping.
+
+    On empty string it resets the whole mapping.
+
+    :param values: list of values to parse
+    """
+    for colon_separated_pair in values:
+        if not colon_separated_pair:
+            AnnotatedHunk.PURPOSE_TO_ANNOTATION = {}
+        elif ':' in colon_separated_pair:
+            key, val = colon_separated_pair.split(sep=':', maxsplit=1)
+            AnnotatedHunk.PURPOSE_TO_ANNOTATION[key] = val
+        else:
+            AnnotatedHunk.PURPOSE_TO_ANNOTATION[colon_separated_pair] = colon_separated_pair
+
+    return values
+
+
 # implementing options common to all subcommands
 @app.callback()
 def common(
@@ -506,8 +529,27 @@ def common(
                      help="Output version information and exit.",
                      callback=version_callback)
     ] = False,
+    purpose_to_annotation: Annotated[
+        Optional[List[str]],
+        typer.Option(
+            help="Mapping from file purpose to line annotation. Empty value resets mapping.",
+            metavar="PURPOSE:ANNOTATION",
+            # uses callback instead of parser because of
+            # AssertionError: List types with complex sub-types are not currently supported
+            # see https://github.com/tiangolo/typer/issues/387
+            callback=parse_purpose_to_annotation,
+        )
+    ] = None,
 ):
-    pass
+    # if anything is printed by this function, it needs to utilize context
+    # to not break installed shell completion for the command
+    # see https://typer.tiangolo.com/tutorial/options/callback-and-context/#fix-completion-using-the-context
+    if ctx.resilient_parsing:
+        return
+    if purpose_to_annotation is not None:
+        print("Using modified mapping from file purpose to line annotation:")
+        for key, val in AnnotatedHunk.PURPOSE_TO_ANNOTATION.items():
+            print(f"\t{key}\t=>\t{val}")
 
 
 @app.command()
