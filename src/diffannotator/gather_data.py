@@ -14,6 +14,55 @@ PathLike = TypeVar("PathLike", str, bytes, Path, os.PathLike)
 app = typer.Typer(no_args_is_help=True, add_completion=False)
 
 
+def process_data(data):
+    """
+    Override this function for report generation
+
+    :param data: dictionary with annotations
+    :return:
+    """
+    hunk_purposes = Counter()
+    added_line_purposes = Counter()
+    removed_line_purposes = Counter()
+    for hunk in data:
+        print(hunk)
+        print(data[hunk]['purpose'])
+        hunk_purposes[data[hunk]['purpose']] += 1
+        if '+' in data[hunk]:
+            added_lines = data[hunk]['+']
+            for added_line in added_lines:
+                added_line_purposes[added_line['purpose']] += 1
+        if '-' in data[hunk]:
+            removed_lines = data[hunk]['-']
+            for removed_line in removed_lines:
+                removed_line_purposes[removed_line['purpose']] += 1
+    return PurposeCounterResults(hunk_purposes, added_line_purposes, removed_line_purposes)
+
+
+class PurposeCounterResults:
+    """Override this datastructure to gather results"""
+
+    def __init__(self, hunk_purposes, added_line_purposes, removed_line_purposes):
+        self._hunk_purposes = hunk_purposes
+        self._added_line_purposes = added_line_purposes
+        self._removed_line_purposes = removed_line_purposes
+
+    def __add__(self, other):
+        if isinstance(other, PurposeCounterResults):
+            new_instance = PurposeCounterResults(
+                self._hunk_purposes + other._hunk_purposes,
+                self._added_line_purposes + other._added_line_purposes,
+                self._removed_line_purposes + other._removed_line_purposes)
+            return new_instance
+
+    def __repr__(self):
+        return f"PurposeCounterResults(_hunk_purposes={self._hunk_purposes!r}, _added_line_purposes={self._added_line_purposes!r}, _removed_line_purposes)={self._removed_line_purposes!r}"
+
+    @staticmethod
+    def default():
+        return PurposeCounterResults(Counter(), Counter(), Counter())
+
+
 class AnnotatedFile:
     """Annotated single file in specific bug"""
 
@@ -25,24 +74,14 @@ class AnnotatedFile:
         self._path = Path(file_path)
 
     def gather_data(self):
+        """
+        Retrieves data from file
+
+        :return: data processed as datastructure
+        """
         with self._path.open('r') as json_file:
-            hunk_purposes = Counter()
-            added_line_purposes = Counter()
-            removed_line_purposes = Counter()
             data = json.load(json_file)
-            for hunk in data:
-                print(hunk)
-                print(data[hunk]['purpose'])
-                hunk_purposes[data[hunk]['purpose']] += 1
-                if '+' in data[hunk]:
-                    added_lines = data[hunk]['+']
-                    for added_line in added_lines:
-                        added_line_purposes[added_line['purpose']] += 1
-                if '-' in data[hunk]:
-                    removed_lines = data[hunk]['-']
-                    for removed_line in removed_lines:
-                        removed_line_purposes[removed_line['purpose']] += 1
-            return hunk_purposes, added_line_purposes, removed_line_purposes
+            return process_data(data)
 
 
 class AnnotatedBug:
@@ -62,19 +101,15 @@ class AnnotatedBug:
             print(f"Error in AnnotatedBug for '{self._path}': {ex}")
 
     def gather_data(self):
-        bug_hunk_purposes = Counter()
-        bug_added_line_purposes = Counter()
-        bug_removed_line_purposes = Counter()
+        combined_results = PurposeCounterResults.default()
         for annotation in self.annotations:
             if '...' in annotation:
                 continue
             annotation_file_path = self._annotations_path / annotation
             annotation_file = AnnotatedFile(annotation_file_path)
-            hunk_purposes, added_line_purposes, removed_line_purposes = annotation_file.gather_data()
-            bug_hunk_purposes.update(hunk_purposes)
-            bug_added_line_purposes.update(added_line_purposes)
-            bug_removed_line_purposes.update(removed_line_purposes)
-        return bug_hunk_purposes, bug_added_line_purposes, bug_removed_line_purposes
+            file_results = annotation_file.gather_data()
+            combined_results += file_results
+        return combined_results
 
 
 class AnnotatedBugDataset:
@@ -95,18 +130,14 @@ class AnnotatedBugDataset:
             print(f"Error in AnnotatedBugDataset for '{self._path}': {ex}")
 
     def gather_data(self):
-        dataset_hunk_purposes = Counter()
-        dataset_added_line_purposes = Counter()
-        dataset_removed_line_purposes = Counter()
+        combined_results = PurposeCounterResults.default()
         for bug_id in tqdm.tqdm(self.bugs):
             print(bug_id)
             bug_path = self._path / bug_id
             bug = AnnotatedBug(bug_path)
-            bug_hunk_purposes, bug_added_line_purposes, bug_removed_line_purposes = bug.gather_data()
-            dataset_hunk_purposes.update(bug_hunk_purposes)
-            dataset_added_line_purposes.update(bug_added_line_purposes)
-            dataset_removed_line_purposes.update(bug_removed_line_purposes)
-        return dataset_hunk_purposes, dataset_added_line_purposes, dataset_removed_line_purposes
+            bug_results = bug.gather_data()
+            combined_results += bug_results
+        return combined_results
 
 
 @app.command()
