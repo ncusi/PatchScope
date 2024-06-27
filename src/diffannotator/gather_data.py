@@ -19,7 +19,7 @@ def process_data(data):
     Override this function for report generation
 
     :param data: dictionary with annotations
-    :return:
+    :return: PurposeCounterResults instance
     """
     hunk_purposes = Counter()
     added_line_purposes = Counter()
@@ -73,15 +73,16 @@ class AnnotatedFile:
         """
         self._path = Path(file_path)
 
-    def gather_data(self):
+    def gather_data(self, bug_mapper):
         """
         Retrieves data from file
 
-        :return: data processed as datastructure
+        :param bug_mapper: function to map bug to datastructure
+        :return: resulting datastructure
         """
         with self._path.open('r') as json_file:
             data = json.load(json_file)
-            return process_data(data)
+            return bug_mapper(data)
 
 
 class AnnotatedBug:
@@ -100,14 +101,21 @@ class AnnotatedBug:
         except Exception as ex:
             print(f"Error in AnnotatedBug for '{self._path}': {ex}")
 
-    def gather_data(self):
-        combined_results = PurposeCounterResults.default()
+    def gather_data(self, bug_mapper, datastructure_generator):
+        """
+        Gathers dataset data via processing each file in current bug using AnnotatedFile class and provided functions
+
+        :param bug_mapper: function to map bug to datastructure
+        :param datastructure_generator: function to create empty datastructure to combine results
+        :return: combined datastructure with all files data
+        """
+        combined_results = datastructure_generator()
         for annotation in self.annotations:
             if '...' in annotation:
                 continue
             annotation_file_path = self._annotations_path / annotation
             annotation_file = AnnotatedFile(annotation_file_path)
-            file_results = annotation_file.gather_data()
+            file_results = annotation_file.gather_data(bug_mapper)
             combined_results += file_results
         return combined_results
 
@@ -129,13 +137,20 @@ class AnnotatedBugDataset:
         except Exception as ex:
             print(f"Error in AnnotatedBugDataset for '{self._path}': {ex}")
 
-    def gather_data(self):
-        combined_results = PurposeCounterResults.default()
+    def gather_data(self, bug_mapper, datastructure_generator):
+        """
+        Gathers dataset data via processing each bug using AnnotatedBug class and provided functions
+
+        :param bug_mapper: function to map bug to datastructure
+        :param datastructure_generator: function to create empty datastructure to combine results
+        :return: combined datastructure with all bug data
+        """
+        combined_results = datastructure_generator()
         for bug_id in tqdm.tqdm(self.bugs):
             print(bug_id)
             bug_path = self._path / bug_id
             bug = AnnotatedBug(bug_path)
-            bug_results = bug.gather_data()
+            bug_results = bug.gather_data(bug_mapper, datastructure_generator)
             combined_results += bug_results
         return combined_results
 
@@ -164,7 +179,7 @@ def dataset(datasets: Annotated[
     for dataset in datasets:
         print(f"Dataset {dataset}")
         annotated_bugs = AnnotatedBugDataset(dataset)
-        data = annotated_bugs.gather_data()
+        data = annotated_bugs.gather_data(process_data, PurposeCounterResults.default)
         print(data)
 
 
