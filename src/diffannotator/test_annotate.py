@@ -220,7 +220,6 @@ def test_Bug_save(tmp_path: Path):
 
 def test_BugDataset():
     bugs = BugDataset('test_dataset_structured')
-    print(f"{bugs.bugs=}")
 
     assert len(bugs) >= 1, \
         "there is at least one bug in the dataset"
@@ -296,9 +295,9 @@ class TestCLexer:
             "numbers of lines matches with code"
 
         # NOTE: these tests *must* be updated it example_C_code changes
-        assert not actual[5], \
+        assert not actual[len(actual)-1], \
             "last line in example code is not a comment"
-        assert all([v for k, v in actual.items() if k != 5]), \
+        assert all([v for k, v in actual.items() if k != len(actual)-1]), \
             "all but last line in example code is a comment"
 
 # end of test_annotate.py
