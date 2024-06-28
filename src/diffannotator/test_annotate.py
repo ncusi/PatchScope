@@ -249,9 +249,56 @@ def test_line_callback_trivial():
         "correct file name is used in patch data"
     # - check type
     assert patch[changed_file_name]['-'][0]['type'] == line_type, \
-        f"removed line is marked as '{line_type}' by callback"
+        f"removed line is marked as '{line_type}' by lambda callback"
     assert patch[changed_file_name]['+'][0]['type'] == line_type, \
-        f"added line is marked as '{line_type}' by callback"
+        f"added line is marked as '{line_type}' by lambda callback"
+
+    # use exec
+    code_str = f"""return '{line_type}'"""
+    #print(f"{code_str=}")
+    #callback_x = lambda tokens: 'foo'
+    callback_code_str = ("def callback_x(tokens):\n" +
+        "  " + "\n  ".join(code_str.splitlines()) + "\n")
+    #print("callback code:")
+    #print(callback_code_str)
+    #print("-------------")
+    exec(callback_code_str, globals())
+    #print(f"{callback_x=}\n")
+    AnnotatedPatchedFile.line_callback = callback_x
+    patch = annotate_single_diff(file_path)
+
+    # - check type
+    assert patch[changed_file_name]['-'][0]['type'] == line_type, \
+        f"removed line is marked as '{line_type}' by self-contained exec callback"
+    assert patch[changed_file_name]['+'][0]['type'] == line_type, \
+        f"added line is marked as '{line_type}' by self-contained exec callback"
+
+    return
+
+    ## NOTE: for some reason the code below does not work
+    ## NameError: name 'callback_z' is not defined
+
+    # use exec with globals() and locals()
+    code_str = f"""return line_type"""
+    #callback_y = lambda tokens: 'foo'
+    callback_code_str = ("def callback_z(tokens):\n" +
+        "  " + "\n  ".join(code_str.splitlines()) + "\n")
+    print(f"{code_str=}")
+    print("callback code:")
+    print(callback_code_str)
+    print("-------------")
+    exec(callback_code_str, globals(), locals())
+    print(f"{callback_z=}\n")
+    AnnotatedPatchedFile.line_callback = callback_z
+    patch = annotate_single_diff(file_path)
+
+    #pprint(locals())
+
+    # - check type
+    assert patch[changed_file_name]['-'][0]['type'] == line_type, \
+        f"removed line is marked as '{line_type}' by capture-line exec callback"
+    assert patch[changed_file_name]['+'][0]['type'] == line_type, \
+        f"added line is marked as '{line_type}' by capture-like exec callback"
 
 
 def test_line_callback_whitespace():
