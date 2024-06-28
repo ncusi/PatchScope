@@ -210,6 +210,26 @@ class AnnotatedPatchedFile:
     # NOTE: similar signature to line_is_comment, but returning str
     line_callback: Optional[Callable[[Iterable[Tuple]], str]] = None
 
+    @staticmethod
+    def make_line_callback(code_str: str) -> Optional[Callable[[Iterable[Tuple]], str]]:
+        """Create line callback function from text of its body
+
+        Example of creating a no-op callback:
+        >>> AnnotatedPatchedFile.line_callback = AnnotatedPatchedFile.make_line_callback("return None")
+
+        :param code_str: text of the function body code
+        :return: callback function or None
+        """
+        if not code_str:
+            return None
+
+        callback_code_str = ("def _line_callback(tokens):\n" +
+                             "  " + "\n  ".join(code_str.splitlines()) + "\n")
+        # TODO?: wrap with try: ... except SyntaxError: ...
+        exec(callback_code_str, globals())
+        return _line_callback  # namespace['_line_callback']
+
+
     def __init__(self, patched_file: unidiff.PatchedFile):
         """Initialize AnnotatedPatchedFile with PatchedFile
 

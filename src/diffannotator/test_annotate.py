@@ -267,39 +267,6 @@ def test_line_callback_trivial():
     AnnotatedPatchedFile.line_callback = callback_x
     patch = annotate_single_diff(file_path)
 
-    # - check type
-    assert patch[changed_file_name]['-'][0]['type'] == line_type, \
-        f"removed line is marked as '{line_type}' by self-contained exec callback"
-    assert patch[changed_file_name]['+'][0]['type'] == line_type, \
-        f"added line is marked as '{line_type}' by self-contained exec callback"
-
-    return
-
-    ## NOTE: for some reason the code below does not work
-    ## NameError: name 'callback_z' is not defined
-
-    # use exec with globals() and locals()
-    code_str = f"""return line_type"""
-    #callback_y = lambda tokens: 'foo'
-    callback_code_str = ("def callback_z(tokens):\n" +
-        "  " + "\n  ".join(code_str.splitlines()) + "\n")
-    print(f"{code_str=}")
-    print("callback code:")
-    print(callback_code_str)
-    print("-------------")
-    exec(callback_code_str, globals(), locals())
-    print(f"{callback_z=}\n")
-    AnnotatedPatchedFile.line_callback = callback_z
-    patch = annotate_single_diff(file_path)
-
-    #pprint(locals())
-
-    # - check type
-    assert patch[changed_file_name]['-'][0]['type'] == line_type, \
-        f"removed line is marked as '{line_type}' by capture-line exec callback"
-    assert patch[changed_file_name]['+'][0]['type'] == line_type, \
-        f"added line is marked as '{line_type}' by capture-like exec callback"
-
 
 def test_line_callback_whitespace():
     # code patch
@@ -316,7 +283,6 @@ def test_line_callback_whitespace():
         else:
             return None
 
-
     AnnotatedPatchedFile.line_callback = detect_all_whitespace_line
     patch = annotate_single_diff(file_path)
 
@@ -331,6 +297,7 @@ def test_line_callback_whitespace():
     #          if key in {'id', 'purpose', 'type'}
     #         }
     #         for keyval in patch[changed_file_name]['+']])
+    # pprint(patch[changed_file_name]['+'])
 
     assert any([elem['type'] == 'whitespace'
                 for elem in patch[changed_file_name]['-']]), \
@@ -338,6 +305,31 @@ def test_line_callback_whitespace():
     assert any([elem['type'] == 'whitespace'
                 for elem in patch[changed_file_name]['+']]), \
         f"at least one whitespace only line in post-image of '{changed_file_name}'"
+
+    # define callback using string
+    callback_code = dedent("""\
+    # this could be written using ternary conditional operator
+    if len(tokens) == 1 and tokens[0][2] == '\\n':
+        return 'empty'
+    else:
+        return None
+    """)
+    AnnotatedPatchedFile.line_callback = \
+        AnnotatedPatchedFile.make_line_callback(callback_code)
+
+    assert AnnotatedPatchedFile.line_callback is not None, \
+        "successfully created the callback code from callback string"
+    # print(f"{AnnotatedPatchedFile.line_callback=}")
+
+    # annotate with the new callback
+    patch = annotate_single_diff(file_path)
+
+    assert any([elem['type'] == 'empty'
+                for elem in patch[changed_file_name]['-']]), \
+        f"at least one empty line in pre-image of '{changed_file_name}'"
+    assert any([elem['type'] == 'empty'
+                for elem in patch[changed_file_name]['+']]), \
+        f"at least one empty line in post-image of '{changed_file_name}'"
 
 
 class TestCLexer:
