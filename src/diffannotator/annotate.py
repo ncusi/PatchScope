@@ -208,6 +208,7 @@ class AnnotatedPatchedFile:
     Fixes some problems with `unidiff.PatchedFile`
     """
     # NOTE: similar signature to line_is_comment, but returning str
+    # TODO: store this type as TypeVar to avoid code duplication
     line_callback: Optional[Callable[[Iterable[Tuple]], str]] = None
 
     @staticmethod
@@ -227,8 +228,9 @@ class AnnotatedPatchedFile:
                              "  " + "\n  ".join(code_str.splitlines()) + "\n")
         # TODO?: wrap with try: ... except SyntaxError: ...
         exec(callback_code_str, globals())
-        return _line_callback  # namespace['_line_callback']
-
+        return locals().get('_line_callback',
+                            globals().get('_line_callback',
+                                          None))
 
     def __init__(self, patched_file: unidiff.PatchedFile):
         """Initialize AnnotatedPatchedFile with PatchedFile
