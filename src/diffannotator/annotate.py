@@ -8,12 +8,12 @@ from pathlib import Path
 import re
 from typing import List, Dict, Tuple, TypeVar, Optional
 from typing import Iterable, Generator, Callable  # should be imported from collections.abc
-from typing_extensions import Annotated
 
-import typer
 from pygments.token import Token
 import unidiff
 import tqdm
+import typer
+from typing_extensions import Annotated  # in typing since Python 3.9
 
 from languages import Languages
 from lexer import Lexer
