@@ -46,7 +46,7 @@ def test_annotate_patch_with_line_callback(tmp_path: Path):
     assert result.exit_code == 0, \
         "app runs 'patch' subcommand with a no-op line str callback without errors"
 
-    # callback as file
+    # callback as file, just body of function
     callback_path = Path('test_code_fragments/example_line_callback.py.body')
     result = runner.invoke(app, [
         f"--line-callback", f"{callback_path}",  # file with line callback
@@ -54,4 +54,14 @@ def test_annotate_patch_with_line_callback(tmp_path: Path):
     ])
 
     assert result.exit_code == 0, \
-        "app runs 'patch' subcommand with line callback from file without errors"
+        "app runs 'patch' subcommand with line callback from file defining body without errors"
+
+    # callback as file, full definition of function, starting at first line
+    callback_path = Path('test_code_fragments/example_line_callback_func.py')
+    result = runner.invoke(app, [
+        f"--line-callback", f"{callback_path}",  # file with line callback
+        "patch", f"{file_path}", f"{save_path}"
+    ])
+
+    assert result.exit_code == 0, \
+        "app runs 'patch' subcommand with line callback from file defining function without errors"

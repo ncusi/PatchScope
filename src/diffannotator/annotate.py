@@ -227,12 +227,27 @@ class AnnotatedPatchedFile:
         if not code_str:
             return None
 
-        callback_code_str = ("def _line_callback(tokens):\n" +
-                             "  " + "\n  ".join(code_str.splitlines()) + "\n")
+        match = re.match(pattern=r"def\s+(?P<func_name>\w+)"
+                                 r"\((?P<param>\w+)(?P<type_info>\s*:\s*[^)]*?)?\)"
+                                 r"\s*(?P<rtype_info>->\s*[^:]*?\s*)?:\s*$",
+                         string=code_str, flags=re.MULTILINE)
+        if match:
+            # TODO: replace commented out `print` with logging
+            #print(f"{match.groupdict()=}")
+
+            callback_name = match.group('func_name')
+            callback_code_str = code_str
+        else:
+            # TODO: replace commented out `print` with logging
+            #print(f"{code_str=}")
+
+            callback_name = "_line_callback"
+            callback_code_str = (f"def {callback_name}(tokens):\n" +
+                                 "  " + "\n  ".join(code_str.splitlines()) + "\n")
         # TODO?: wrap with try: ... except SyntaxError: ...
         exec(callback_code_str, globals())
-        return locals().get('_line_callback',
-                            globals().get('_line_callback',
+        return locals().get(callback_name,
+                            globals().get(callback_name,
                                           None))
 
     def __init__(self, patched_file: unidiff.PatchedFile):
