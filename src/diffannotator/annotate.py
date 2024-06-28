@@ -23,6 +23,9 @@ __version__ = "0.0.1"
 
 T = TypeVar('T')
 PathLike = TypeVar("PathLike", str, bytes, Path, os.PathLike)
+LineCallback = Callable[[Iterable[Tuple]], str]
+OptionalLineCallback = Optional[LineCallback]
+
 TRANSLATION_TABLE = str.maketrans("", "", "*/\\\t\n")
 
 LANGUAGES = Languages()
@@ -209,10 +212,10 @@ class AnnotatedPatchedFile:
     """
     # NOTE: similar signature to line_is_comment, but returning str
     # TODO: store this type as TypeVar to avoid code duplication
-    line_callback: Optional[Callable[[Iterable[Tuple]], str]] = None
+    line_callback: OptionalLineCallback = None
 
     @staticmethod
-    def make_line_callback(code_str: str) -> Optional[Callable[[Iterable[Tuple]], str]]:
+    def make_line_callback(code_str: str) -> OptionalLineCallback:
         """Create line callback function from text of its body
 
         Example of creating a no-op callback:
@@ -552,7 +555,7 @@ def purpose_to_annotation_callback(values: Optional[List[str]]):
     return values
 
 
-def parse_line_callback(code_str: Optional[str]) -> Optional[Callable[[Iterable[Tuple]], str]]:
+def parse_line_callback(code_str: Optional[str]) -> Optional[LineCallback]:
     if code_str is None:
         return None
 
