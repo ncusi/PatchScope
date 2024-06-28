@@ -524,7 +524,7 @@ def version_callback(value: bool):
         raise typer.Exit()
 
 
-def parse_purpose_to_annotation(values: List[str]):
+def purpose_to_annotation_callback(values: Optional[List[str]]):
     """Update purpose to annotation mapping with '<key>:<value>'s
 
     If there is no ':' (colon) separating key from value, add
@@ -535,6 +535,9 @@ def parse_purpose_to_annotation(values: List[str]):
 
     :param values: list of values to parse
     """
+    if values is None:
+        return []
+
     for colon_separated_pair in values:
         if not colon_separated_pair:
             AnnotatedHunk.PURPOSE_TO_ANNOTATION = {}
@@ -565,7 +568,7 @@ def common(
             # uses callback instead of parser because of
             # AssertionError: List types with complex sub-types are not currently supported
             # see https://github.com/tiangolo/typer/issues/387
-            callback=parse_purpose_to_annotation,
+            callback=purpose_to_annotation_callback,
         )
     ] = None,
 ):
