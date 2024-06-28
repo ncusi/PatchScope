@@ -7,7 +7,7 @@ import os
 from pathlib import Path
 import re
 from typing import List, Dict, Tuple, TypeVar, Optional
-from typing import Iterable, Generator  # should be imported from collections.abc
+from typing import Iterable, Generator, Callable  # should be imported from collections.abc
 from typing_extensions import Annotated
 
 import typer
@@ -207,6 +207,9 @@ class AnnotatedPatchedFile:
 
     Fixes some problems with `unidiff.PatchedFile`
     """
+    # NOTE: similar signature to line_is_comment, but returning str
+    line_callback: Optional[Callable[[Iterable[Tuple]], str]] = None
+
     def __init__(self, patched_file: unidiff.PatchedFile):
         """Initialize AnnotatedPatchedFile with PatchedFile
 
@@ -326,7 +329,12 @@ class AnnotatedHunk:
 
             for i, line_tokens in tokens_group.items():
                 line_info = line_data[i]
-                line_annotation = 'documentation' if line_is_comment(line_tokens) else 'code'
+
+                line_annotation: Optional[str] = None
+                if AnnotatedPatchedFile.line_callback is not None:
+                    line_annotation = AnnotatedPatchedFile.line_callback(line_tokens)
+                if line_annotation is None:
+                    line_annotation = 'documentation' if line_is_comment(line_tokens) else 'code'
 
                 self.add_line_annotation(
                     line_no=line_info['hunk_line_no'],

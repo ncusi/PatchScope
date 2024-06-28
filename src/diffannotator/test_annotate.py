@@ -4,13 +4,14 @@ from pprint import pprint
 from textwrap import dedent
 
 from pygments.lexers import CLexer
+from pygments.token import Token
 import pytest
 import unidiff
 
 from annotate import (split_multiline_lex_tokens, line_ends_idx,
                       group_tokens_by_line, front_fill_gaps, deep_update,
                       clean_text, line_is_comment, annotate_single_diff,
-                      Bug, BugDataset)
+                      Bug, BugDataset, AnnotatedPatchedFile)
 
 
 # Example code to be tokenized
@@ -231,6 +232,65 @@ def test_BugDataset():
     bug = bugs.get_bug('keras-10')
     assert isinstance(bug, Bug), \
         "get_bug() method returns Bug object"
+
+
+def test_line_callback_trivial():
+    # code patch
+    file_path = Path('test_dataset/tqdm-1/c0dcf39b046d1b4ff6de14ac99ad9a1b10487512.diff')
+
+    # trivial callback
+    line_type = "any"
+    AnnotatedPatchedFile.line_callback = lambda tokens: line_type
+    patch = annotate_single_diff(file_path)
+
+    # - check file
+    changed_file_name = 'tqdm/contrib/__init__.py'
+    assert changed_file_name in patch, \
+        "correct file name is used in patch data"
+    # - check type
+    assert patch[changed_file_name]['-'][0]['type'] == line_type, \
+        f"removed line is marked as '{line_type}' by callback"
+    assert patch[changed_file_name]['+'][0]['type'] == line_type, \
+        f"added line is marked as '{line_type}' by callback"
+
+
+def test_line_callback_whitespace():
+    # code patch
+    file_path = Path('test_dataset_structured/keras-10/patches/c1c4afe60b1355a6c0e83577791a0423f37a3324.diff')
+
+    # complex callback, untyped
+    def detect_all_whitespace_line(tokens):
+        if len(tokens) == 0:
+            return "empty"
+        elif all([token_type in Token.Text.Whitespace or
+                  token_type in Token.Text and text_fragment.isspace()
+                  for _, token_type, text_fragment in tokens]):
+            return "whitespace"
+        else:
+            return None
+
+
+    AnnotatedPatchedFile.line_callback = detect_all_whitespace_line
+    patch = annotate_single_diff(file_path)
+
+    changed_file_name = 'keras/engine/training_utils.py'
+    assert changed_file_name in patch, \
+            f"there is '{changed_file_name}' file used in patch data"
+
+    # # DEBUG
+    # pprint([{
+    #          key: val
+    #          for key, val in keyval.items()
+    #          if key in {'id', 'purpose', 'type'}
+    #         }
+    #         for keyval in patch[changed_file_name]['+']])
+
+    assert any([elem['type'] == 'whitespace'
+                for elem in patch[changed_file_name]['-']]), \
+        f"at least one whitespace only line in pre-image of '{changed_file_name}'"
+    assert any([elem['type'] == 'whitespace'
+                for elem in patch[changed_file_name]['+']]), \
+        f"at least one whitespace only line in post-image of '{changed_file_name}'"
 
 
 class TestCLexer:
