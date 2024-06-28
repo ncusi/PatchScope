@@ -552,6 +552,45 @@ def purpose_to_annotation_callback(values: Optional[List[str]]):
     return values
 
 
+def parse_line_callback(code_str: Optional[str]) -> Optional[Callable[[Iterable[Tuple]], str]]:
+    if code_str is None:
+        return None
+
+    # code_str might be the name of the file with the code
+    maybe_path: Optional[Path] = Path(code_str)
+    try:
+        if maybe_path.is_file():
+            code_str = maybe_path.read_text(encoding='utf-8')
+        else:
+            maybe_path = None
+    except OSError:
+        # there was an error trying to open file, perhaps invalid pathname
+        maybe_path = None
+
+    # code_str now contains the code as a string
+    # maybe_path is not None only if code_str was retrieved from file
+
+    # sanity check
+    if 'return ' not in code_str:
+        print("Error: there is no 'return' statement in --line-callback value")
+        if maybe_path is not None:
+            print(f"retrieved from '{maybe_path}' file")
+        print(code_str)
+        raise typer.Exit(code=1)
+
+    try:
+        line_callback = AnnotatedPatchedFile.make_line_callback(code_str)
+    except SyntaxError as err:
+        print("Error: there was syntax error in --line-callback value")
+        if maybe_path is not None:
+            print(f"retrieved from '{maybe_path}' file")
+        print(code_str)
+
+        raise err
+
+    return line_callback
+
+
 # implementing options common to all subcommands
 @app.callback()
 def common(
@@ -573,6 +612,15 @@ def common(
             callback=purpose_to_annotation_callback,
         )
     ] = None,
+    line_callback: Annotated[
+        Optional[Callable[[Iterable[Tuple]], str]],
+        typer.Option(
+            help="Body for `line_callback(tokens)` callback function." + \
+                 "  See documentation and examples.",
+            metavar="CALLBACK",  # or "CODE|FILE"
+            parser=parse_line_callback
+        )
+    ] = None
 ):
     # if anything is printed by this function, it needs to utilize context
     # to not break installed shell completion for the command
@@ -583,6 +631,8 @@ def common(
         print("Using modified mapping from file purpose to line annotation:")
         for key, val in AnnotatedHunk.PURPOSE_TO_ANNOTATION.items():
             print(f"\t{key}\t=>\t{val}")
+    if line_callback is not None:
+        AnnotatedPatchedFile.line_callback = line_callback
 
 
 @app.command()

@@ -31,3 +31,27 @@ def test_annotate_dataset(tmp_path: Path):
         "app runs 'dataset' subcommand without errors"
     assert f"{dataset_dir}" in result.stdout, \
         "app prints about processing the dataset"
+
+
+def test_annotate_patch_with_line_callback(tmp_path: Path):
+    file_path = Path('test_dataset/tqdm-1/c0dcf39b046d1b4ff6de14ac99ad9a1b10487512.diff')
+    save_path = tmp_path.joinpath(file_path).with_suffix('.json')
+
+    # callback as string
+    result = runner.invoke(app, [
+        "--line-callback='return None'",  # no-op line callback
+        "patch", f"{file_path}", f"{save_path}"
+    ])
+
+    assert result.exit_code == 0, \
+        "app runs 'patch' subcommand with a no-op line str callback without errors"
+
+    # callback as file
+    callback_path = Path('test_code_fragments/example_line_callback.py.body')
+    result = runner.invoke(app, [
+        f"--line-callback", f"{callback_path}",  # file with line callback
+        "patch", f"{file_path}", f"{save_path}"
+    ])
+
+    assert result.exit_code == 0, \
+        "app runs 'patch' subcommand with line callback from file without errors"
