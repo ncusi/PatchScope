@@ -26,6 +26,8 @@ PathLike = TypeVar("PathLike", str, bytes, Path, os.PathLike)
 LineCallback = Callable[[Iterable[Tuple]], str]
 OptionalLineCallback = Optional[LineCallback]
 
+PURPOSE_TO_ANNOTATION = {"documentation": "documentation"}
+"""Defines when purpose of the file is propagated to line annotation, without parsing"""
 TRANSLATION_TABLE = str.maketrans("", "", "*/\\\t\n")
 
 LANGUAGES = Languages()
@@ -306,10 +308,6 @@ class AnnotatedHunk:
     Note that major part of the annotation process is performed on demand,
     during the `process()` method call.
     """
-    # TODO: move to a global variable (so that one does not need to remember where it is defined)
-    PURPOSE_TO_ANNOTATION = {"documentation": "documentation"}
-    """Defines when purpose of the file is propagated to line annotation, without parsing"""
-
     def __init__(self, patched_file: AnnotatedPatchedFile, hunk: unidiff.Hunk):
         """Initialize AnnotatedHunk with AnnotatedPatchedFile and Hunk
 
@@ -336,13 +334,13 @@ class AnnotatedHunk:
 
         file_purpose = self.patched_file.patch_data[file_path]["purpose"]
 
-        if file_purpose in self.PURPOSE_TO_ANNOTATION.values():
+        if file_purpose in PURPOSE_TO_ANNOTATION:
             for line_idx, line in enumerate(self.hunk):
                 self.add_line_annotation(line_idx,
                                          self.patched_file.source_file,
                                          self.patched_file.target_file,
                                          line.line_type,
-                                         self.PURPOSE_TO_ANNOTATION[file_purpose],
+                                         PURPOSE_TO_ANNOTATION[file_purpose],
                                          file_purpose,
                                          [(0, Token.Text, line.value), ])
 
@@ -555,17 +553,20 @@ def purpose_to_annotation_callback(values: Optional[List[str]]):
 
     :param values: list of values to parse
     """
+    global PURPOSE_TO_ANNOTATION
+
     if values is None:
         return []
 
+    # TODO: add logging
     for colon_separated_pair in values:
-        if not colon_separated_pair:
-            AnnotatedHunk.PURPOSE_TO_ANNOTATION = {}
+        if not colon_separated_pair or colon_separated_pair in {'""', "''"}:
+            PURPOSE_TO_ANNOTATION = {}
         elif ':' in colon_separated_pair:
             key, val = colon_separated_pair.split(sep=':', maxsplit=1)
-            AnnotatedHunk.PURPOSE_TO_ANNOTATION[key] = val
+            PURPOSE_TO_ANNOTATION[key] = val
         else:
-            AnnotatedHunk.PURPOSE_TO_ANNOTATION[colon_separated_pair] = colon_separated_pair
+            PURPOSE_TO_ANNOTATION[colon_separated_pair] = colon_separated_pair
 
     return values
 
@@ -647,7 +648,7 @@ def common(
         return
     if purpose_to_annotation is not None:
         print("Using modified mapping from file purpose to line annotation:")
-        for key, val in AnnotatedHunk.PURPOSE_TO_ANNOTATION.items():
+        for key, val in PURPOSE_TO_ANNOTATION.items():
             print(f"\t{key}\t=>\t{val}")
     if line_callback is not None:
         AnnotatedPatchedFile.line_callback = line_callback
