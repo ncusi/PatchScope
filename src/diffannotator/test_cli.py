@@ -39,12 +39,15 @@ def test_annotate_patch_with_line_callback(tmp_path: Path):
 
     # callback as string
     result = runner.invoke(app, [
-        "--line-callback='return None'",  # no-op line callback
+        "--line-callback", "return None",  # no-op line callback
         "patch", f"{file_path}", f"{save_path}"
     ])
 
     assert result.exit_code == 0, \
         "app runs 'patch' subcommand with a no-op line str callback without errors"
+    # NOTE: this check is performed only once
+    assert "custom line callback" in result.stdout, \
+        "app mentions that there was custom line callback"
 
     # callback as file, just body of function
     callback_path = Path('test_code_fragments/example_line_callback.py.body')

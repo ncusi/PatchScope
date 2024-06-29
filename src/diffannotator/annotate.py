@@ -651,6 +651,7 @@ def common(
         for key, val in PURPOSE_TO_ANNOTATION.items():
             print(f"\t{key}\t=>\t{val}")
     if line_callback is not None:
+        print("Using custom line callback to perform line annotation")
         AnnotatedPatchedFile.line_callback = line_callback
 
 
