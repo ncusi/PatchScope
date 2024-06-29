@@ -31,6 +31,8 @@
     - [ ] configure output format (and what to output)
     - [ ] _maybe_ configuration options
     - [ ] _maybe_ configuration callbacks (in Python), like in [git-filter-repo][]
+        - [x] `AnnotatedPatchedFile.line_callback` static field
+        - [x] global option `--line-callback` in [`annotate.py`](annotate.py) script
     - [ ] _maybe_ generate skeleton, like a framework, like in [Scrapy][scrapy]
     - [ ] _maybe_ provide an API to generate processing pipeline, like in [SciKit-Learn][sklearn]
 
