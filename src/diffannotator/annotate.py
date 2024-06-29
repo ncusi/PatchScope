@@ -6,6 +6,7 @@ import json
 import os
 from pathlib import Path
 import re
+import traceback
 from typing import List, Dict, Tuple, TypeVar, Optional
 from typing import Iterable, Generator, Callable  # should be imported from collections.abc
 
@@ -408,21 +409,27 @@ def annotate_single_diff(diff_path: PathLike) -> dict:
     :param diff_path: patch filename
     :return: annotation data
     """
-    patch = {}
+    patch_annotations = {}
 
     # PatchSet.from_filename(diff_path, encoding="utf-8")
     with Path(diff_path).open(mode="r", encoding="utf-8") as diff_f:
         try:
             patch_set = unidiff.PatchSet(diff_f)
-            for i, patched_file in enumerate(patch_set, start=1):
-                annotated_patch_file = AnnotatedPatchedFile(patched_file)
-                patch.update(annotated_patch_file.process())
-
         except Exception as ex:
-            print(f"Error parsing patch file '{diff_path}': {ex}")
+            print(f"Error parsing patch file '{diff_path}': {ex!r}")
             # raise ex
 
-    return patch
+    try:
+        for i, patched_file in enumerate(patch_set, start=1):
+            annotated_patch_file = AnnotatedPatchedFile(patched_file)
+            patch_annotations.update(annotated_patch_file.process())
+
+    except Exception as ex:
+        print(f"Error processing patch file '{diff_path}': {ex!r}")
+        traceback.print_tb(ex.__traceback__)
+        # raise ex
+
+    return patch_annotations
 
 
 class Bug:
