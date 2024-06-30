@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import Dict, Tuple, Iterable
 
 import pygments
+from pygments.lexer import Lexer as PygmentsLexer
 from pygments import lexers, util
 
 
@@ -14,9 +15,9 @@ class Lexer(object):
 
     def __init__(self):
         """Construct the Lexer object, creating the holder for lexers"""
-        self.lexers: Dict[str, pygments.lexer.Lexer] = {}
+        self.lexers: Dict[str, PygmentsLexer] = {}
 
-    def get_lexer(self, filename: str) -> pygments.lexer.Lexer:
+    def get_lexer(self, filename: str) -> PygmentsLexer:
         """Get lexer suitable for file with given path
 
         :param filename: path to a file inside repository

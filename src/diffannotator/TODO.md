@@ -21,14 +21,19 @@
     - [ ] parse whole pre-image and post-image files
           (via Git, or via GitHub / GitLab / ...)
     - [ ] configurable file type
+        - [x] global option `--ext-to-language` (the API it uses already existed)
     - [ ] support [.gitattributes overrides of GitHub Linguist][2]
-    - [x] configurable line annotation based on file type
+    - [x] configurable line annotation based on file ~~type~~ purpose
+        - [x] `PURPOSE_TO_ANNOTATION` global variable
+        - [x] global option `--purpose-to-annotation` in [`annotate.py`](annotate.py) script
     - [ ] configurable line annotation based on tokens
     - [ ] configuration file (*.toml, *.yaml, *.json, *.ini, *.cfg, or *.py)
     - [ ] documentation on how to use API, and change behavior
     - [ ] configure output format (and what to output)
     - [ ] _maybe_ configuration options
     - [ ] _maybe_ configuration callbacks (in Python), like in [git-filter-repo][]
+        - [x] `AnnotatedPatchedFile.line_callback` static field
+        - [x] global option `--line-callback` in [`annotate.py`](annotate.py) script
     - [ ] _maybe_ generate skeleton, like a framework, like in [Scrapy][scrapy]
     - [ ] _maybe_ provide an API to generate processing pipeline, like in [SciKit-Learn][sklearn]
 

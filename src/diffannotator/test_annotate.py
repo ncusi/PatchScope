@@ -4,13 +4,14 @@ from pprint import pprint
 from textwrap import dedent
 
 from pygments.lexers import CLexer
+from pygments.token import Token
 import pytest
 import unidiff
 
 from annotate import (split_multiline_lex_tokens, line_ends_idx,
                       group_tokens_by_line, front_fill_gaps, deep_update,
                       clean_text, line_is_comment, annotate_single_diff,
-                      Bug, BugDataset)
+                      Bug, BugDataset, AnnotatedPatchedFile)
 
 
 # Example code to be tokenized
@@ -220,7 +221,6 @@ def test_Bug_save(tmp_path: Path):
 
 def test_BugDataset():
     bugs = BugDataset('test_dataset_structured')
-    print(f"{bugs.bugs=}")
 
     assert len(bugs) >= 1, \
         "there is at least one bug in the dataset"
@@ -232,6 +232,104 @@ def test_BugDataset():
     bug = bugs.get_bug('keras-10')
     assert isinstance(bug, Bug), \
         "get_bug() method returns Bug object"
+
+
+def test_line_callback_trivial():
+    # code patch
+    file_path = Path('test_dataset/tqdm-1/c0dcf39b046d1b4ff6de14ac99ad9a1b10487512.diff')
+
+    # trivial callback
+    line_type = "any"
+    AnnotatedPatchedFile.line_callback = lambda tokens: line_type
+    patch = annotate_single_diff(file_path)
+
+    # - check file
+    changed_file_name = 'tqdm/contrib/__init__.py'
+    assert changed_file_name in patch, \
+        "correct file name is used in patch data"
+    # - check type
+    assert patch[changed_file_name]['-'][0]['type'] == line_type, \
+        f"removed line is marked as '{line_type}' by lambda callback"
+    assert patch[changed_file_name]['+'][0]['type'] == line_type, \
+        f"added line is marked as '{line_type}' by lambda callback"
+
+    # use exec
+    code_str = f"""return '{line_type}'"""
+    #print(f"{code_str=}")
+    #callback_x = lambda tokens: 'foo'
+    callback_code_str = ("def callback_x(tokens):\n" +
+        "  " + "\n  ".join(code_str.splitlines()) + "\n")
+    #print("callback code:")
+    #print(callback_code_str)
+    #print("-------------")
+    exec(callback_code_str, globals())
+    #print(f"{callback_x=}\n")
+    AnnotatedPatchedFile.line_callback = callback_x
+    patch = annotate_single_diff(file_path)
+
+
+def test_line_callback_whitespace():
+    # code patch
+    file_path = Path('test_dataset_structured/keras-10/patches/c1c4afe60b1355a6c0e83577791a0423f37a3324.diff')
+
+    # complex callback, untyped
+    def detect_all_whitespace_line(tokens):
+        if len(tokens) == 0:
+            return "empty"
+        elif all([token_type in Token.Text.Whitespace or
+                  token_type in Token.Text and text_fragment.isspace()
+                  for _, token_type, text_fragment in tokens]):
+            return "whitespace"
+        else:
+            return None
+
+    AnnotatedPatchedFile.line_callback = detect_all_whitespace_line
+    patch = annotate_single_diff(file_path)
+
+    changed_file_name = 'keras/engine/training_utils.py'
+    assert changed_file_name in patch, \
+            f"there is '{changed_file_name}' file used in patch data"
+
+    # # DEBUG
+    # pprint([{
+    #          key: val
+    #          for key, val in keyval.items()
+    #          if key in {'id', 'purpose', 'type'}
+    #         }
+    #         for keyval in patch[changed_file_name]['+']])
+    # pprint(patch[changed_file_name]['+'])
+
+    assert any([elem['type'] == 'whitespace'
+                for elem in patch[changed_file_name]['-']]), \
+        f"at least one whitespace only line in pre-image of '{changed_file_name}'"
+    assert any([elem['type'] == 'whitespace'
+                for elem in patch[changed_file_name]['+']]), \
+        f"at least one whitespace only line in post-image of '{changed_file_name}'"
+
+    # define callback using string
+    callback_code = dedent("""\
+    # this could be written using ternary conditional operator
+    if len(tokens) == 1 and tokens[0][2] == '\\n':
+        return 'empty'
+    else:
+        return None
+    """)
+    AnnotatedPatchedFile.line_callback = \
+        AnnotatedPatchedFile.make_line_callback(callback_code)
+
+    assert AnnotatedPatchedFile.line_callback is not None, \
+        "successfully created the callback code from callback string"
+    # print(f"{AnnotatedPatchedFile.line_callback=}")
+
+    # annotate with the new callback
+    patch = annotate_single_diff(file_path)
+
+    assert any([elem['type'] == 'empty'
+                for elem in patch[changed_file_name]['-']]), \
+        f"at least one empty line in pre-image of '{changed_file_name}'"
+    assert any([elem['type'] == 'empty'
+                for elem in patch[changed_file_name]['+']]), \
+        f"at least one empty line in post-image of '{changed_file_name}'"
 
 
 class TestCLexer:
@@ -296,9 +394,9 @@ class TestCLexer:
             "numbers of lines matches with code"
 
         # NOTE: these tests *must* be updated it example_C_code changes
-        assert not actual[5], \
+        assert not actual[len(actual)-1], \
             "last line in example code is not a comment"
-        assert all([v for k, v in actual.items() if k != 5]), \
+        assert all([v for k, v in actual.items() if k != len(actual)-1]), \
             "all but last line in example code is a comment"
 
 # end of test_annotate.py

@@ -3,3 +3,4 @@ pygments==2.18.0
 pyyaml==6.0.1
 unidiff==0.7.5
 tqdm==4.66.4
+typing-extensions==4.12.2

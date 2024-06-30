@@ -6,16 +6,17 @@ import json
 import os
 from pathlib import Path
 import re
+import traceback
 from typing import List, Dict, Tuple, TypeVar, Optional
-from typing import Iterable, Generator  # should be imported from collections.abc
-from typing_extensions import Annotated
+from typing import Iterable, Generator, Callable  # should be imported from collections.abc
 
-import typer
 from pygments.token import Token
 import unidiff
 import tqdm
+import typer
+from typing_extensions import Annotated  # in typing since Python 3.9
 
-from languages import Languages
+from languages import Languages, FORCE_SIMPLIFY
 from lexer import Lexer
 
 
@@ -23,6 +24,11 @@ __version__ = "0.0.1"
 
 T = TypeVar('T')
 PathLike = TypeVar("PathLike", str, bytes, Path, os.PathLike)
+LineCallback = Callable[[Iterable[Tuple]], str]
+OptionalLineCallback = Optional[LineCallback]
+
+PURPOSE_TO_ANNOTATION = {"documentation": "documentation"}
+"""Defines when purpose of the file is propagated to line annotation, without parsing"""
 TRANSLATION_TABLE = str.maketrans("", "", "*/\\\t\n")
 
 LANGUAGES = Languages()
@@ -207,6 +213,46 @@ class AnnotatedPatchedFile:
 
     Fixes some problems with `unidiff.PatchedFile`
     """
+    # NOTE: similar signature to line_is_comment, but returning str
+    # TODO: store this type as TypeVar to avoid code duplication
+    line_callback: OptionalLineCallback = None
+
+    @staticmethod
+    def make_line_callback(code_str: str) -> OptionalLineCallback:
+        """Create line callback function from text of its body
+
+        Example of creating a no-op callback:
+        >>> AnnotatedPatchedFile.line_callback = AnnotatedPatchedFile.make_line_callback("return None")
+
+        :param code_str: text of the function body code
+        :return: callback function or None
+        """
+        if not code_str:
+            return None
+
+        match = re.match(pattern=r"def\s+(?P<func_name>\w+)"
+                                 r"\((?P<param>\w+)(?P<type_info>\s*:\s*[^)]*?)?\)"
+                                 r"\s*(?P<rtype_info>->\s*[^:]*?\s*)?:\s*$",
+                         string=code_str, flags=re.MULTILINE)
+        if match:
+            # TODO: replace commented out `print` with logging
+            #print(f"{match.groupdict()=}")
+
+            callback_name = match.group('func_name')
+            callback_code_str = code_str
+        else:
+            # TODO: replace commented out `print` with logging
+            #print(f"{code_str=}")
+
+            callback_name = "_line_callback"
+            callback_code_str = (f"def {callback_name}(tokens):\n" +
+                                 "  " + "\n  ".join(code_str.splitlines()) + "\n")
+        # TODO?: wrap with try: ... except SyntaxError: ...
+        exec(callback_code_str, globals())
+        return locals().get(callback_name,
+                            globals().get(callback_name,
+                                          None))
+
     def __init__(self, patched_file: unidiff.PatchedFile):
         """Initialize AnnotatedPatchedFile with PatchedFile
 
@@ -263,10 +309,6 @@ class AnnotatedHunk:
     Note that major part of the annotation process is performed on demand,
     during the `process()` method call.
     """
-
-    PURPOSE_TO_ANNOTATION = {"documentation": "documentation"}
-    """Defines when purpose of the file is propagated to line annotation, without parsing"""
-
     def __init__(self, patched_file: AnnotatedPatchedFile, hunk: unidiff.Hunk):
         """Initialize AnnotatedHunk with AnnotatedPatchedFile and Hunk
 
@@ -293,13 +335,13 @@ class AnnotatedHunk:
 
         file_purpose = self.patched_file.patch_data[file_path]["purpose"]
 
-        if file_purpose in self.PURPOSE_TO_ANNOTATION.values():
+        if file_purpose in PURPOSE_TO_ANNOTATION:
             for line_idx, line in enumerate(self.hunk):
                 self.add_line_annotation(line_idx,
                                          self.patched_file.source_file,
                                          self.patched_file.target_file,
                                          line.line_type,
-                                         self.PURPOSE_TO_ANNOTATION[file_purpose],
+                                         PURPOSE_TO_ANNOTATION[file_purpose],
                                          file_purpose,
                                          [(0, Token.Text, line.value), ])
 
@@ -326,7 +368,12 @@ class AnnotatedHunk:
 
             for i, line_tokens in tokens_group.items():
                 line_info = line_data[i]
-                line_annotation = 'documentation' if line_is_comment(line_tokens) else 'code'
+
+                line_annotation: Optional[str] = None
+                if AnnotatedPatchedFile.line_callback is not None:
+                    line_annotation = AnnotatedPatchedFile.line_callback(line_tokens)
+                if line_annotation is None:
+                    line_annotation = 'documentation' if line_is_comment(line_tokens) else 'code'
 
                 self.add_line_annotation(
                     line_no=line_info['hunk_line_no'],
@@ -362,21 +409,27 @@ def annotate_single_diff(diff_path: PathLike) -> dict:
     :param diff_path: patch filename
     :return: annotation data
     """
-    patch = {}
+    patch_annotations = {}
 
     # PatchSet.from_filename(diff_path, encoding="utf-8")
     with Path(diff_path).open(mode="r", encoding="utf-8") as diff_f:
         try:
             patch_set = unidiff.PatchSet(diff_f)
-            for i, patched_file in enumerate(patch_set, start=1):
-                annotated_patch_file = AnnotatedPatchedFile(patched_file)
-                patch.update(annotated_patch_file.process())
-
         except Exception as ex:
-            print(f"Error parsing patch file '{diff_path}': {ex}")
+            print(f"Error parsing patch file '{diff_path}': {ex!r}")
             # raise ex
 
-    return patch
+    try:
+        for i, patched_file in enumerate(patch_set, start=1):
+            annotated_patch_file = AnnotatedPatchedFile(patched_file)
+            patch_annotations.update(annotated_patch_file.process())
+
+    except Exception as ex:
+        print(f"Error processing patch file '{diff_path}': {ex!r}")
+        traceback.print_tb(ex.__traceback__)
+        # raise ex
+
+    return patch_annotations
 
 
 class Bug:
@@ -496,6 +549,106 @@ def version_callback(value: bool):
         raise typer.Exit()
 
 
+def purpose_to_annotation_callback(values: Optional[List[str]]):
+    """Update purpose to annotation mapping with '<key>:<value>'s
+
+    If there is no ':' (colon) separating key from value, add
+    the original both as key and as value.  This means that
+    using '<value>' adds {<value>: <value>} mapping.
+
+    On empty string it resets the whole mapping.
+
+    :param values: list of values to parse
+    """
+    global PURPOSE_TO_ANNOTATION
+
+    if values is None:
+        return []
+
+    # TODO: add logging
+    for colon_separated_pair in values:
+        if not colon_separated_pair or colon_separated_pair in {'""', "''"}:
+            PURPOSE_TO_ANNOTATION = {}
+        elif ':' in colon_separated_pair:
+            key, val = colon_separated_pair.split(sep=':', maxsplit=1)
+            PURPOSE_TO_ANNOTATION[key] = val
+        else:
+            PURPOSE_TO_ANNOTATION[colon_separated_pair] = colon_separated_pair
+
+    return values
+
+
+# TODO: reduce code duplication
+def extension_to_language_callback(values: Optional[List[str]]):
+    """Update extension to language mapping with '<key>:<value>'s
+
+    If there is no ':' (colon) separating key from value,
+    it ignores the value.
+
+    On empty string it resets the whole mapping.
+
+    :param values: list of values to parse
+    """
+    global FORCE_SIMPLIFY  # imported from the 'languages' module
+
+    if values is None:
+        return []
+
+    # TODO: add logging
+    for colon_separated_pair in values:
+        if not colon_separated_pair or colon_separated_pair in {'""', "''"}:
+            FORCE_SIMPLIFY = {}
+        elif ':' in colon_separated_pair:
+            key, val = colon_separated_pair.split(sep=':', maxsplit=1)
+            if not key[0] == '.':
+                key = f".{key}"
+            FORCE_SIMPLIFY[key] = [val]
+        else:
+            # TODO: use logging
+            print(f"Warning: --force-simplify={colon_separated_pair} ignored")
+
+    return values
+
+
+def parse_line_callback(code_str: Optional[str]) -> Optional[LineCallback]:
+    if code_str is None:
+        return None
+
+    # code_str might be the name of the file with the code
+    maybe_path: Optional[Path] = Path(code_str)
+    try:
+        if maybe_path.is_file():
+            code_str = maybe_path.read_text(encoding='utf-8')
+        else:
+            maybe_path = None
+    except OSError:
+        # there was an error trying to open file, perhaps invalid pathname
+        maybe_path = None
+
+    # code_str now contains the code as a string
+    # maybe_path is not None only if code_str was retrieved from file
+
+    # sanity check
+    if 'return ' not in code_str:
+        print("Error: there is no 'return' statement in --line-callback value")
+        if maybe_path is not None:
+            print(f"retrieved from '{maybe_path}' file")
+        print(code_str)
+        raise typer.Exit(code=1)
+
+    try:
+        line_callback = AnnotatedPatchedFile.make_line_callback(code_str)
+    except SyntaxError as err:
+        print("Error: there was syntax error in --line-callback value")
+        if maybe_path is not None:
+            print(f"retrieved from '{maybe_path}' file")
+        print(code_str)
+
+        raise err
+
+    return line_callback
+
+
 # implementing options common to all subcommands
 @app.callback()
 def common(
@@ -506,8 +659,58 @@ def common(
                      help="Output version information and exit.",
                      callback=version_callback)
     ] = False,
+    ext_to_language: Annotated[
+        Optional[List[str]],
+        typer.Option(
+            help="Mapping from extension to file language. Empty value resets mapping.",
+            metavar="EXT:LANGUAGE",
+            # uses callback instead of parser because of
+            # AssertionError: List types with complex sub-types are not currently supported
+            # see https://github.com/tiangolo/typer/issues/387
+            callback=extension_to_language_callback,
+        )
+    ] = None,
+    purpose_to_annotation: Annotated[
+        Optional[List[str]],
+        typer.Option(
+            help="Mapping from file purpose to line annotation. Empty value resets mapping.",
+            metavar="PURPOSE:ANNOTATION",
+            # uses callback instead of parser because of
+            # AssertionError: List types with complex sub-types are not currently supported
+            # see https://github.com/tiangolo/typer/issues/387
+            callback=purpose_to_annotation_callback,
+        )
+    ] = None,
+    line_callback: Annotated[
+        Optional[Callable[[Iterable[Tuple]], str]],
+        typer.Option(
+            help="Body for `line_callback(tokens)` callback function." + \
+                 "  See documentation and examples.",
+            metavar="CALLBACK",  # or "CODE|FILE"
+            parser=parse_line_callback
+        )
+    ] = None
 ):
-    pass
+    # if anything is printed by this function, it needs to utilize context
+    # to not break installed shell completion for the command
+    # see https://typer.tiangolo.com/tutorial/options/callback-and-context/#fix-completion-using-the-context
+    if ctx.resilient_parsing:
+        return
+
+    if ext_to_language is not None:
+        print("Using modified mapping from file extension to programming language:")
+        for key, val in FORCE_SIMPLIFY.items():
+            if len(val) == 1:
+                print(f"\t{key} is {val[0]}")
+            else:
+                print(f"\t{key} is {val}")
+    if purpose_to_annotation is not None:
+        print("Using modified mapping from file purpose to line annotation:")
+        for key, val in PURPOSE_TO_ANNOTATION.items():
+            print(f"\t{key}\t=>\t{val}")
+    if line_callback is not None:
+        print("Using custom line callback to perform line annotation")
+        AnnotatedPatchedFile.line_callback = line_callback
 
 
 @app.command()
