@@ -21,6 +21,7 @@
     - [ ] parse whole pre-image and post-image files
           (via Git, or via GitHub / GitLab / ...)
     - [ ] configurable file type
+        - [x] global option `--ext-to-language` (the API it uses already existed)
     - [ ] support [.gitattributes overrides of GitHub Linguist][2]
     - [x] configurable line annotation based on file ~~type~~ purpose
         - [x] `PURPOSE_TO_ANNOTATION` global variable
