@@ -16,7 +16,7 @@ import tqdm
 import typer
 from typing_extensions import Annotated  # in typing since Python 3.9
 
-from languages import Languages
+from languages import Languages, FORCE_SIMPLIFY
 from lexer import Lexer
 
 
@@ -578,6 +578,38 @@ def purpose_to_annotation_callback(values: Optional[List[str]]):
     return values
 
 
+# TODO: reduce code duplication
+def extension_to_language_callback(values: Optional[List[str]]):
+    """Update extension to language mapping with '<key>:<value>'s
+
+    If there is no ':' (colon) separating key from value,
+    it ignores the value.
+
+    On empty string it resets the whole mapping.
+
+    :param values: list of values to parse
+    """
+    global FORCE_SIMPLIFY  # imported from the 'languages' module
+
+    if values is None:
+        return []
+
+    # TODO: add logging
+    for colon_separated_pair in values:
+        if not colon_separated_pair or colon_separated_pair in {'""', "''"}:
+            FORCE_SIMPLIFY = {}
+        elif ':' in colon_separated_pair:
+            key, val = colon_separated_pair.split(sep=':', maxsplit=1)
+            if not key[0] == '.':
+                key = f".{key}"
+            FORCE_SIMPLIFY[key] = [val]
+        else:
+            # TODO: use logging
+            print(f"Warning: --force-simplify={colon_separated_pair} ignored")
+
+    return values
+
+
 def parse_line_callback(code_str: Optional[str]) -> Optional[LineCallback]:
     if code_str is None:
         return None
@@ -627,6 +659,17 @@ def common(
                      help="Output version information and exit.",
                      callback=version_callback)
     ] = False,
+    ext_to_language: Annotated[
+        Optional[List[str]],
+        typer.Option(
+            help="Mapping from extension to file language. Empty value resets mapping.",
+            metavar="EXT:LANGUAGE",
+            # uses callback instead of parser because of
+            # AssertionError: List types with complex sub-types are not currently supported
+            # see https://github.com/tiangolo/typer/issues/387
+            callback=extension_to_language_callback,
+        )
+    ] = None,
     purpose_to_annotation: Annotated[
         Optional[List[str]],
         typer.Option(
@@ -653,6 +696,14 @@ def common(
     # see https://typer.tiangolo.com/tutorial/options/callback-and-context/#fix-completion-using-the-context
     if ctx.resilient_parsing:
         return
+
+    if ext_to_language is not None:
+        print("Using modified mapping from file extension to programming language:")
+        for key, val in FORCE_SIMPLIFY.items():
+            if len(val) == 1:
+                print(f"\t{key} is {val[0]}")
+            else:
+                print(f"\t{key} is {val}")
     if purpose_to_annotation is not None:
         print("Using modified mapping from file purpose to line annotation:")
         for key, val in PURPOSE_TO_ANNOTATION.items():
