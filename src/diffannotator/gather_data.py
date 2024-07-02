@@ -14,11 +14,12 @@ PathLike = TypeVar("PathLike", str, bytes, Path, os.PathLike)
 app = typer.Typer(no_args_is_help=True, add_completion=False)
 
 
-def process_data(data):
+def process_data(file_path, data):
     """
     Override this function for report generation
 
-    :param data: dictionary with annotations
+    :param file_path: path to processed file
+    :param data: dictionary with annotations (file content)
     :return: PurposeCounterResults instance
     """
     hunk_purposes = Counter()
@@ -36,13 +37,14 @@ def process_data(data):
             removed_lines = data[hunk]['-']
             for removed_line in removed_lines:
                 removed_line_purposes[removed_line['purpose']] += 1
-    return PurposeCounterResults(hunk_purposes, added_line_purposes, removed_line_purposes)
+    return PurposeCounterResults([file_path], hunk_purposes, added_line_purposes, removed_line_purposes)
 
 
 class PurposeCounterResults:
     """Override this datastructure to gather results"""
 
-    def __init__(self, hunk_purposes, added_line_purposes, removed_line_purposes):
+    def __init__(self, processed_files, hunk_purposes, added_line_purposes, removed_line_purposes):
+        self._processed_files = processed_files
         self._hunk_purposes = hunk_purposes
         self._added_line_purposes = added_line_purposes
         self._removed_line_purposes = removed_line_purposes
@@ -50,17 +52,18 @@ class PurposeCounterResults:
     def __add__(self, other):
         if isinstance(other, PurposeCounterResults):
             new_instance = PurposeCounterResults(
+                self._processed_files + other._processed_files,
                 self._hunk_purposes + other._hunk_purposes,
                 self._added_line_purposes + other._added_line_purposes,
                 self._removed_line_purposes + other._removed_line_purposes)
             return new_instance
 
     def __repr__(self):
-        return f"PurposeCounterResults(_hunk_purposes={self._hunk_purposes!r}, _added_line_purposes={self._added_line_purposes!r}, _removed_line_purposes)={self._removed_line_purposes!r}"
+        return f"PurposeCounterResults(_processed_files={self._processed_files!r}, _hunk_purposes={self._hunk_purposes!r}, _added_line_purposes={self._added_line_purposes!r}, _removed_line_purposes)={self._removed_line_purposes!r}"
 
     @staticmethod
     def default():
-        return PurposeCounterResults(Counter(), Counter(), Counter())
+        return PurposeCounterResults([], Counter(), Counter(), Counter())
 
 
 class AnnotatedFile:
@@ -82,7 +85,7 @@ class AnnotatedFile:
         """
         with self._path.open('r') as json_file:
             data = json.load(json_file)
-            return bug_mapper(data)
+            return bug_mapper(str(self._path), data)
 
 
 class AnnotatedBug:
