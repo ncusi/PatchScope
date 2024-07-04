@@ -14,32 +14,6 @@ PathLike = TypeVar("PathLike", str, bytes, Path, os.PathLike)
 app = typer.Typer(no_args_is_help=True, add_completion=False)
 
 
-def process_data(file_path, data):
-    """
-    Override this function for report generation
-
-    :param file_path: path to processed file
-    :param data: dictionary with annotations (file content)
-    :return: PurposeCounterResults instance
-    """
-    hunk_purposes = Counter()
-    added_line_purposes = Counter()
-    removed_line_purposes = Counter()
-    for hunk in data:
-        print(hunk)
-        print(data[hunk]['purpose'])
-        hunk_purposes[data[hunk]['purpose']] += 1
-        if '+' in data[hunk]:
-            added_lines = data[hunk]['+']
-            for added_line in added_lines:
-                added_line_purposes[added_line['purpose']] += 1
-        if '-' in data[hunk]:
-            removed_lines = data[hunk]['-']
-            for removed_line in removed_lines:
-                removed_line_purposes[removed_line['purpose']] += 1
-    return PurposeCounterResults([file_path], hunk_purposes, added_line_purposes, removed_line_purposes)
-
-
 class PurposeCounterResults:
     """Override this datastructure to gather results"""
 
@@ -63,7 +37,38 @@ class PurposeCounterResults:
 
     @staticmethod
     def default():
+        """
+        Constructs empty datastructure to work as 0 for addition via "+"
+
+        :return: empty datastructure
+        """
         return PurposeCounterResults([], Counter(), Counter(), Counter())
+
+    @staticmethod
+    def create(file_path, data):
+        """
+        Override this function for single annotation handling
+
+        :param file_path: path to processed file
+        :param data: dictionary with annotations (file content)
+        :return: datastructure instance
+        """
+        hunk_purposes = Counter()
+        added_line_purposes = Counter()
+        removed_line_purposes = Counter()
+        for hunk in data:
+            print(hunk)
+            print(data[hunk]['purpose'])
+            hunk_purposes[data[hunk]['purpose']] += 1
+            if '+' in data[hunk]:
+                added_lines = data[hunk]['+']
+                for added_line in added_lines:
+                    added_line_purposes[added_line['purpose']] += 1
+            if '-' in data[hunk]:
+                removed_lines = data[hunk]['-']
+                for removed_line in removed_lines:
+                    removed_line_purposes[removed_line['purpose']] += 1
+        return PurposeCounterResults([file_path], hunk_purposes, added_line_purposes, removed_line_purposes)
 
 
 class AnnotatedFile:
@@ -109,7 +114,7 @@ class AnnotatedBug:
         Gathers dataset data via processing each file in current bug using AnnotatedFile class and provided functions
 
         :param bug_mapper: function to map bug to datastructure
-        :param datastructure_generator: function to create empty datastructure to combine results
+        :param datastructure_generator: function to create empty datastructure to combine results via "+"
         :return: combined datastructure with all files data
         """
         combined_results = datastructure_generator()
@@ -145,7 +150,7 @@ class AnnotatedBugDataset:
         Gathers dataset data via processing each bug using AnnotatedBug class and provided functions
 
         :param bug_mapper: function to map bug to datastructure
-        :param datastructure_generator: function to create empty datastructure to combine results
+        :param datastructure_generator: function to create empty datastructure to combine results via "+"
         :return: combined datastructure with all bug data
         """
         combined_results = datastructure_generator()
@@ -159,30 +164,30 @@ class AnnotatedBugDataset:
 
 
 @app.command()
-def dataset(datasets: Annotated[
+def purpose_counter(datasets: Annotated[
     List[Path],
     typer.Argument(
         exists=True,
         file_okay=False,
         dir_okay=True,
         readable=True,
-        writable=True,  # to save results
+        writable=False,
     )
 ]):
-    """Gather data from all bugs in provided DATASETS
+    """Calculate count of purposes from all bugs in provided datasets
 
-    Each DATASET is expected to be existing directory with the following
+    Each dataset is expected to be existing directory with the following
     structure:
 
-        <dataset_directory>/<bug_directory>/patches/<patch_file>.diff.json
+        <dataset_directory>/<bug_directory>/annotation/<patch_file>.json
 
-    Each DATASET can consist of many BUGs, each BUG should include patch
-    of annotated *diff.json file in 'patches/' subdirectory.
+    Each dataset can consist of many BUGs, each BUG should include patch
+    of annotated *diff.json file in 'annotation/' subdirectory.
     """
     for dataset in datasets:
         print(f"Dataset {dataset}")
         annotated_bugs = AnnotatedBugDataset(dataset)
-        data = annotated_bugs.gather_data(process_data, PurposeCounterResults.default)
+        data = annotated_bugs.gather_data(PurposeCounterResults.create, PurposeCounterResults.default)
         print(data)
 
 

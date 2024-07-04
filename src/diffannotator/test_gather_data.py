@@ -1,12 +1,12 @@
 from collections import Counter
 
-from gather_data import process_data, PurposeCounterResults, AnnotatedBugDataset
+from gather_data import PurposeCounterResults, AnnotatedBugDataset
 
 
-def test_AnnotatedBugDataset():
+def test_AnnotatedBugDataset_with_PurposeCounterResults():
     dataset_path = 'test_dataset_annotated'
     annotated_bug_dataset = AnnotatedBugDataset(dataset_path)
-    data = annotated_bug_dataset.gather_data(process_data, PurposeCounterResults.default)
+    data = annotated_bug_dataset.gather_data(PurposeCounterResults.create, PurposeCounterResults.default)
 
     assert data._processed_files == [
         'test_dataset_annotated/CVE-2021-21332/annotation/e54746bdf7d5c831eabe4dcea76a7626f1de73df.json']
@@ -15,7 +15,7 @@ def test_AnnotatedBugDataset():
     assert data._removed_line_purposes == Counter({'programming': 25, 'markup': 13})
 
 
-def test_process_data():
+def test_PurposeCounterResults_create():
     data = {
         "synapse/push/mailer.py": {
             "language": "Python",
@@ -49,7 +49,7 @@ def test_process_data():
             ]
         }
     }
-    result = process_data('e54746bdf7d5c831eabe4dcea76a7626f1de73df.json', data)
+    result = PurposeCounterResults.create('e54746bdf7d5c831eabe4dcea76a7626f1de73df.json', data)
     assert result._processed_files == ['e54746bdf7d5c831eabe4dcea76a7626f1de73df.json']
     assert result._hunk_purposes == Counter({'programming': 1})
     assert result._added_line_purposes == Counter({'programming': 1})
