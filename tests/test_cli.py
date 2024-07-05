@@ -2,7 +2,7 @@ from pathlib import Path
 
 from typer.testing import CliRunner
 
-from annotate import app
+from diffannotator.annotate import app
 
 
 runner = CliRunner()

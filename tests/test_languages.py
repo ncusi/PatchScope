@@ -1,7 +1,7 @@
 import logging
 from pytest import LogCaptureFixture
 
-from languages import Languages
+from diffannotator.languages import Languages
 
 
 # MAYBE: group assertions into separate tests

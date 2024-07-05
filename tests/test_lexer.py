@@ -3,7 +3,7 @@ from textwrap import dedent
 import pygments
 from pygments.lexer import Lexer as PygmentsLexer
 
-from lexer import Lexer
+from diffannotator.lexer import Lexer
 
 LEXER = Lexer()
 

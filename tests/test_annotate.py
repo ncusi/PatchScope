@@ -8,10 +8,10 @@ from pygments.token import Token
 import pytest
 import unidiff
 
-from annotate import (split_multiline_lex_tokens, line_ends_idx,
-                      group_tokens_by_line, front_fill_gaps, deep_update,
-                      clean_text, line_is_comment, annotate_single_diff,
-                      Bug, BugDataset, AnnotatedPatchedFile)
+from diffannotator.annotate import (split_multiline_lex_tokens, line_ends_idx,
+                                    group_tokens_by_line, front_fill_gaps, deep_update,
+                                    clean_text, line_is_comment, annotate_single_diff,
+                                    Bug, BugDataset, AnnotatedPatchedFile)
 
 
 # Example code to be tokenized

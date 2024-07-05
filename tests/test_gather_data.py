@@ -1,6 +1,6 @@
 from collections import Counter
 
-from gather_data import PurposeCounterResults, AnnotatedBugDataset
+from diffannotator.gather_data import PurposeCounterResults, AnnotatedBugDataset
 
 
 def test_AnnotatedBugDataset_with_PurposeCounterResults():
