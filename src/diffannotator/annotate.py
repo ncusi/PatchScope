@@ -16,8 +16,8 @@ import tqdm
 import typer
 from typing_extensions import Annotated  # in typing since Python 3.9
 
-from languages import Languages, FORCE_SIMPLIFY
-from lexer import Lexer
+from .languages import Languages, FORCE_SIMPLIFY
+from .lexer import Lexer
 
 
 __version__ = "0.0.1"
