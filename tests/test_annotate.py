@@ -100,8 +100,8 @@ def test_post_image_from_diff():
                 return tqdm_class(np.ndenumerate(iterable),
                                   total=total or len(iterable), **tqdm_kwargs)
         return enumerate(tqdm_class(iterable, **tqdm_kwargs), start)
-    
-    
+
+
     def _tzip(iter1, *iter2plus, **tqdm_kwargs):""")
 
     assert source == expected, "post image matches expected result"
