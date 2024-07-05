@@ -182,7 +182,8 @@ class Languages(object):
 
         return "unknown"
 
-    def _path2purpose(self, path: str, filetype: str) -> str:
+    @staticmethod
+    def _path2purpose(path: str, filetype: str) -> str:
         """Parameter is a filepath and filetype. Returns file purpose as a string."""
         # everything that has test in filename -> test
         # TODO: should it consider only basename?
