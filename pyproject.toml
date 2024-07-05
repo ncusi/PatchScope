@@ -25,6 +25,7 @@ classifiers = [
   "License :: OSI Approved :: MIT License",
   "Operating System :: OS Independent",
 ]
+requires-python = ">= 3.7"  # vermin --eval-annotations --backport typing --backport typing_extensions .
 dynamic = ["dependencies", "optional-dependencies"]
 
 [project.urls]
