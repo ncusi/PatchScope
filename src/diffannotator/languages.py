@@ -107,13 +107,16 @@ class Languages(object):
 
     def __init__(self, yaml: Path = "languages.yml"):
         super(Languages, self).__init__()
-        self.yaml = yaml
+        self.yaml = Path(yaml)
 
         self._read()
         self._simplify()
 
     def _read(self):
         """Read, parse, and extract information from 'languages.yml'"""
+        if not self.yaml.exists() and not self.yaml.is_absolute():
+            self.yaml = Path(__file__).resolve(strict=True).parent.joinpath(self.yaml)
+
         with open(self.yaml, "r") as stream:
             self.languages = yaml.safe_load(stream)
             self.ext_primary = defaultdict(list)
