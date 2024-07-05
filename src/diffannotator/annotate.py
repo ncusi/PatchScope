@@ -411,13 +411,12 @@ def annotate_single_diff(diff_path: PathLike) -> dict:
     """
     patch_annotations = {}
 
-    # PatchSet.from_filename(diff_path, encoding="utf-8")
-    with Path(diff_path).open(mode="r", encoding="utf-8") as diff_f:
-        try:
-            patch_set = unidiff.PatchSet(diff_f)
-        except Exception as ex:
-            print(f"Error parsing patch file '{diff_path}': {ex!r}")
-            # raise ex
+    try:
+        patch_set = unidiff.PatchSet.from_filename(diff_path, encoding="utf-8")
+    except Exception as ex:
+        print(f"Error parsing patch file '{diff_path}': {ex!r}")
+        # raise ex
+        return {}  # explicitly return empty dict on parse error
 
     try:
         for i, patched_file in enumerate(patch_set, start=1):
