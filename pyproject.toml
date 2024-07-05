@@ -20,6 +20,11 @@ maintainers = [
   {name = "Krzysztof Stencel", email = "stencel@mimuw.edu.pl"}
 ]
 license = {text = "MIT license"}
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+]
 dynamic = ["dependencies", "optional-dependencies"]
 
 [project.urls]
