@@ -84,7 +84,7 @@ def test_clean_text():
 
 
 def test_post_image_from_diff():
-    file_path = 'test_dataset/tqdm-1/c0dcf39b046d1b4ff6de14ac99ad9a1b10487512.diff'
+    file_path = 'tests/test_dataset/tqdm-1/c0dcf39b046d1b4ff6de14ac99ad9a1b10487512.diff'
     patch = unidiff.PatchSet.from_filename(file_path, encoding='utf-8')
     assert len(patch) == 1, "there is only one changed file in patch set"
     hunk = patch[0][0]
@@ -109,7 +109,7 @@ def test_post_image_from_diff():
 
 def test_annotate_single_diff():
     # code patch
-    file_path = 'test_dataset/tqdm-1/c0dcf39b046d1b4ff6de14ac99ad9a1b10487512.diff'
+    file_path = 'tests/test_dataset/tqdm-1/c0dcf39b046d1b4ff6de14ac99ad9a1b10487512.diff'
     patch = annotate_single_diff(file_path)
     # check file data
     expected_language_data = {
@@ -154,7 +154,7 @@ def test_annotate_single_diff():
         "added line is marked as code"
 
     # documentation patch
-    file_path = 'test_dataset/unidiff-1/3353080f357a36c53d21c2464ece041b100075a1.diff'
+    file_path = 'tests/test_dataset/unidiff-1/3353080f357a36c53d21c2464ece041b100075a1.diff'
     patch = annotate_single_diff(file_path)
     # check file data
     assert 'README.rst' in patch, \
@@ -171,18 +171,18 @@ def test_annotate_single_diff():
                 for line in post_image_lines]), \
         "all post-image lines of 'README.rst' are marked as documentation"
 
-    file_path = 'test_dataset/empty.diff'
+    file_path = 'tests/test_dataset/empty.diff'
     patch = annotate_single_diff(file_path)
     assert patch == {}, "empty patch on empty diff"
 
-    file_path = 'test_dataset/this_patch_does_not_exist.diff'
+    file_path = 'tests/test_dataset/this_patch_does_not_exist.diff'
     with pytest.raises(FileNotFoundError):
         annotate_single_diff(file_path)
 
 
 def test_Bug_constructor():
     # code patch
-    file_path = Path('test_dataset/tqdm-1/c0dcf39b046d1b4ff6de14ac99ad9a1b10487512.diff')
+    file_path = Path('tests/test_dataset/tqdm-1/c0dcf39b046d1b4ff6de14ac99ad9a1b10487512.diff')
     # fiddle around if path does not have the default structure
     saved_patches_dir = None
     if file_path.parts[-2] != Bug.PATCHES_DIR:
@@ -203,7 +203,7 @@ def test_Bug_constructor():
 
 
 def test_Bug_save(tmp_path: Path):
-    bug = Bug('test_dataset_structured', 'keras-10')  # the one with the expected directory structure
+    bug = Bug('tests/test_dataset_structured', 'keras-10')  # the one with the expected directory structure
     bug.save(tmp_path)
 
     save_path = tmp_path.joinpath('keras-10', Bug.ANNOTATIONS_DIR)
@@ -220,7 +220,7 @@ def test_Bug_save(tmp_path: Path):
 
 
 def test_BugDataset():
-    bugs = BugDataset('test_dataset_structured')
+    bugs = BugDataset('tests/test_dataset_structured')
 
     assert len(bugs) >= 1, \
         "there is at least one bug in the dataset"
@@ -236,7 +236,7 @@ def test_BugDataset():
 
 def test_line_callback_trivial():
     # code patch
-    file_path = Path('test_dataset/tqdm-1/c0dcf39b046d1b4ff6de14ac99ad9a1b10487512.diff')
+    file_path = Path('tests/test_dataset/tqdm-1/c0dcf39b046d1b4ff6de14ac99ad9a1b10487512.diff')
 
     # trivial callback
     line_type = "any"
@@ -270,7 +270,7 @@ def test_line_callback_trivial():
 
 def test_line_callback_whitespace():
     # code patch
-    file_path = Path('test_dataset_structured/keras-10/patches/c1c4afe60b1355a6c0e83577791a0423f37a3324.diff')
+    file_path = Path('tests/test_dataset_structured/keras-10/patches/c1c4afe60b1355a6c0e83577791a0423f37a3324.diff')
 
     # complex callback, untyped
     def detect_all_whitespace_line(tokens):
