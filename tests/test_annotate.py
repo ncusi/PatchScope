@@ -76,9 +76,9 @@ def test_deep_update():
 
 
 def test_clean_text():
-    input = "some text with * / \\ \t and\nnew\nlines     and  spaces"
+    text_to_clean = "some text with * / \\ \t and\nnew\nlines     and  spaces"
     expected = "some text with andnewlines and spaces"
-    actual = clean_text(input)
+    actual = clean_text(text_to_clean)
 
     assert actual == expected
 

@@ -105,9 +105,9 @@ def languages_exceptions(path: str, lang: List[str]) -> List[str]:
 class Languages(object):
     """Linguists file support with some simplification"""
 
-    def __init__(self, yaml: Path = "languages.yml"):
+    def __init__(self, languages_yaml: Path = "languages.yml"):
         super(Languages, self).__init__()
-        self.yaml = Path(yaml)
+        self.yaml = Path(languages_yaml)
 
         self._read()
         self._simplify()
