@@ -1,6 +1,5 @@
 import copy
 from pathlib import Path
-from pprint import pprint
 from textwrap import dedent
 
 from pygments.lexers import CLexer
