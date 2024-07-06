@@ -268,6 +268,11 @@ def test_line_callback_trivial():
                      globals().get('callback_x', None))
     patch = annotate_single_diff(file_path)
 
+    assert patch[changed_file_name]['-'][0]['type'] == line_type, \
+        f"removed line is marked as '{line_type}' by self-contained exec callback"
+    assert patch[changed_file_name]['+'][0]['type'] == line_type, \
+        f"added line is marked as '{line_type}' by self-contained exec callback"
+
 
 def test_line_callback_whitespace():
     # code patch
