@@ -1,10 +1,13 @@
 from collections import defaultdict
 import logging
+import os
 from pathlib import Path
-from typing import List
+from typing import List, TypeVar
 
 import yaml
 
+
+PathLike = TypeVar("PathLike", str, bytes, Path, os.PathLike)
 
 # configure logging
 logger = logging.getLogger(__name__)
@@ -105,9 +108,9 @@ def languages_exceptions(path: str, lang: List[str]) -> List[str]:
 class Languages(object):
     """Linguists file support with some simplification"""
 
-    def __init__(self, yaml: Path = "languages.yml"):
+    def __init__(self, languages_yaml: PathLike = "languages.yml"):
         super(Languages, self).__init__()
-        self.yaml = Path(yaml)
+        self.yaml = Path(languages_yaml)
 
         self._read()
         self._simplify()
@@ -182,7 +185,8 @@ class Languages(object):
 
         return "unknown"
 
-    def _path2purpose(self, path: str, filetype: str) -> str:
+    @staticmethod
+    def _path2purpose(path: str, filetype: str) -> str:
         """Parameter is a filepath and filetype. Returns file purpose as a string."""
         # everything that has test in filename -> test
         # TODO: should it consider only basename?

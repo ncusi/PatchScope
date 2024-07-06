@@ -1,6 +1,5 @@
 import copy
 from pathlib import Path
-from pprint import pprint
 from textwrap import dedent
 
 from pygments.lexers import CLexer
@@ -76,9 +75,9 @@ def test_deep_update():
 
 
 def test_clean_text():
-    input = "some text with * / \\ \t and\nnew\nlines     and  spaces"
+    text_to_clean = "some text with * / \\ \t and\nnew\nlines     and  spaces"
     expected = "some text with andnewlines and spaces"
-    actual = clean_text(input)
+    actual = clean_text(text_to_clean)
 
     assert actual == expected
 
@@ -100,8 +99,8 @@ def test_post_image_from_diff():
                 return tqdm_class(np.ndenumerate(iterable),
                                   total=total or len(iterable), **tqdm_kwargs)
         return enumerate(tqdm_class(iterable, **tqdm_kwargs), start)
-    
-    
+
+
     def _tzip(iter1, *iter2plus, **tqdm_kwargs):""")
 
     assert source == expected, "post image matches expected result"
@@ -264,8 +263,15 @@ def test_line_callback_trivial():
     #print("-------------")
     exec(callback_code_str, globals())
     #print(f"{callback_x=}\n")
-    AnnotatedPatchedFile.line_callback = callback_x
+    AnnotatedPatchedFile.line_callback = \
+        locals().get('callback_x',
+                     globals().get('callback_x', None))
     patch = annotate_single_diff(file_path)
+
+    assert patch[changed_file_name]['-'][0]['type'] == line_type, \
+        f"removed line is marked as '{line_type}' by self-contained exec callback"
+    assert patch[changed_file_name]['+'][0]['type'] == line_type, \
+        f"added line is marked as '{line_type}' by self-contained exec callback"
 
 
 def test_line_callback_whitespace():

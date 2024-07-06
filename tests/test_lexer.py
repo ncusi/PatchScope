@@ -1,7 +1,7 @@
 from textwrap import dedent
 
-import pygments
 from pygments.lexer import Lexer as PygmentsLexer
+from pygments.lexers import CLexer
 
 from diffannotator.lexer import Lexer
 
@@ -17,7 +17,7 @@ def test_get_lexer():
     # AttributeError: module 'pygments' has no attribute 'lexer'
     assert isinstance(lex_c, PygmentsLexer), \
         "got a lexer"
-    assert isinstance(lex_c, pygments.lexers.CLexer), \
+    assert isinstance(lex_c, CLexer), \
         "got a C lexer"
 
     another_lex_c = LEXER.get_lexer('src/stats.c')
