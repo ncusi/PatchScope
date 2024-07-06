@@ -20,7 +20,7 @@ from .languages import Languages, FORCE_SIMPLIFY
 from .lexer import Lexer
 
 
-__version__ = "0.0.1"
+__version__ = "0.1.0"
 
 T = TypeVar('T')
 PathLike = TypeVar("PathLike", str, bytes, Path, os.PathLike)
@@ -656,7 +656,7 @@ def common(
         bool,
         typer.Option("--version", "-V",
                      help="Output version information and exit.",
-                     callback=version_callback)
+                     callback=version_callback, is_eager=True)
     ] = False,
     ext_to_language: Annotated[
         Optional[List[str]],
@@ -696,6 +696,8 @@ def common(
     if ctx.resilient_parsing:
         return
 
+    if version:  # this should never happen, because version_callback() exits the app
+        print(f"Diff Annotator version: {__version__}")
     if ext_to_language is not None:
         print("Using modified mapping from file extension to programming language:")
         for key, val in FORCE_SIMPLIFY.items():
