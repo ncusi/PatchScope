@@ -254,15 +254,9 @@ def test_line_callback_trivial():
 
     # use exec
     code_str = f"""return '{line_type}'"""
-    #print(f"{code_str=}")
-    #callback_x = lambda tokens: 'foo'
     callback_code_str = ("def callback_x(tokens):\n" +
-        "  " + "\n  ".join(code_str.splitlines()) + "\n")
-    #print("callback code:")
-    #print(callback_code_str)
-    #print("-------------")
+                         "  " + "\n  ".join(code_str.splitlines()) + "\n")
     exec(callback_code_str, globals())
-    #print(f"{callback_x=}\n")
     AnnotatedPatchedFile.line_callback = \
         locals().get('callback_x',
                      globals().get('callback_x', None))
@@ -294,17 +288,7 @@ def test_line_callback_whitespace():
 
     changed_file_name = 'keras/engine/training_utils.py'
     assert changed_file_name in patch, \
-            f"there is '{changed_file_name}' file used in patch data"
-
-    # # DEBUG
-    # pprint([{
-    #          key: val
-    #          for key, val in keyval.items()
-    #          if key in {'id', 'purpose', 'type'}
-    #         }
-    #         for keyval in patch[changed_file_name]['+']])
-    # pprint(patch[changed_file_name]['+'])
-
+        f"there is '{changed_file_name}' file used in patch data"
     assert any([elem['type'] == 'whitespace'
                 for elem in patch[changed_file_name]['-']]), \
         f"at least one whitespace only line in pre-image of '{changed_file_name}'"
@@ -325,7 +309,6 @@ def test_line_callback_whitespace():
 
     assert AnnotatedPatchedFile.line_callback is not None, \
         "successfully created the callback code from callback string"
-    # print(f"{AnnotatedPatchedFile.line_callback=}")
 
     # annotate with the new callback
     patch = annotate_single_diff(file_path)
