@@ -40,12 +40,12 @@ def line_ends_idx(text: str) -> List[int]:
 
     This way each line can be extracted with text[pos[i-1]:pos[i]].
 
-    >>> text = "123\\n56\\n"
-    >>> line_ends_idx(text)
+    >>> example_text = "123\\n56\\n"
+    >>> line_ends_idx(example_text)
     [4, 7]
-    >>> text[0:4]
+    >>> example_text[0:4]
     '123\\n'
-    >>> text[4:7]
+    >>> example_text[4:7]
     '56\\n'
 
     :param text: str to process
