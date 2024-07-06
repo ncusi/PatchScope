@@ -93,10 +93,6 @@ Command line and terminal interface tools:
   to generate repository's languages stats
   (the language breakdown by percentage and file size),
   also for selected revision
-- [cregit](https://github.com/cregit/cregit)
-  is a tool for helping to find and analyse code credits
-  (unify identities, find contribution by token,
-  extract metadata into a SQLite database, etc.)
 - [git-metrics](https://github.com/Praqma/git-metrics)
   ![Python](https://img.shields.io/badge/Python-3670A0?logo=Python&logoColor=ffdd54)
   tool is a set of util scripts to scrape data from git repositories
@@ -120,6 +116,10 @@ Tools to generate HTML dashboard, or providing an interactive web application:
   ([Repositorch on Docker Hub](https://hub.docker.com/r/kirnosenko/repositorch))<br>
   no demo site, but there is "[How to use Repositorch](https://www.youtube.com/watch?v=Rd5R0BbFdGA)"
   video on YouTube
+- [cregit](https://github.com/cregit/cregit)
+  is a tool for helping to find and analyse code credits
+  (unify identities, find contribution by token,
+  extract metadata into a SQLite database, etc.)
 - [Githru](https://github.com/githru/githru) is an interactive visual analytics system
   that enables developers to effectively understand the context of development history
   through the [interactive exploration of Git and GitHub metadata (demo)](https://githru.github.io/demo/).
