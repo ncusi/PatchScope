@@ -263,7 +263,9 @@ def test_line_callback_trivial():
     #print("-------------")
     exec(callback_code_str, globals())
     #print(f"{callback_x=}\n")
-    AnnotatedPatchedFile.line_callback = callback_x
+    AnnotatedPatchedFile.line_callback = \
+        locals().get('callback_x',
+                     globals().get('callback_x', None))
     patch = annotate_single_diff(file_path)
 
 
