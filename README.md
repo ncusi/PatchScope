@@ -55,30 +55,40 @@ to extract development statistics from project or a repository.
 Command line and terminal interface tools:
 
 - [`git-quick-stats`](https://git-quick-stats.sh/)
+  ![Shell Script](https://img.shields.io/badge/shell_script-%23121011.svg?logo=gnu-bash&logoColor=white)
   is a simple and efficient way to access various statistics in a git repository
 - [`git-stats`](https://github.com/IonicaBizau/git-stats)
+  ![JavaScript](https://img.shields.io/badge/JavaScript-%23323330.svg?logo=JavaScript&logoColor=%23F7DF1E)
   provides local git statistics, including GitHub-like contributions calendars
-- [`git_dash.sh`](https://github.com/darul75/git_dash) is a command-line shell script
+- [`git_dash.sh`](https://github.com/darul75/git_dash)
+  ![Shell Script](https://img.shields.io/badge/shell_script-%23121011.svg?logo=gnu-bash&logoColor=white)
+  is a command-line shell script
   for generating a Git metrics dashboard directly in your terminal
 - [`heatwave`](https://github.com/james-stoup/heatwave)
+  ![Python](https://img.shields.io/badge/Python-3670A0?logo=Python&logoColor=ffdd54)
   visualizes your git commits with a heat map in the terminal,
   similar to how GitHub's heat map looks
 - [`statscat`](https://github.com/z1cheng/statscat)
+  ![Go](https://img.shields.io/badge/Go-%2300ADD8.svg?logo=Go&logoColor=white)
   is a CLI tool to get statistics of your all git repositories
-- [hxtools](http://inai.de/projects/hxtools/) by Jan Engelhardt
+- [hxtools](http://inai.de/projects/hxtools/)
+  ![Perl](https://img.shields.io/badge/Perl-%2339457E.svg?logo=Perl&logoColor=white)
+  by Jan Engelhardt
   is a collection of small tools and scripts, which include
   `git-author-stat` (commit author statistics of a git repository),
   `git-blame-stat` (per-line author statistics), and
   `git-revert-stats` (reverting statistics)
-- [git-fame](https://github.com/casperdcl/git-fame) (in Python) and
-  [git-fame-rb](https://github.com/oleander/git-fame-rb) (in Ruby)
+- [git-fame](https://github.com/casperdcl/git-fame) (in Python ![Python](https://img.shields.io/badge/Python-3670A0?logo=Python&logoColor=ffdd54)) and
+  [git-fame-rb](https://github.com/oleander/git-fame-rb) (in Ruby ![Ruby](https://img.shields.io/badge/Ruby-%23CC342D.svg?logo=Ruby&logoColor=white))
   are command-line tools to pretty-print Git repository collaborators
   sorted by contributions
-- [`git-of-theseus`](https://github.com/erikbern/git-of-theseus) is a set of scripts
-  to analyze how a Git repo grows over time.
-  -See [The half-life of code & the ship of Theseus](https://erikbern.com/2016/12/05/the-half-life-of-code.html)
-      by Erik Bernhardsson (2016).
+- [`git-of-theseus`](https://github.com/erikbern/git-of-theseus)
+  ![Python](https://img.shields.io/badge/Python-3670A0?logo=Python&logoColor=ffdd54)
+  is a set of scripts to analyze how a Git repo grows over time.
+  - See [The half-life of code & the ship of Theseus](https://erikbern.com/2016/12/05/the-half-life-of-code.html)
+    by Erik Bernhardsson (2016).
 - GitHub [Linguist](https://github.com/github-linguist/linguist)
+  ![Ruby](https://img.shields.io/badge/Ruby-%23CC342D.svg?logo=Ruby&logoColor=white)
   can also be used from the command line, using the `github-linguist` executable
   to generate repository's languages stats
   (the language breakdown by percentage and file size),
@@ -87,8 +97,9 @@ Command line and terminal interface tools:
   is a tool for helping to find and analyse code credits
   (unify identities, find contribution by token,
   extract metadata into a SQLite database, etc.)
-- [git-metrics](https://github.com/Praqma/git-metrics) tool
-  is a set of util scripts to scrape data from git repositories
+- [git-metrics](https://github.com/Praqma/git-metrics)
+  ![Python](https://img.shields.io/badge/Python-3670A0?logo=Python&logoColor=ffdd54)
+  tool is a set of util scripts to scrape data from git repositories
   to help teams improve (metrics such as lead time and open branches)
 
 Tools to generate HTML dashboard, or providing an interactive web application:
