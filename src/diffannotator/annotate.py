@@ -2,6 +2,7 @@
 
 import collections.abc
 from collections import defaultdict, deque
+import importlib.metadata
 import json
 import os
 from pathlib import Path
@@ -541,10 +542,30 @@ class BugDataset:
 app = typer.Typer(no_args_is_help=True, add_completion=False)
 
 
+def get_version() -> str:
+    """Return version of this script
+
+    Use version from the 'diffannotator' package this script is from,
+    if possible, with fallback to global variable `__version__`.
+    Updates `__version__`.
+
+    :returns: version string
+    """
+    global __version__
+
+    if __package__:
+        try:
+            __version__ = importlib.metadata.version(__package__)
+        except importlib.metadata.PackageNotFoundError:
+            pass
+
+    return __version__
+
+
 def version_callback(value: bool):
     if value:
         # TODO: extract the name from file docstring or variable
-        typer.echo(f"Diff Annotator version: {__version__}")
+        typer.echo(f"Diff Annotator version: {get_version()}")
         raise typer.Exit()
 
 
@@ -697,7 +718,7 @@ def common(
         return
 
     if version:  # this should never happen, because version_callback() exits the app
-        print(f"Diff Annotator version: {__version__}")
+        print(f"Diff Annotator version: {get_version()}")
     if ext_to_language is not None:
         print("Using modified mapping from file extension to programming language:")
         for key, val in FORCE_SIMPLIFY.items():
