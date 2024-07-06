@@ -403,16 +403,36 @@ class AnnotatedHunk:
             self.patch_data[source_file]["-"].append(data)
 
 
-def annotate_single_diff(diff_path: PathLike) -> dict:
+def annotate_single_diff(diff_path: PathLike, missing_ok: bool = False) -> dict:
     """Annotate single unified diff patch file at given path
 
     :param diff_path: patch filename
+    :param missing_ok: if false (the default), raise exception if `diff_path`
+        does not exist, or cannot be read.
     :return: annotation data
     """
     patch_annotations = {}
 
     try:
         patch_set = unidiff.PatchSet.from_filename(diff_path, encoding="utf-8")
+
+    except FileNotFoundError as ex:
+        print(f"No such patch file: '{diff_path}'")
+
+        if not missing_ok:
+            raise ex
+        return {}
+
+    except PermissionError as ex:
+        if Path(diff_path).exists() and Path(diff_path).is_dir():
+            print(f"Path points to directory, not patch file: '{diff_path}'")
+        else:
+            print(f"Permission denied to read patch file '{diff_path}'")
+
+        if not missing_ok:
+            raise ex
+        return {}
+
     except Exception as ex:
         print(f"Error parsing patch file '{diff_path}': {ex!r}")
         # raise ex
