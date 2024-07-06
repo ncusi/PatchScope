@@ -47,6 +47,20 @@ To be able to also run test, use:
 python -m pip install --editable .[dev]
 ```
 
+### Running tests
+
+This project uses [pytest](https://docs.pytest.org/) framework.
+Note that `pytest` requires Python 3.8+ or PyPy3.
+
+To run tests, run the following command
+```commandline
+pytest
+```
+or
+```commandline
+python -m pytest
+```
+
 ## Related
 
 Here are some related projects that can also be used
