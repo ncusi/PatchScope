@@ -7,6 +7,11 @@ name = "diffannotator"
 version = "0.1.0"
 description = "Annotate files and lines of diffs (patches) with their purpose and type"
 readme = "README.md"
+keywords = [
+  "msr",
+  "mining-software-repositories",
+  "code-analysis",
+]
 authors = [
   {name = "Mikołaj Fejzer", email = "mfejzer@mat.umk.pl"},
   {name = "Jakub Narębski", email = "jnareb@mat.umk.pl"},
@@ -24,9 +29,14 @@ classifiers = [
   "Programming Language :: Python :: 3",
   "License :: OSI Approved :: MIT License",
   "Operating System :: OS Independent",
+  "Environment :: Console",
 ]
 requires-python = ">= 3.7"  # vermin --eval-annotations --backport typing --backport typing_extensions .
 dynamic = ["dependencies", "optional-dependencies"]
+
+[project.scripts]
+diff-annotate = "diffannotator.annotate:app"
+diff-gather-stats = "diffannotator.gather_data:app"
 
 [project.urls]
 bugs = "https://github.com/ncusi/python-diff-annotator/issues"
