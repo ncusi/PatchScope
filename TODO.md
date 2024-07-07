@@ -15,9 +15,16 @@
     - [x] 'LICENSE' (MIT License)
     - [ ] _maybe_ 'MANIFEST.in'
     - [x] separate repository on GitHub
+    - [ ] move `__version__` to `__init__.py`
+         (see also ["version at runtime" in setuptools_scm docs](https://setuptools-scm.readthedocs.io/en/stable/usage/#version-at-runtime))
+    - [ ] add `docs/` directory (for manpages, and maybe API documentation)
     - [ ] _maybe_ use build tool like Poetry, Hatch, PDM, Rye, uv, Flit,...
     - [ ] _maybe_ use in HaPy-Bug (python_bug_dataset) [via a GitHub URL][1]
-- [ ] improvements and new features
+- [ ] 3 scripts _(their names may change in the future)_
+    - [ ] `diff-generate`
+    - [x] `diff-annotate` (from `annotate.py`)
+    - [x] `diff-gather-stats` (from `gather_data.py`)
+- [ ] improvements and new features for `annotate.py`
     - [ ] parse whole pre-image and post-image files
           (via Git, or via GitHub / GitLab / ...)
     - [ ] configurable file type
