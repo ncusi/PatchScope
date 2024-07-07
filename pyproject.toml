@@ -28,6 +28,10 @@ classifiers = [
 requires-python = ">= 3.7"  # vermin --eval-annotations --backport typing --backport typing_extensions .
 dynamic = ["dependencies", "optional-dependencies"]
 
+[project.scripts]
+diff-annotate = "diffannotator.annotate:app"
+diff-gather-stats = "diffannotator.gather_data:app"
+
 [project.urls]
 bugs = "https://github.com/ncusi/python-diff-annotator/issues"
 homepage = "https://github.com/ncusi/python-diff-annotator"
