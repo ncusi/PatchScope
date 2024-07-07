@@ -4,6 +4,7 @@ import collections.abc
 from collections import defaultdict, deque
 import importlib.metadata
 import json
+import logging
 import os
 from pathlib import Path
 import re
@@ -31,6 +32,9 @@ OptionalLineCallback = Optional[LineCallback]
 PURPOSE_TO_ANNOTATION = {"documentation": "documentation"}
 """Defines when purpose of the file is propagated to line annotation, without parsing"""
 TRANSLATION_TABLE = str.maketrans("", "", "*/\\\t\n")
+
+# configure logging
+logger = logging.getLogger(__name__)
 
 LANGUAGES = Languages()
 LEXER = Lexer()
@@ -236,14 +240,14 @@ class AnnotatedPatchedFile:
                                  r"\s*(?P<rtype_info>->\s*[^:]*?\s*)?:\s*$",
                          string=code_str, flags=re.MULTILINE)
         if match:
-            # TODO: replace commented out `print` with logging
-            #print(f"{match.groupdict()=}")
+            # or .info(), if it were not provided extra debugging data
+            logger.debug("Found function definition in callback code string:", match.groupdict())
 
             callback_name = match.group('func_name')
             callback_code_str = code_str
         else:
-            # TODO: replace commented out `print` with logging
-            #print(f"{code_str=}")
+            # or .info(), if it were not provided full text of the callback body
+            logger.debug("Using provided code string as body of callback function", code_str)
 
             callback_name = "_line_callback"
             callback_code_str = (f"def {callback_name}(tokens):\n" +
