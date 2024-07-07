@@ -9,9 +9,6 @@ LEXER = Lexer()
 
 
 def test_get_lexer():
-    ## DEBUG
-    # pprint.pp(inspect.getclasstree(inspect.getmro(pygments.lexers.CLexer)))
-
     lex_c = LEXER.get_lexer('main.c')
     # NOTE: for some reason pygments.lexer.Lexer did not work here
     # AttributeError: module 'pygments' has no attribute 'lexer'

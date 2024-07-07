@@ -33,7 +33,10 @@ class PurposeCounterResults:
             return new_instance
 
     def __repr__(self):
-        return f"PurposeCounterResults(_processed_files={self._processed_files!r}, _hunk_purposes={self._hunk_purposes!r}, _added_line_purposes={self._added_line_purposes!r}, _removed_line_purposes)={self._removed_line_purposes!r}"
+        return f"PurposeCounterResults(_processed_files={self._processed_files!r}, "\
+               f"_hunk_purposes={self._hunk_purposes!r}, "\
+               f"_added_line_purposes={self._added_line_purposes!r}, "\
+               f"_removed_line_purposes)={self._removed_line_purposes!r})"
 
     @staticmethod
     def default():

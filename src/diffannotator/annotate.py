@@ -2,7 +2,9 @@
 
 import collections.abc
 from collections import defaultdict, deque
+import importlib.metadata
 import json
+import logging
 import os
 from pathlib import Path
 import re
@@ -20,7 +22,7 @@ from .languages import Languages, FORCE_SIMPLIFY
 from .lexer import Lexer
 
 
-__version__ = "0.0.1"
+__version__ = "0.1.0"
 
 T = TypeVar('T')
 PathLike = TypeVar("PathLike", str, bytes, Path, os.PathLike)
@@ -31,6 +33,9 @@ PURPOSE_TO_ANNOTATION = {"documentation": "documentation"}
 """Defines when purpose of the file is propagated to line annotation, without parsing"""
 TRANSLATION_TABLE = str.maketrans("", "", "*/\\\t\n")
 
+# configure logging
+logger = logging.getLogger(__name__)
+
 LANGUAGES = Languages()
 LEXER = Lexer()
 
@@ -40,12 +45,12 @@ def line_ends_idx(text: str) -> List[int]:
 
     This way each line can be extracted with text[pos[i-1]:pos[i]].
 
-    >>> text = "123\\n56\\n"
-    >>> line_ends_idx(text)
+    >>> example_text = "123\\n56\\n"
+    >>> line_ends_idx(example_text)
     [4, 7]
-    >>> text[0:4]
+    >>> example_text[0:4]
     '123\\n'
-    >>> text[4:7]
+    >>> example_text[4:7]
     '56\\n'
 
     :param text: str to process
@@ -235,14 +240,14 @@ class AnnotatedPatchedFile:
                                  r"\s*(?P<rtype_info>->\s*[^:]*?\s*)?:\s*$",
                          string=code_str, flags=re.MULTILINE)
         if match:
-            # TODO: replace commented out `print` with logging
-            #print(f"{match.groupdict()=}")
+            # or .info(), if it were not provided extra debugging data
+            logger.debug("Found function definition in callback code string:", match.groupdict())
 
             callback_name = match.group('func_name')
             callback_code_str = code_str
         else:
-            # TODO: replace commented out `print` with logging
-            #print(f"{code_str=}")
+            # or .info(), if it were not provided full text of the callback body
+            logger.debug("Using provided code string as body of callback function", code_str)
 
             callback_name = "_line_callback"
             callback_code_str = (f"def {callback_name}(tokens):\n" +
@@ -541,10 +546,30 @@ class BugDataset:
 app = typer.Typer(no_args_is_help=True, add_completion=False)
 
 
+def get_version() -> str:
+    """Return version of this script
+
+    Use version from the 'diffannotator' package this script is from,
+    if possible, with fallback to global variable `__version__`.
+    Updates `__version__`.
+
+    :returns: version string
+    """
+    global __version__
+
+    if __package__:
+        try:
+            __version__ = importlib.metadata.version(__package__)
+        except importlib.metadata.PackageNotFoundError:
+            pass
+
+    return __version__
+
+
 def version_callback(value: bool):
     if value:
         # TODO: extract the name from file docstring or variable
-        typer.echo(f"Diff Annotator version: {__version__}")
+        typer.echo(f"Diff Annotator version: {get_version()}")
         raise typer.Exit()
 
 
@@ -656,7 +681,7 @@ def common(
         bool,
         typer.Option("--version", "-V",
                      help="Output version information and exit.",
-                     callback=version_callback)
+                     callback=version_callback, is_eager=True)
     ] = False,
     ext_to_language: Annotated[
         Optional[List[str]],
@@ -696,6 +721,8 @@ def common(
     if ctx.resilient_parsing:
         return
 
+    if version:  # this should never happen, because version_callback() exits the app
+        print(f"Diff Annotator version: {get_version()}")
     if ext_to_language is not None:
         print("Using modified mapping from file extension to programming language:")
         for key, val in FORCE_SIMPLIFY.items():
