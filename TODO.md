@@ -8,13 +8,13 @@
     - [x] cleanup lexer.py
     - [x] _maybe_ move from [click][] to [typer][]
     - [ ] add docstring for all files
-- [ ] make it a separate package
-    - [ ] directory structure
-    - [ ] 'pyproject.toml' (and _optionally_ 'setup.py')
-    - [ ] 'README.md'
-    - [ ] 'LICENSE' (MIT License)
+- [x] make it a separate package
+    - [x] directory structure
+    - [x] 'pyproject.toml' (and _optionally_ 'setup.py')
+    - [x] 'README.md'
+    - [x] 'LICENSE' (MIT License)
     - [ ] _maybe_ 'MANIFEST.in'
-    - [ ] separate repository on GitHub
+    - [x] separate repository on GitHub
     - [ ] _maybe_ use build tool like Poetry, Hatch, PDM, Rye, uv, Flit,...
     - [ ] _maybe_ use in HaPy-Bug (python_bug_dataset) [via a GitHub URL][1]
 - [ ] improvements and new features
