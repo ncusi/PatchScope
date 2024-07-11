@@ -1,8 +1,10 @@
+import subprocess
 from pathlib import Path
 
 from typer.testing import CliRunner
 
 from diffannotator.annotate import app as annotate_app
+from diffannotator.generate_patches import app as generate_app
 
 
 runner = CliRunner()
@@ -103,3 +105,30 @@ def test_annotate_patch_with_ext_to_language(tmp_path: Path):
         "app runs 'patch' subcommand with a --ext-to-language without errors"
     assert ".lock" in result.stdout and "YAML" in result.stdout, \
         "app correctly prints that ext mapping changed to the requested values"
+
+
+def test_generate_patches(tmp_path: Path):
+    test_repo_url = 'https://github.com/githubtraining/hellogitworld.git'
+    repo_dir = tmp_path / 'hellogitworld'
+    output_dir = tmp_path / 'patches'
+
+    # clone the repository "by hand"
+    subprocess.run([
+        'git', '-C', str(tmp_path), 'clone', test_repo_url
+    ], capture_output=True, check=True)
+
+    result = runner.invoke(generate_app, [
+        f"--output-dir={output_dir}",
+        str(repo_dir),
+        '-5', 'HEAD'  # 5 latest commit on the current branch
+    ])
+
+    assert result.exit_code == 0, \
+        "generate app runs without errors"
+    assert output_dir.is_dir(), \
+        "output directory exists, and is directory"
+    patches_paths = list(output_dir.glob('*'))
+    assert len(patches_paths) == 5, \
+        "generate app created 5 patch files"
+    assert all([path.suffix == '.patch' for path in patches_paths]), \
+        "all created files have '.patch' suffix"
