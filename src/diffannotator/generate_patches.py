@@ -18,6 +18,7 @@ from typing import Optional, Union, TypeVar
 from typing import Iterable  # should be imported from collections.abc
 
 import typer
+from typing_extensions import Annotated
 
 # TODO: move to __init__.py (it is common to all scripts)
 PathLike = TypeVar("PathLike", str, bytes, Path, os.PathLike)
@@ -183,9 +184,55 @@ app = typer.Typer(no_args_is_help=True, add_completion=False)
 @app.command(
     context_settings={"allow_extra_args": True, "ignore_unknown_options": True}
 )
-def main(ctx: typer.Context):
-    for extra_arg in ctx.args:
-        print(f"Got extra arg: {extra_arg}")
+def main(
+ctx: typer.Context,
+    repo_path: Annotated[
+        Path,
+        typer.Argument(
+            exists=True,      # repository must exist
+            file_okay=False,  # dropping corner case: gitdir file
+            dir_okay=True,    # ordinarily Git repo is a directory
+            readable=True,
+            help="Path to git repository.",
+        )
+    ],
+    output_dir: Annotated[
+        Optional[Path],
+        typer.Option(
+            file_okay=False,  # cannot be ordinary file, if exists
+            dir_okay=True,    # if exists, must be a directory
+            help="Where to save generated patches.",
+        )
+    ] = None,
+) -> None:
+    """Create patches from local Git repository with provided REPO_PATH
+
+    You can add additional options and parameters, which will be passed to
+    the `git format-patch` command.  With those options and arguments you
+    can specify which commits to operate on.
+
+    1. A single commit, <since>, specifies that the commits leading to
+       the tip of the current branch that are not in the history
+       that leads to the <since> to be output.  Example: 'HEAD~2'.
+
+    2. Generic <revision-range> expression means the commits in the
+       specified range.  Example: 'origin/main..main', or '--root HEAD',
+       or '--user=joe --root HEAD'.
+
+    If not provided <since> or <revision-range>, a single patch for
+    the current commit on the current branch will be created ('HEAD').
+
+    To create patches for everything since the beginning of history
+    up until <commit>, use '--root <commit>' as extra options.
+    """
+    # create GitRepo 'helper' object
+    repo = GitRepo(repo_path)
+    # ensure that output directory exists
+    if output_dir is not None:
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+    repo.format_patch(output_dir=output_dir,
+                      revision_range=ctx.args)
 
 
 if __name__ == "__main__":
