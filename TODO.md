@@ -20,8 +20,8 @@
     - [ ] add `docs/` directory (for manpages, and maybe API documentation)
     - [ ] _maybe_ use build tool like Poetry, Hatch, PDM, Rye, uv, Flit,...
     - [ ] _maybe_ use in HaPy-Bug (python_bug_dataset) [via a GitHub URL][1]
-- [ ] 3 scripts _(their names may change in the future)_
-    - [ ] `diff-generate`
+- [x] 3 scripts _(their names may change in the future)_
+    - [x] `diff-generate`
     - [x] `diff-annotate` (from `annotate.py`)
     - [x] `diff-gather-stats` (from `gather_data.py`)
 - [ ] improvements and new features for `annotate.py`
