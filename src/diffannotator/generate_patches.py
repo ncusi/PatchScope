@@ -15,6 +15,7 @@ import re
 import subprocess
 from pathlib import Path
 from typing import Optional, Union, TypeVar
+from typing import Iterable  # should be imported from collections.abc
 
 import typer
 
@@ -145,13 +146,16 @@ class GitRepo:
 
         return None
 
-    def format_patch(self, output_dir: Optional[PathLike] = None, *args: str) -> None:
+    def format_patch(self,
+                     output_dir: Optional[PathLike] = None,
+                     revision_range: Union[str, Iterable[str]] = ('-1', 'HEAD')) -> None:
         """Generate patches out of specified revisions, saving them as individual files
 
         :param output_dir: output directory for patches; if not set (the default),
             save patches in the current working directory
-        :param args: arguments to pass to `git format-patch`, see
-            https://git-scm.com/docs/git-format-patch
+        :param revision_range: arguments to pass to `git format-patch`, see
+            https://git-scm.com/docs/git-format-patch; by default generates single patch
+            from the HEAD
         """
         # NOTE: it should be ':param \*args' or ':param \\*args', but for the bug in PyCharm
         cmd = [
@@ -162,10 +166,14 @@ class GitRepo:
             cmd.extend([
                 '--output-directory', str(output_dir)
             ])
-        cmd.extend(*args)
+        if isinstance(revision_range, str):
+            cmd.append(revision_range)
+        else:
+            cmd.extend(revision_range)
 
         process = subprocess.run(cmd,
-                                 capture_output=True, check=True)
+                                 capture_output=True, check=True,
+                                 encoding='utf-8')
         # TODO: check process.returncode and examine process.stderr
 
 
