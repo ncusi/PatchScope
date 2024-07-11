@@ -113,6 +113,13 @@ class GitRepo:
         }
 
         result = subprocess.run(args, capture_output=True, env=env)
+        if result.returncode == 128:
+            # TODO: log a warning about the problem
+            #print(f"{result.stderr=}")
+            # try again without environment variables, in case of firewall problem like
+            # fatal: unable to access 'https://github.com/githubtraining/hellogitworld.git/':
+            #        getaddrinfo() thread failed to start
+            result = subprocess.run(args, capture_output=True)
 
         # we are interested only in the directory where the repository was cloned into
         # that's why we are using GitRepo.path_encoding (instead of 'utf8', for example)
