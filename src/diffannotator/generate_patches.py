@@ -149,7 +149,7 @@ class GitRepo:
 
     def format_patch(self,
                      output_dir: Optional[PathLike] = None,
-                     revision_range: Union[str, Iterable[str]] = ('-1', 'HEAD')) -> None:
+                     revision_range: Union[str, Iterable[str]] = ('-1', 'HEAD')) -> str:
         """Generate patches out of specified revisions, saving them as individual files
 
         :param output_dir: output directory for patches; if not set (the default),
@@ -157,6 +157,7 @@ class GitRepo:
         :param revision_range: arguments to pass to `git format-patch`, see
             https://git-scm.com/docs/git-format-patch; by default generates single patch
             from the HEAD
+        :return: output from the `git format-patch` process
         """
         # NOTE: it should be ':param \*args' or ':param \\*args', but for the bug in PyCharm
         cmd = [
@@ -175,7 +176,11 @@ class GitRepo:
         process = subprocess.run(cmd,
                                  capture_output=True, check=True,
                                  encoding='utf-8')
-        # TODO: check process.returncode and examine process.stderr
+        # MAYBE: better checks for process.returncode, and examine process.stderr
+        if process.returncode == 0:
+            return process.stdout
+        else:
+            return process.stderr
 
 
 app = typer.Typer(no_args_is_help=True, add_completion=False)
@@ -229,10 +234,13 @@ ctx: typer.Context,
     repo = GitRepo(repo_path)
     # ensure that output directory exists
     if output_dir is not None:
+        print(f"Ensuring that output directory '{output_dir}' exists")
         output_dir.mkdir(parents=True, exist_ok=True)
 
-    repo.format_patch(output_dir=output_dir,
-                      revision_range=ctx.args)
+    print(f"Generating patches from local Git repo '{repo_path}'")
+    result = repo.format_patch(output_dir=output_dir,
+                               revision_range=ctx.args)
+    print(result)
 
 
 if __name__ == "__main__":
