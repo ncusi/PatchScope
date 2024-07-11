@@ -35,6 +35,7 @@ requires-python = ">= 3.7"  # vermin --eval-annotations --backport typing --back
 dynamic = ["dependencies", "optional-dependencies"]
 
 [project.scripts]
+diff-generate = "diffannotator.generate_patches:app"
 diff-annotate = "diffannotator.annotate:app"
 diff-gather-stats = "diffannotator.gather_data:app"
 
