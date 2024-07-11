@@ -11,8 +11,9 @@ Example (after installing the 'diffannotator' package):
         --output-dataset=diffannotator/user-jnareb --author=jnareb
 """
 import os
+import subprocess
 from pathlib import Path
-from typing import TypeVar
+from typing import Optional, TypeVar
 
 import typer
 
@@ -42,6 +43,29 @@ class GitRepo:
 
     def __str__(self):
         return f"{self.repo!s}"
+
+    def format_patch(self, output_dir: Optional[PathLike] = None, *args: str) -> None:
+        """Generate patches out of specified revisions, saving them as individual files
+
+        :param output_dir: output directory for patches; if not set (the default),
+            save patches in the current working directory
+        :param args: arguments to pass to `git format-patch`, see
+            https://git-scm.com/docs/git-format-patch
+        """
+        # NOTE: it should be ':param \*args' or ':param \\*args', but for the bug in PyCharm
+        cmd = [
+            'git', '-C', str(self.repo),
+            'format-patch'
+        ]
+        if output_dir is not None:
+            cmd.extend([
+                '--output-directory', str(output_dir)
+            ])
+        cmd.extend(*args)
+
+        process = subprocess.run(cmd,
+                                 capture_output=True, check=True)
+        # TODO: check process.returncode and examine process.stderr
 
 
 app = typer.Typer(no_args_is_help=True, add_completion=False)
