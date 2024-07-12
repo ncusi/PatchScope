@@ -1,10 +1,13 @@
 # -*- coding: utf-8 -*-
 """Test cases for `src/diffannotator/generate_patches.py` module"""
+import inspect
+# import os
 import subprocess
 import time
 from pathlib import Path
 
 import pytest
+import unidiff
 
 from diffannotator.annotate import annotate_single_diff
 from diffannotator.generate_patches import GitRepo
@@ -87,9 +90,40 @@ def test_format_patch(tmp_path: Path):
         "all created files have '.patch' suffix"
 
 
+def test_log_p(tmp_path: Path):
+    """Test log_p() method in GitRepo class"""
+    # MAYBE: create fixture
+    test_repo_url = 'https://github.com/githubtraining/hellogitworld.git'
+    repo = GitRepo.clone_repository(
+        repository=test_repo_url,
+        working_dir=tmp_path,
+        make_path_absolute=True,
+    )
+
+    result = repo.log_p(revision_range=('-3', 'HEAD'), wrap=True)
+    assert inspect.isgeneratorfunction(repo.log_p), \
+        "GitRepo.log_p method is generator function"
+    assert inspect.isgenerator(result), \
+        "GitRepo.log_p() method returns generator"
+
+    result = list(result)
+    assert len(result) == 3, \
+        "we got 3 patches we expected from `git log -3 HEAD` (with wrap)"
+    assert all([isinstance(patch, unidiff.PatchSet) for patch in result]), \
+        "all patches are wrapped in unidiff.PatchSet"
+
+    result = repo.log_p(revision_range='HEAD~3..HEAD', wrap=False)
+    result = list(result)
+    assert len(result) == 3, \
+        "we got 3 patches we expected from `git log HEAD~3..HEAD` (without wrap)"
+    assert all([isinstance(patch, str) for patch in result]), \
+        "all patches are returned as plain `str`"
+
+
 @pytest.mark.slow
 @pytest.mark.explore
-def test_incrementally_from_subprocess():
+@pytest.mark.skip(reason="skipping exploratory test")
+def test_read_incrementally_from_subprocess():
     """Exploratory test to examine reading process output incrementally, line by line"""
     process = subprocess.Popen(
         # -u :: Force the stdout and stderr streams to be unbuffered.
@@ -100,7 +134,7 @@ def test_incrementally_from_subprocess():
         encoding='utf-8',
         text=True,
     )
-
+    # os.set_blocking(process.stdout.fileno(), False)  # on Unix-like systems
     start = time.time()
     elapsed_times = []
     while process.poll() is None:
