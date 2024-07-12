@@ -1,6 +1,10 @@
 # -*- coding: utf-8 -*-
 """Test cases for `src/diffannotator/generate_patches.py` module"""
+import subprocess
+import time
 from pathlib import Path
+
+import pytest
 
 from diffannotator.annotate import annotate_single_diff
 from diffannotator.generate_patches import GitRepo
@@ -81,3 +85,32 @@ def test_format_patch(tmp_path: Path):
         "format_patch() created patches for all 24 commits in trunk"
     assert all([path.suffix == '.patch' for path in patches_paths]), \
         "all created files have '.patch' suffix"
+
+
+@pytest.mark.slow
+@pytest.mark.explore
+def test_incrementally_from_subprocess():
+    """Exploratory test to examine reading process output incrementally, line by line"""
+    process = subprocess.Popen(
+        # -u :: Force the stdout and stderr streams to be unbuffered.
+        ["python", "-u", "tests/helpers/spew.py"],
+        bufsize=1,  # line buffered
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
+        encoding='utf-8',
+        text=True,
+    )
+
+    start = time.time()
+    elapsed_times = []
+    while process.poll() is None:
+        data = process.stdout.readline()
+        if data:
+            elapsed_times.append(time.time() - start)
+
+    return_code = process.wait()
+
+    assert return_code == 0, \
+        "process finished without errors"
+    assert elapsed_times[-1] - elapsed_times[0] > 1.0, \
+        "got first line more than 1.0 seconds earlier than last line"
