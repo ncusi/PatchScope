@@ -2,6 +2,7 @@
 """Test cases for `src/diffannotator/generate_patches.py` module"""
 import inspect
 # import os
+import re
 import subprocess
 import time
 from pathlib import Path
@@ -111,6 +112,11 @@ def test_log_p(tmp_path: Path):
         "we got 3 patches we expected from `git log -3 HEAD` (with wrap)"
     assert all([isinstance(patch, unidiff.PatchSet) for patch in result]), \
         "all patches are wrapped in unidiff.PatchSet"
+    sha1_re = re.compile(r"^[0-9a-fA-F]{40}$")  # SHA-1 identifier is 40 hex digits long
+    assert all([hasattr(patch, 'commit_id') and
+                re.fullmatch(sha1_re, getattr(patch, 'commit_id') or '')
+                for patch in result]), \
+        "all patch sets have 'commit_id' attribute and it looks like SHA-1"
 
     result = repo.log_p(revision_range='HEAD~3..HEAD', wrap=False)
     result = list(result)

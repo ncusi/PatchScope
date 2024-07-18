@@ -280,6 +280,13 @@ class GitRepo:
         :param wrap: whether to wrap the result in PatchSet
         :return: the changes for given `revision_range`
         """
+        def commit_with_patch(_commit_id: str, _commit_data: StringIO) -> PatchSet:
+            """Helper to create PatchSet with `_commit_id` as commit_id attribute"""
+            _commit_data.seek(0)  # rewind to beginning for reading by the PatchSet constructor
+            patch_set = PatchSet(_commit_data)  # parse commit with patch to PatchSet
+            patch_set.commit_id = _commit_id  # remember the commit id in an attribute
+            return patch_set
+
         cmd = [
             'git', '-C', str(self.repo),
             # NOTE: `git rev-list` does not support --patch option
@@ -304,22 +311,28 @@ class GitRepo:
         )
 
         commit_data = StringIO()
+        commit_id: Optional[str] = None
         while process.poll() is None:
             log_p_line = process.stdout.readline()
             if log_p_line:
+                if not commit_id and log_p_line[0] != '\0':
+                    # first line in output
+                    commit_id = log_p_line.strip()[7:]  # strip "commit "
+
                 if log_p_line[0] == '\0':
                     # end of old commit, start of new commit
                     ## DEBUG (TODO: switch to logger.debug())
                     #print(f"new commit: {log_p_line[1:]}", end="")
                     # return old commit data
                     if wrap:
-                        yield PatchSet(commit_data)
+                        yield commit_with_patch(commit_id, commit_data)
                     else:
                         yield commit_data.getvalue()
                     # start gathering data for a new commit
                     commit_data.truncate(0)
                     # strip the '\0' separator
                     log_p_line = log_p_line[1:]
+                    commit_id = log_p_line.strip()[7:]  # strip "commit "
 
                 # gather next line of commit data
                 commit_data.write(log_p_line)
@@ -329,7 +342,7 @@ class GitRepo:
             ## DEBUG (TODO: switch to logger.debug())
             #print("last commit")
             if wrap:
-                yield PatchSet(commit_data)
+                yield commit_with_patch(commit_id, commit_data)
             else:
                 yield commit_data.getvalue()
 
