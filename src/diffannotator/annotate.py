@@ -451,7 +451,7 @@ class Bug:
         self._bug: str = bug_id
         self._path: Path = self._dataset.joinpath(self._bug, self.PATCHES_DIR)
 
-        self.patches: dict = self._get_patches()
+        self.patches: dict = self._get_patches_from_dir(self._path)
         self.changes: list = []
 
     def _get_patch(self, patch_file: PathLike) -> dict:
@@ -468,10 +468,16 @@ class Bug:
 
         return annotate_single_diff(patch_path)
 
-    def _get_patches(self) -> dict:
+    def _get_patches_from_dir(self, patches_dir: PathLike) -> dict[str, dict]:
+        """Get and annotate set of patches from given directory
+
+        :param patches_dir: directory with patches
+        :return: mapping from patch filename (patch source)
+            to annotated patch data
+        """
         patches_data = {}
 
-        for patch_file in self._path.glob('*.diff'):
+        for patch_file in patches_dir.glob('*.diff'):
             patch_data = self._get_patch(patch_file.name)
             patches_data[patch_file.name] = patch_data
 
