@@ -31,6 +31,10 @@
     - [ ] configurable file type
         - [x] global option `--ext-to-language` (the API it uses already existed)
     - [ ] support [.gitattributes overrides of GitHub Linguist][2]
+    - [ ] optionally use Python clone of [github/linguist][], namely [douban/linguist][],
+          with `--use-pylinguist`
+    - [ ] optionally use Python wrapper around [github/linguist][] CLI, namely [scivision/linguist-python][],
+          with `--use-ghlinguist`
     - [x] configurable line annotation based on file ~~type~~ purpose
         - [x] `PURPOSE_TO_ANNOTATION` global variable
         - [x] global option `--purpose-to-annotation` in [`annotate.py`](src/diffannotator/annotate.py) script
@@ -50,6 +54,10 @@
 [git-filter-repo]: https://htmlpreview.github.io/?https://github.com/newren/git-filter-repo/blob/docs/html/git-filter-repo.html#CALLBACKS
 [scrapy]: https://docs.scrapy.org/en/latest/intro/tutorial.html#creating-a-project
 [sklearn]: https://scikit-learn.org/stable/modules/compose.html
+
+[github/linguist]: https://github.com/github/linguist
+[douban/linguist]: https://github.com/douban/linguist
+[scivision/linguist-python]: 
 
 [1]: https://stackoverflow.com/questions/70387750/how-to-manage-sub-projects-in-python
 [2]: https://github.com/github-linguist/linguist/blob/master/docs/overrides.md#using-gitattributes
