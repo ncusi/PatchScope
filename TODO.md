@@ -33,7 +33,7 @@
     - [ ] support [.gitattributes overrides of GitHub Linguist][2]
     - [x] optionally use Python clone of [github/linguist][], namely [retanoj/linguist][], installed from GitHub,
           with `--use-pylinguist` (note: [install requires libmagic-dev and libicu-dev libraries](https://github.com/douban/linguist/issues/25))
-    - [ ] optionally use Python wrapper around [github/linguist][] CLI, namely [scivision/linguist-python][],
+    - [ ] optionally use Python wrapper around [github/linguist][], ~~namely [scivision/linguist-python][],~~
           with `--use-ghlinguist`
     - [x] configurable line annotation based on file ~~type~~ purpose
         - [x] `PURPOSE_TO_ANNOTATION` global variable

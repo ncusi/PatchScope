@@ -778,6 +778,7 @@ def common(
     if use_pylinguist:
         if has_pylinguist:
             LANGUAGES = LanguagesFromLinguist()
+            print('Detecting languages from file name using Python clone of GitHub Linguist.')
         else:
             print(dedent("""\
             The 'linguist' package is not installed.
