@@ -30,6 +30,7 @@
           (via Git, or via GitHub / GitLab / ...)
     - [ ] configurable file type
         - [x] global option `--ext-to-language` (the API it uses already existed)
+        - [ ] global option `--glob-to-language` (which includes defining purpose)
     - [ ] support [.gitattributes overrides of GitHub Linguist][2]
     - [x] optionally use Python clone of [github/linguist][], namely [retanoj/linguist][], installed from GitHub,
           with `--use-pylinguist` (note: [install requires libmagic-dev and libicu-dev libraries](https://github.com/douban/linguist/issues/25))
