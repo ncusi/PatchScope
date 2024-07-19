@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import collections.abc
-from collections import defaultdict, deque
+from collections import defaultdict, deque, namedtuple
 import importlib.metadata
 import json
 import logging
@@ -9,6 +9,7 @@ import os
 from pathlib import Path
 import re
 import traceback
+from textwrap import dedent
 from typing import List, Dict, Tuple, TypeVar, Optional
 from typing import Iterable, Generator, Callable  # should be imported from collections.abc
 
@@ -20,6 +21,49 @@ from typing_extensions import Annotated  # in typing since Python 3.9
 
 from .languages import Languages, FORCE_SIMPLIFY
 from .lexer import Lexer
+
+# optional dependencies
+try:
+    # NOTE: linguist requires charlockholmes package,
+    # which in turn requires libmagic-dev and libicu-dev libraries
+    # https://github.com/douban/linguist/issues/25
+    from linguist.libs.language import Language as LinguistLanguage
+    has_pylinguist = True
+
+except ImportError:
+    class LinguistLanguage:
+        """Dummy of the linguist.libs.language.Language enough to satisfy linter"""
+        FakeLanguage = namedtuple('FakeLanguage', ['name', 'type'])
+
+        @classmethod
+        def find_by_filename(cls, _):
+            return [cls.FakeLanguage('unknown', 'unknown')]
+
+    has_pylinguist = False
+
+
+class LanguagesFromLinguist:
+    def __init__(self):
+        super(LanguagesFromLinguist, self).__init__()
+
+    def annotate(self, path: str) -> dict:
+        """Annotate file with its primary / first language metadata
+
+        :param path: file path in the repository
+        :return: metadata about language, file type, and purpose of file
+        """
+        languages = LinguistLanguage.find_by_filename(path)
+        language = languages[0]
+
+        language_name = language.name
+        file_type = language.type
+        file_purpose = Languages._path2purpose(path, file_type)
+
+        return {
+            "language": language_name,
+            "type": file_type,
+            "purpose": file_purpose,
+        }
 
 
 __version__ = "0.1.0"
@@ -683,6 +727,13 @@ def common(
                      help="Output version information and exit.",
                      callback=version_callback, is_eager=True)
     ] = False,
+    use_pylinguist: Annotated[
+        bool,
+        typer.Option(
+            "--use-pylinguist",
+            help="Use Python clone of github/linguist (default: false)."
+        )
+    ] = False,
     ext_to_language: Annotated[
         Optional[List[str]],
         typer.Option(
@@ -715,6 +766,7 @@ def common(
         )
     ] = None
 ):
+    global LANGUAGES
     # if anything is printed by this function, it needs to utilize context
     # to not break installed shell completion for the command
     # see https://typer.tiangolo.com/tutorial/options/callback-and-context/#fix-completion-using-the-context
@@ -723,6 +775,26 @@ def common(
 
     if version:  # this should never happen, because version_callback() exits the app
         print(f"Diff Annotator version: {get_version()}")
+    if use_pylinguist:
+        if has_pylinguist:
+            LANGUAGES = LanguagesFromLinguist()
+            print('Detecting languages from file name using Python clone of GitHub Linguist.')
+        else:
+            print(dedent("""\
+            The 'linguist' package is not installed.
+
+            Use either
+                python -m pip install --editable .[pylinguist]
+                python -m pip install diffannotator[pylinguist]
+            or
+                python -m pip install git+https://github.com/retanoj/linguist@master
+
+            NOTE that 'linguist' package requires 'charlockholmes' package,
+            which in turn requires 'libmagic-dev' and 'libicu-dev' libraries.
+            """))
+            # TODO: use common enum for exit codes
+            raise typer.Exit(code=1)
+
     if ext_to_language is not None:
         print("Using modified mapping from file extension to programming language:")
         for key, val in FORCE_SIMPLIFY.items():
