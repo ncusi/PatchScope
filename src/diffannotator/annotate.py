@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import collections.abc
-from collections import defaultdict, deque
+from collections import defaultdict, deque, namedtuple
 import importlib.metadata
 import json
 import logging
@@ -28,36 +28,43 @@ try:
     # which in turn requires libmagic-dev and libicu-dev libraries
     # https://github.com/douban/linguist/issues/25
     from linguist.libs.language import Language as LinguistLanguage
-
-    # TODO: move outside of the try block
-    #       and instead of testing for this class existence
-    #       check if LinguistLanguage was imported via sys.modules and/or dir(),
-    #       or set LinguistLanguage to none in the except block
-    class LanguagesFromLinguist:
-        def __init__(self):
-            super(LanguagesFromLinguist, self).__init__()
-
-        def annotate(self, path: str) -> dict:
-            """Annotate file with its primary / first language metadata
-
-            :param path: file path in the repository
-            :return: metadata about language, file type, and purpose of file
-            """
-            languages = LinguistLanguage.find_by_filename(path)
-            language = languages[0]
-
-            language_name = language.name
-            file_type = language.type
-            file_purpose = Languages._path2purpose(path, file_type)
-
-            return {
-                "language": language_name,
-                "type": file_type,
-                "purpose": file_purpose,
-            }
+    has_pylinguist = True
 
 except ImportError:
-    pass
+    class LinguistLanguage:
+        """Dummy of the linguist.libs.language.Language enough to satisfy linter"""
+        FakeLanguage = namedtuple('FakeLanguage', ['name', 'type'])
+
+        @classmethod
+        def find_by_filename(cls, _):
+            return [cls.FakeLanguage('unknown', 'unknown')]
+
+    has_pylinguist = False
+
+
+class LanguagesFromLinguist:
+    def __init__(self):
+        super(LanguagesFromLinguist, self).__init__()
+
+    def annotate(self, path: str) -> dict:
+        """Annotate file with its primary / first language metadata
+
+        :param path: file path in the repository
+        :return: metadata about language, file type, and purpose of file
+        """
+        languages = LinguistLanguage.find_by_filename(path)
+        language = languages[0]
+
+        language_name = language.name
+        file_type = language.type
+        file_purpose = Languages._path2purpose(path, file_type)
+
+        return {
+            "language": language_name,
+            "type": file_type,
+            "purpose": file_purpose,
+        }
+
 
 __version__ = "0.1.0"
 
@@ -769,9 +776,9 @@ def common(
     if version:  # this should never happen, because version_callback() exits the app
         print(f"Diff Annotator version: {get_version()}")
     if use_pylinguist:
-        try:
+        if has_pylinguist:
             LANGUAGES = LanguagesFromLinguist()
-        except NameError:
+        else:
             print(dedent("""\
             The 'linguist' package is not installed.
 
