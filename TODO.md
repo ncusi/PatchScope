@@ -31,10 +31,8 @@
     - [ ] configurable file type
         - [x] global option `--ext-to-language` (the API it uses already existed)
     - [ ] support [.gitattributes overrides of GitHub Linguist][2]
-    - [ ] ~~optionally use Python clone of [github/linguist][], namely [douban/linguist][],
-          with `--use-pylinguist` (note: [install requires libmagic-dev and libicu-dev libraries](https://github.com/douban/linguist/issues/25))~~
-      - this package still uses Python 2-only style imports, so it is not compatible with Python 3
-        (see [issue #30](https://github.com/douban/linguist/issues/30))
+    - [x] optionally use Python clone of [github/linguist][], namely [retanoj/linguist][], installed from GitHub,
+          with `--use-pylinguist` (note: [install requires libmagic-dev and libicu-dev libraries](https://github.com/douban/linguist/issues/25))
     - [ ] optionally use Python wrapper around [github/linguist][] CLI, namely [scivision/linguist-python][],
           with `--use-ghlinguist`
     - [x] configurable line annotation based on file ~~type~~ purpose
@@ -59,7 +57,8 @@
 
 [github/linguist]: https://github.com/github/linguist
 [douban/linguist]: https://github.com/douban/linguist
-[scivision/linguist-python]: 
+[retanoj/linguist]: https://github.com/retanoj/linguist
+[scivision/linguist-python]: https://github.com/scivision/linguist-python
 
 [1]: https://stackoverflow.com/questions/70387750/how-to-manage-sub-projects-in-python
 [2]: https://github.com/github-linguist/linguist/blob/master/docs/overrides.md#using-gitattributes

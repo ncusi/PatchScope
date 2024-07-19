@@ -32,7 +32,7 @@ classifiers = [
   "Environment :: Console",
 ]
 requires-python = ">= 3.7"  # vermin --eval-annotations --backport typing --backport typing_extensions .
-dynamic = ["dependencies", "optional-dependencies"]
+dynamic = ["dependencies"]
 
 [project.scripts]
 diff-generate = "diffannotator.generate_patches:app"
@@ -45,7 +45,18 @@ homepage = "https://github.com/ncusi/python-diff-annotator"
 
 [tool.setuptools.dynamic]
 dependencies = {file = ["requirements.txt"]}
-optional-dependencies = {dev = {file = ["requirements-dev.txt"] }}
+
+# Currently, when specifying `optional-dependencies` dynamically, all the
+# groups must be specified dynamically; one can not specify some of them
+# statically and some of them dynamically.
+#
+# configuration error: You cannot provide a value for `project.optional-dependencies`
+#                      and list it under `project.dynamic` at the same time
+#
+# see: https://setuptools.pypa.io/en/latest/userguide/pyproject_config.html#dynamic-metadata
+[project.optional-dependencies]
+dev = ["pytest==8.2.2"]
+pylinguist = ["linguist@git+https://github.com/retanoj/linguist#egg=master"]
 
 [tool.setuptools]
 package-dir = {"" = "src"}
