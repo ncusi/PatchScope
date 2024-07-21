@@ -155,8 +155,6 @@ class Languages(object):
         filename, ext = Path(file_path).stem, Path(file_path).suffix  # os.file_path.splitext(file_path)
         basename = Path(file_path).name
         #print(f"{file_path=}: {filename=}, {ext=}, {basename=}")
-        if ".gitignore" in file_path:
-            return "Ignore List"
 
         if basename in self.filenames_lang:
             ret = languages_exceptions(file_path, self.filenames_lang[basename])
