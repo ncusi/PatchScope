@@ -29,8 +29,12 @@ def test_Languages(caplog: LogCaptureFixture):
 
     actual = languages.annotate("requirements.txt")
     assert actual['purpose'] == 'project', "purpose of a project file"
-    # assert actual['type'] == 'data', "'requirements.txt' should be considered 'data'"
-    # assert actual['language'] == 'Pip Requirements', "'requirements.txt' language is 'Pip Requirements'"
+    assert actual['type'] == 'data', "'requirements.txt' should be considered 'data'"
+    assert actual['language'] == 'Pip Requirements', "'requirements.txt' language is 'Pip Requirements'"
+
+    assert len(caplog.messages) == 0, "there was nothing logged so far"
+    if caplog.text:
+        print(caplog.text)
 
     caplog.clear()
     file_name = ".unknownprojectrc"

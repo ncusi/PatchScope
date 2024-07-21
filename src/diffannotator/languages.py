@@ -123,8 +123,10 @@ class Languages(object):
         """Read, parse, and extract information from 'languages.yml'"""
         with open(self.yaml, "r") as stream:
             self.languages = yaml.safe_load(stream)
-            self.ext_primary = defaultdict(list)
-            self.ext_lang = defaultdict(list)
+
+        self.ext_primary = defaultdict(list)
+        self.ext_lang = defaultdict(list)
+        self.filenames_lang = defaultdict(list)
 
         # reverse lookup
         for lang, v in self.languages.items():
@@ -134,6 +136,9 @@ class Languages(object):
             if "extensions" in v:
                 for ext in v["extensions"]:
                     self.ext_lang[ext].append(lang)
+            if "filenames" in v:
+                for filename in v["filenames"]:
+                    self.filenames_lang[filename].append(lang)
 
     def _simplify(self):
         """simplify languages assigned to file extensions"""
@@ -148,8 +153,19 @@ class Languages(object):
         """Convert path of file in repository to programming language of file"""
         # TODO: consider switching from Path.stem to Path.name (basename)
         filename, ext = Path(file_path).stem, Path(file_path).suffix  # os.file_path.splitext(file_path)
+        basename = Path(file_path).name
+        #print(f"{file_path=}: {filename=}, {ext=}, {basename=}")
         if ".gitignore" in file_path:
             return "Ignore List"
+
+        if basename in self.filenames_lang:
+            ret = languages_exceptions(file_path, self.filenames_lang[basename])
+            # Debug to catch filenames (basenames) with language collisions
+            if len(ret) > 1:
+                logger.warning(f"Filename collision in filenames_lang for '{file_path}': {ret}")
+
+            #print(f"... filenames_lang: {ret}")
+            return ret[0]
 
         if ext in self.ext_primary:
             ret = languages_exceptions(file_path, self.ext_primary[ext])
@@ -157,6 +173,7 @@ class Languages(object):
             if len(ret) > 1:
                 logger.warning(f"Extension collision in ext_primary for '{file_path}': {ret}")
 
+            #print(f"... ext_primary: {ret}")
             return ret[0]
 
         if ext in self.ext_lang:
@@ -165,6 +182,7 @@ class Languages(object):
             if len(ret) > 1:
                 logger.warning(f"Extension collision in ext_lang for '{file_path}': {ret}")
 
+            #print(f"... ext_lang: {ret}")
             return ret[0]
 
         for f in TEXT_FILES:
