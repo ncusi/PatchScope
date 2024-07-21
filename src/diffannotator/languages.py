@@ -211,18 +211,19 @@ class Languages(object):
             return "test"
 
         # any project management in filename -> project
-        if any(pattern in path.lower() for pattern in PROJECT_MANAGEMENT):
+        if any(pattern in path for pattern in PROJECT_MANAGEMENT):
             return "project"
 
         # any documentation in filename -> documentation
-        if any(pattern in path.lower() for pattern in DOCS_PATTERNS):
+        if any(pattern in path for pattern in DOCS_PATTERNS):
             return "documentation"
 
         # let's assume that prose (i.e. txt, markdown, rst, etc.) is documentation
         if "prose" in filetype:
             return "documentation"
 
-        # use filetype when matching types in list
+        # limit filetype to selected set of file types
+        # from languages.yml: Either data, programming, markup, prose, or nil
         if filetype in ["programming", "data", "markup", "other"]:
             return filetype
 
