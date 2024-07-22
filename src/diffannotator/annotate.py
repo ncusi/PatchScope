@@ -20,7 +20,8 @@ import typer
 from typing_extensions import Annotated  # in typing since Python 3.9
 import yaml
 
-from .languages import Languages, FORCE_SIMPLIFY
+from . import languages
+from .languages import Languages
 from .lexer import Lexer
 
 # optional dependencies
@@ -630,7 +631,6 @@ def purpose_to_annotation_callback(values: Optional[List[str]]):
     :param values: list of values to parse
     """
     global PURPOSE_TO_ANNOTATION
-
     if values is None:
         return []
 
@@ -658,20 +658,18 @@ def extension_to_language_callback(values: Optional[List[str]]):
 
     :param values: list of values to parse
     """
-    global FORCE_SIMPLIFY  # imported from the 'languages' module
-
     if values is None:
         return []
 
     # TODO: add logging
     for colon_separated_pair in values:
         if not colon_separated_pair or colon_separated_pair in {'""', "''"}:
-            FORCE_SIMPLIFY = {}
+            languages.EXT_TO_LANGUAGES = {}
         elif ':' in colon_separated_pair:
             key, val = colon_separated_pair.split(sep=':', maxsplit=1)
             if not key[0] == '.':
                 key = f".{key}"
-            FORCE_SIMPLIFY[key] = [val]
+            languages.EXT_TO_LANGUAGES[key] = [val]
         else:
             # TODO: use logging
             print(f"Warning: --force-simplify={colon_separated_pair} ignored")
@@ -819,7 +817,7 @@ def common(
 
     if ext_to_language is not None:
         print("Using modified mapping from file extension to programming language:")
-        for key, val in FORCE_SIMPLIFY.items():
+        for key, val in languages.EXT_TO_LANGUAGES.items():
             if len(val) == 1:
                 print(f"\t{key} is {val[0]}")
             else:

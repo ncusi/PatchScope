@@ -52,7 +52,7 @@ TEXT_FILES = [
 ]
 
 
-FORCE_SIMPLIFY = {
+EXT_TO_LANGUAGES = {
     ".as": ["ActionScript"],
     ".asm": ["ASM"],
     ".cfg": ["INI"],
@@ -142,12 +142,12 @@ class Languages(object):
 
     def _simplify(self):
         """simplify languages assigned to file extensions"""
-        for fix in FORCE_SIMPLIFY:
-            if fix in self.ext_primary:
-                self.ext_primary[fix] = FORCE_SIMPLIFY[fix]
+        for ext in EXT_TO_LANGUAGES:
+            if ext in self.ext_primary:
+                self.ext_primary[ext] = EXT_TO_LANGUAGES[ext]
 
-            if fix in self.ext_lang:
-                self.ext_lang[fix] = FORCE_SIMPLIFY[fix]
+            if ext in self.ext_lang:
+                self.ext_lang[ext] = EXT_TO_LANGUAGES[ext]
 
     def _path2lang(self, file_path: str) -> str:
         """Convert path of file in repository to programming language of file"""
