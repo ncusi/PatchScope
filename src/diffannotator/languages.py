@@ -1,7 +1,7 @@
 from collections import defaultdict
 import logging
 import os
-from pathlib import Path
+from pathlib import Path, PurePath
 from typing import List, TypeVar
 
 import yaml
@@ -11,32 +11,6 @@ PathLike = TypeVar("PathLike", str, bytes, Path, os.PathLike)
 
 # configure logging
 logger = logging.getLogger(__name__)
-
-# check if any project management files are present
-PROJECT_MANAGEMENT = [
-    ".nuspec",
-    "CMakeLists.txt",
-    "Cargo.toml",
-    "bower.json",
-    "build.gradle",
-    "build.sbt",
-    "cmake",
-    "composer.json",
-    "conanfile.txt",
-    "dockerfile",
-    "go.mod",
-    "info/index.json",
-    "ivy.xml",
-    "Makefile",
-    "manifest",
-    "meson.build",
-    "package.json",
-    "pom.xml",
-    "pyproject.toml",
-    "requirements.txt",
-    "setup.cfg",
-    "vcpkg.json",
-    ]
 
 # names without extensions to be considered text files
 TEXT_FILES = [
@@ -72,12 +46,53 @@ EXT_TO_LANGUAGES = {
     ".yml": ["YAML"],
 }
 
-DOCS_PATTERNS = [
-    "doc",
-    "docs",
-    "documentation",
-    "man",
-]
+PATTERN_TO_PURPOSE = {
+    # NOTE: Currently the recursive wildcard “**” acts like non-recursive “*”
+    # https://docs.python.org/3/library/pathlib.html#pathlib.PurePath.match
+    **{
+        pattern: "project"
+        for pattern in [
+            "*.cmake",  # CMake (C++)
+            ".nuspec",  # NuGet (C# / CLR)
+            "BUILD",  # Bazel (Java, C++, Go,...)
+            "CMakeLists.txt",  # CMake (C++)
+            "Cargo.toml",  # Cargo (Rust)
+            "Dockerfile",  # Docker
+            "Gemfile",  # RubyGems (Ruby)
+            "Makefile",  # make (C, C++,...)
+            "Podfile",  # CocoaPods (Swift and Objective-C)
+            "bower.json",  # Bower (JavaScript)
+            "build.gradle",  # Gradle, with Groovy DSL (Java, Kotlin / JVM)
+            "build.gradle.kts",  # Gradle, with Kotlin DSL (Java, Kotlin / JVM)
+            "build.sbt",  # SBT (Scala / JVM)
+            "buildfile",  # build2 (C, C++)
+            "composer.json",  # Composer (PHP)
+            "conanfile.py",  # Conan (C++)
+            "conanfile.txt",  # Conan (C++)
+            "go.mod",  # Go
+            "info/index.json",  # Conda (Python)
+            "ivy.xml",  # Ivy (Java / JVM)
+            "manifest",  # generic
+            "meson.build",  # Meson (C, C++, Objective-C, Java,...)
+            "package.json",  # npm (Node.js)
+            "pom.xml",  # Maven (Java / JVM)
+            "project.clj",  # Leiningen (Clojure)
+            "pyproject.toml",  # Python
+            "requirements.txt",  # pip (Python)
+            "setup.cfg",  # Python
+            "vcpkg.json",  # vcpkg (C++)
+        ]
+    },
+    **{
+        pattern: "documentation"
+        for pattern in [
+            "doc",
+            "docs",
+            "documentation",
+            "man",
+        ]
+    },
+}
 
 
 def languages_exceptions(path: str, lang: List[str]) -> List[str]:
@@ -210,13 +225,10 @@ class Languages(object):
         if "test" in path.lower():
             return "test"
 
-        # any project management in filename -> project
-        if any(pattern in path for pattern in PROJECT_MANAGEMENT):
-            return "project"
-
-        # any documentation in filename -> documentation
-        if any(pattern in path for pattern in DOCS_PATTERNS):
-            return "documentation"
+        path_pure = PurePath(path)
+        for pattern, purpose in PATTERN_TO_PURPOSE.items():
+            if path_pure.match(pattern):
+                return purpose
 
         # let's assume that prose (i.e. txt, markdown, rst, etc.) is documentation
         if "prose" in filetype:
