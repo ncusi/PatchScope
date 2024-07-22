@@ -1,7 +1,7 @@
 from collections import defaultdict
 import logging
 import os
-from pathlib import Path
+from pathlib import Path, PurePath
 from typing import List, TypeVar
 
 import yaml
@@ -12,47 +12,28 @@ PathLike = TypeVar("PathLike", str, bytes, Path, os.PathLike)
 # configure logging
 logger = logging.getLogger(__name__)
 
-# check if any project management files are present
-PROJECT_MANAGEMENT = [
-    ".nuspec",
-    "CMakeLists.txt",
-    "Cargo.toml",
-    "bower.json",
-    "build.gradle",
-    "build.sbt",
-    "cmake",
-    "composer.json",
-    "conanfile.txt",
-    "dockerfile",
-    "go.mod",
-    "info/index.json",
-    "ivy.xml",
-    "Makefile",
-    "manifest",
-    "meson.build",
-    "package.json",
-    "pom.xml",
-    "pyproject.toml",
-    "requirements.txt",
-    "setup.cfg",
-    "vcpkg.json",
-    ]
-
 # names without extensions to be considered text files
-TEXT_FILES = [
-    "AUTHORS",
-    "COPYING",
-    "ChangeLog",
-    "INSTALL",
-    "NEWS",
-    "PACKAGERS",
-    "README",
-    "THANKS",
-    "TODO",
-]
+FILENAME_TO_LANGUAGES = {
+    **{
+        filename: ["Text"]
+        for filename in [
+            "AUTHORS",
+            "COPYING",
+            "ChangeLog",
+            "INSTALL",
+            "NEWS",
+            "PACKAGERS",
+            "README",
+            "THANKS",
+            "TODO",
+        ]
+    },
+    "Makefile": ["Makefile"],
+    "configure.ac": ["M4Sugar"],
+}
 
 
-FORCE_SIMPLIFY = {
+EXT_TO_LANGUAGES = {
     ".as": ["ActionScript"],
     ".asm": ["ASM"],
     ".cfg": ["INI"],
@@ -72,12 +53,53 @@ FORCE_SIMPLIFY = {
     ".yml": ["YAML"],
 }
 
-DOCS_PATTERNS = [
-    "doc",
-    "docs",
-    "documentation",
-    "man",
-]
+PATTERN_TO_PURPOSE = {
+    # NOTE: Currently the recursive wildcard “**” acts like non-recursive “*”
+    # https://docs.python.org/3/library/pathlib.html#pathlib.PurePath.match
+    **{
+        pattern: "project"
+        for pattern in [
+            "*.cmake",  # CMake (C++)
+            ".nuspec",  # NuGet (C# / CLR)
+            "BUILD",  # Bazel (Java, C++, Go,...)
+            "CMakeLists.txt",  # CMake (C++)
+            "Cargo.toml",  # Cargo (Rust)
+            "Dockerfile",  # Docker
+            "Gemfile",  # RubyGems (Ruby)
+            "Makefile",  # make (C, C++,...)
+            "Podfile",  # CocoaPods (Swift and Objective-C)
+            "bower.json",  # Bower (JavaScript)
+            "build.gradle",  # Gradle, with Groovy DSL (Java, Kotlin / JVM)
+            "build.gradle.kts",  # Gradle, with Kotlin DSL (Java, Kotlin / JVM)
+            "build.sbt",  # SBT (Scala / JVM)
+            "buildfile",  # build2 (C, C++)
+            "composer.json",  # Composer (PHP)
+            "conanfile.py",  # Conan (C++)
+            "conanfile.txt",  # Conan (C++)
+            "go.mod",  # Go
+            "info/index.json",  # Conda (Python)
+            "ivy.xml",  # Ivy (Java / JVM)
+            "manifest",  # generic
+            "meson.build",  # Meson (C, C++, Objective-C, Java,...)
+            "package.json",  # npm (Node.js)
+            "pom.xml",  # Maven (Java / JVM)
+            "project.clj",  # Leiningen (Clojure)
+            "pyproject.toml",  # Python
+            "requirements.txt",  # pip (Python)
+            "setup.cfg",  # Python
+            "vcpkg.json",  # vcpkg (C++)
+        ]
+    },
+    **{
+        pattern: "documentation"
+        for pattern in [
+            "doc",
+            "docs",
+            "documentation",
+            "man",
+        ]
+    },
+}
 
 
 def languages_exceptions(path: str, lang: List[str]) -> List[str]:
@@ -112,18 +134,21 @@ class Languages(object):
         super(Languages, self).__init__()
         self.yaml = Path(languages_yaml)
 
+        # make it an absolute path, so that scripts work from any working directory
+        if not self.yaml.exists() and not self.yaml.is_absolute():
+            self.yaml = Path(__file__).resolve(strict=True).parent.joinpath(self.yaml)
+
         self._read()
         self._simplify()
 
     def _read(self):
         """Read, parse, and extract information from 'languages.yml'"""
-        if not self.yaml.exists() and not self.yaml.is_absolute():
-            self.yaml = Path(__file__).resolve(strict=True).parent.joinpath(self.yaml)
-
         with open(self.yaml, "r") as stream:
             self.languages = yaml.safe_load(stream)
-            self.ext_primary = defaultdict(list)
-            self.ext_lang = defaultdict(list)
+
+        self.ext_primary = defaultdict(list)
+        self.ext_lang = defaultdict(list)
+        self.filenames_lang = defaultdict(list)
 
         # reverse lookup
         for lang, v in self.languages.items():
@@ -133,22 +158,35 @@ class Languages(object):
             if "extensions" in v:
                 for ext in v["extensions"]:
                     self.ext_lang[ext].append(lang)
+            if "filenames" in v:
+                for filename in v["filenames"]:
+                    self.filenames_lang[filename].append(lang)
 
     def _simplify(self):
         """simplify languages assigned to file extensions"""
-        for fix in FORCE_SIMPLIFY:
-            if fix in self.ext_primary:
-                self.ext_primary[fix] = FORCE_SIMPLIFY[fix]
+        for ext in EXT_TO_LANGUAGES:
+            if ext in self.ext_primary:
+                self.ext_primary[ext] = EXT_TO_LANGUAGES[ext]
 
-            if fix in self.ext_lang:
-                self.ext_lang[fix] = FORCE_SIMPLIFY[fix]
+            if ext in self.ext_lang:
+                self.ext_lang[ext] = EXT_TO_LANGUAGES[ext]
 
     def _path2lang(self, file_path: str) -> str:
         """Convert path of file in repository to programming language of file"""
         # TODO: consider switching from Path.stem to Path.name (basename)
         filename, ext = Path(file_path).stem, Path(file_path).suffix  # os.file_path.splitext(file_path)
-        if ".gitignore" in file_path:
-            return "Ignore List"
+        basename = Path(file_path).name
+        #print(f"{file_path=}: {filename=}, {ext=}, {basename=}")
+
+        # NOTE: or dict(itertools.chain.from_iterable(d.items() for d in (d1, d2, d3)))
+        if basename in dict(self.filenames_lang, **FILENAME_TO_LANGUAGES):
+            ret = languages_exceptions(file_path, self.filenames_lang[basename])
+            # Debug to catch filenames (basenames) with language collisions
+            if len(ret) > 1:
+                logger.warning(f"Filename collision in filenames_lang for '{file_path}': {ret}")
+
+            #print(f"... filenames_lang: {ret}")
+            return ret[0]
 
         if ext in self.ext_primary:
             ret = languages_exceptions(file_path, self.ext_primary[ext])
@@ -156,6 +194,7 @@ class Languages(object):
             if len(ret) > 1:
                 logger.warning(f"Extension collision in ext_primary for '{file_path}': {ret}")
 
+            #print(f"... ext_primary: {ret}")
             return ret[0]
 
         if ext in self.ext_lang:
@@ -164,21 +203,12 @@ class Languages(object):
             if len(ret) > 1:
                 logger.warning(f"Extension collision in ext_lang for '{file_path}': {ret}")
 
+            #print(f"... ext_lang: {ret}")
             return ret[0]
-
-        for f in TEXT_FILES:
-            if f in file_path:
-                return "Text"
 
         # TODO: move those exceptions to languages_exceptions()
         if "/dev/null" in file_path:
             return "/dev/null"
-
-        if "Makefile" in file_path:
-            return "Makefile"
-
-        if "configure.ac" in file_path:
-            return "M4Sugar"
 
         # DEBUG information
         logger.warning(f"Unknown file type for '{file_path}' ({filename} + {ext})")
@@ -193,19 +223,17 @@ class Languages(object):
         if "test" in path.lower():
             return "test"
 
-        # any project management in filename -> project
-        if any(pattern in path.lower() for pattern in PROJECT_MANAGEMENT):
-            return "project"
-
-        # any documentation in filename -> documentation
-        if any(pattern in path.lower() for pattern in DOCS_PATTERNS):
-            return "documentation"
+        path_pure = PurePath(path)
+        for pattern, purpose in PATTERN_TO_PURPOSE.items():
+            if path_pure.match(pattern):
+                return purpose
 
         # let's assume that prose (i.e. txt, markdown, rst, etc.) is documentation
         if "prose" in filetype:
             return "documentation"
 
-        # use filetype when matching types in list
+        # limit filetype to selected set of file types
+        # from languages.yml: Either data, programming, markup, prose, or nil
         if filetype in ["programming", "data", "markup", "other"]:
             return filetype
 

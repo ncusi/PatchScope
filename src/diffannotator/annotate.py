@@ -18,15 +18,17 @@ import unidiff
 import tqdm
 import typer
 from typing_extensions import Annotated  # in typing since Python 3.9
+import yaml
 
-from .languages import Languages, FORCE_SIMPLIFY
+from . import languages
+from .languages import Languages
 from .lexer import Lexer
 
 # optional dependencies
 try:
-    # NOTE: linguist requires charlockholmes package,
-    # which in turn requires libmagic-dev and libicu-dev libraries
-    # https://github.com/douban/linguist/issues/25
+    # noinspection PyPackageRequirements,PyUnresolvedReferences
+    import linguist
+    # noinspection PyPackageRequirements
     from linguist.libs.language import Language as LinguistLanguage
     has_pylinguist = True
 
@@ -629,7 +631,6 @@ def purpose_to_annotation_callback(values: Optional[List[str]]):
     :param values: list of values to parse
     """
     global PURPOSE_TO_ANNOTATION
-
     if values is None:
         return []
 
@@ -657,20 +658,18 @@ def extension_to_language_callback(values: Optional[List[str]]):
 
     :param values: list of values to parse
     """
-    global FORCE_SIMPLIFY  # imported from the 'languages' module
-
     if values is None:
         return []
 
     # TODO: add logging
     for colon_separated_pair in values:
         if not colon_separated_pair or colon_separated_pair in {'""', "''"}:
-            FORCE_SIMPLIFY = {}
+            languages.EXT_TO_LANGUAGES = {}
         elif ':' in colon_separated_pair:
             key, val = colon_separated_pair.split(sep=':', maxsplit=1)
             if not key[0] == '.':
                 key = f".{key}"
-            FORCE_SIMPLIFY[key] = [val]
+            languages.EXT_TO_LANGUAGES[key] = [val]
         else:
             # TODO: use logging
             print(f"Warning: --force-simplify={colon_separated_pair} ignored")
@@ -731,9 +730,13 @@ def common(
         bool,
         typer.Option(
             "--use-pylinguist",
-            help="Use Python clone of github/linguist (default: false)."
+            help="Use Python clone of github/linguist, if available."
         )
     ] = False,
+    update_languages: Annotated[
+        bool,
+        typer.Option(help="Use own version of 'languages.yml'"),
+    ] = True,
     ext_to_language: Annotated[
         Optional[List[str]],
         typer.Option(
@@ -777,8 +780,22 @@ def common(
         print(f"Diff Annotator version: {get_version()}")
     if use_pylinguist:
         if has_pylinguist:
-            LANGUAGES = LanguagesFromLinguist()
             print('Detecting languages from file name using Python clone of GitHub Linguist.')
+
+            if update_languages:
+                if isinstance(LANGUAGES, Languages):
+                    languages_file = LANGUAGES.yaml
+                else:
+                    languages_file = Languages().yaml
+
+                orig_size = Path(linguist.libs.language.LANGUAGES_PATH).stat().st_size
+                updated_size = languages_file.stat().st_size
+                print(f"Updating 'languages.yml' from version with {orig_size} bytes "
+                      f"to version with {updated_size} bytes.")
+                linguist.libs.language.LANGUAGES_PATH = languages_file
+                linguist.libs.language.LANGUAGES = yaml.load(open(languages_file), Loader=yaml.FullLoader)
+
+            LANGUAGES = LanguagesFromLinguist()
         else:
             print(dedent("""\
             The 'linguist' package is not installed.
@@ -795,9 +812,12 @@ def common(
             # TODO: use common enum for exit codes
             raise typer.Exit(code=1)
 
+    if not update_languages and not use_pylinguist:
+        print("Ignoring '--no-update-languages' option without '--use-pylinguist'")
+
     if ext_to_language is not None:
         print("Using modified mapping from file extension to programming language:")
-        for key, val in FORCE_SIMPLIFY.items():
+        for key, val in languages.EXT_TO_LANGUAGES.items():
             if len(val) == 1:
                 print(f"\t{key} is {val[0]}")
             else:

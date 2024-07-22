@@ -15,11 +15,11 @@ def test_Languages(caplog: LogCaptureFixture):
 
     actual = languages.annotate('INSTALL')
     expected = {'language': 'Text', 'type': 'prose', 'purpose': 'documentation'}
-    assert actual == expected, "for INSTALL file (no extension)"
+    assert actual == expected, "for 'INSTALL' file (no extension)"
 
     actual = languages.annotate('README.md')
     expected = {'language': 'Markdown', 'type': 'prose', 'purpose': 'documentation'}
-    assert actual == expected, "for README.md file"
+    assert actual == expected, "for 'README.md' file"
 
     actual = languages.annotate('docs/index.rst')
     assert actual['purpose'] == 'documentation', "purpose of a documentation file"
@@ -28,9 +28,32 @@ def test_Languages(caplog: LogCaptureFixture):
     assert actual['purpose'] == 'test', "purpose of a test file"
 
     actual = languages.annotate("requirements.txt")
-    assert actual['purpose'] == 'project', "purpose of a project file"
-    # assert actual['type'] == 'data', "'requirements.txt' should be considered 'data'"
-    # assert actual['language'] == 'Pip Requirements', "'requirements.txt' language is 'Pip Requirements'"
+    assert actual['purpose'] == 'project', "'requirements.txt' is a project file"
+    assert actual['type'] == 'data', "'requirements.txt' should be considered 'data'"
+    assert actual['language'] == 'Pip Requirements', "'requirements.txt' language is 'Pip Requirements'"
+
+    actual = languages.annotate(".gitignore")
+    expected = {'language': 'Ignore List', 'type': 'data', 'purpose': 'data'}
+    assert actual == expected, "for '.gitignore' file"
+
+    actual = languages.annotate("Makefile")
+    assert actual['language'] == 'Makefile', "language of 'Makefile' file"
+    assert actual['purpose'] == 'project', "'Makefile' is a project file"
+
+    actual = languages.annotate("pyproject.toml")
+    expected = {'language': 'TOML', 'type': 'data', 'purpose': 'project'}
+    assert actual == expected, "for 'pyproject.toml' file"
+
+    actual = languages.annotate('linguist/.github/workflows/ci.yml')
+    expected = {'language': 'YAML', 'type': 'data', 'purpose': 'data'}
+    assert actual == expected, "for GitHub Actions YAML file"
+
+    actual = languages.annotate('.devcontainer/Dockerfile')
+    assert actual['language'] == 'Dockerfile', "language of 'Dockerfile'"
+
+    assert len(caplog.messages) == 0, "there was nothing logged so far"
+    if caplog.text:
+        print(caplog.text)
 
     caplog.clear()
     file_name = ".unknownprojectrc"
