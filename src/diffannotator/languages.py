@@ -13,17 +13,24 @@ PathLike = TypeVar("PathLike", str, bytes, Path, os.PathLike)
 logger = logging.getLogger(__name__)
 
 # names without extensions to be considered text files
-TEXT_FILES = [
-    "AUTHORS",
-    "COPYING",
-    "ChangeLog",
-    "INSTALL",
-    "NEWS",
-    "PACKAGERS",
-    "README",
-    "THANKS",
-    "TODO",
-]
+FILENAME_TO_LANGUAGES = {
+    **{
+        filename: ["Text"]
+        for filename in [
+            "AUTHORS",
+            "COPYING",
+            "ChangeLog",
+            "INSTALL",
+            "NEWS",
+            "PACKAGERS",
+            "README",
+            "THANKS",
+            "TODO",
+        ]
+    },
+    "Makefile": ["Makefile"],
+    "configure.ac": ["M4Sugar"],
+}
 
 
 EXT_TO_LANGUAGES = {
@@ -171,7 +178,8 @@ class Languages(object):
         basename = Path(file_path).name
         #print(f"{file_path=}: {filename=}, {ext=}, {basename=}")
 
-        if basename in self.filenames_lang:
+        # NOTE: or dict(itertools.chain.from_iterable(d.items() for d in (d1, d2, d3)))
+        if basename in dict(self.filenames_lang, **FILENAME_TO_LANGUAGES):
             ret = languages_exceptions(file_path, self.filenames_lang[basename])
             # Debug to catch filenames (basenames) with language collisions
             if len(ret) > 1:
@@ -198,19 +206,9 @@ class Languages(object):
             #print(f"... ext_lang: {ret}")
             return ret[0]
 
-        for f in TEXT_FILES:
-            if f in file_path:
-                return "Text"
-
         # TODO: move those exceptions to languages_exceptions()
         if "/dev/null" in file_path:
             return "/dev/null"
-
-        if "Makefile" in file_path:
-            return "Makefile"
-
-        if "configure.ac" in file_path:
-            return "M4Sugar"
 
         # DEBUG information
         logger.warning(f"Unknown file type for '{file_path}' ({filename} + {ext})")
