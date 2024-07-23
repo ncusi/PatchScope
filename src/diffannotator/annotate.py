@@ -313,6 +313,10 @@ class AnnotatedHunk:
 
     Note that major part of the annotation process is performed on demand,
     during the `process()` method call.
+
+    :ivar patched_file: `AnnotatedPatchedFile` this `AnnotatedHunk` belongs to
+    :ivar hunk: source `unidiff.Hunk` (modified blocks of a file) to annotate
+    :ivar patch_data: place to gather annotated hunk data
     """
     def __init__(self, patched_file: AnnotatedPatchedFile, hunk: unidiff.Hunk):
         """Initialize AnnotatedHunk with AnnotatedPatchedFile and Hunk
@@ -331,6 +335,33 @@ class AnnotatedHunk:
         self.patch_data = defaultdict(lambda: defaultdict(list))
 
     def process(self):
+        """Process associated patch hunk, annotating changes
+
+        Returns single-element mapping from filename to pre- and post-image
+        line annotations.  The pre-image line annotations use "-" as key,
+        while post-image use "+".  For each line, there is currently gathered
+        the following data:
+
+        - "id": line number in the hunk itself (it is not line number in pre-image
+          for "-" lines, or line image in post-image for "+" lines); this numbering
+          counts context lines, which are currently ignored.
+        - "type": "documentation" or "code", or the value mapped from the file purpose
+          by the `PURPOSE_TO_ANNOTATION` global variable, or the value provided by the
+          `AnnotatedPatchedFile.line_callback` function; comments and docstrings
+          counts as "documentation", and so do every line of documentation file
+        - "purpose": file purpose
+        - "tokens": list of tokens from Pygments lexer (`get_tokens_unprocessed()`)
+
+        If file purpose is in `PURPOSE_TO_ANNOTATION`, then line annotation that
+        corresponds to that file purpose in this mapping is used for all lines
+        of the hunk as "type".
+
+        Updates and returns the `self.patch_data` field.
+
+        :return: annotated patch data, mapping from changed file name
+            to '+'/'-', to annotated line info (from post-image or pre-image)
+        :rtype: dict[str, dict[str, dict]
+        """
         # choose file name to be used to select file type and lexer
         if self.patched_file.source_file == "/dev/null":
             file_path = self.patched_file.target_file
@@ -392,8 +423,22 @@ class AnnotatedHunk:
 
         return self.patch_data
 
-    def add_line_annotation(self, line_no, source_file, target_file, change_type,
-                            line_annotation, purpose, tokens):
+    def add_line_annotation(self, line_no: int, source_file: str, target_file: str,
+                            change_type: str, line_annotation: str, purpose: str,
+                            tokens: List[Tuple]) -> None:
+        """Add line annotations for a given line in a hunk
+
+        :param line_no: line number in a diff hunk body
+        :param source_file: name of changed file in pre-image of diff,
+            before changes
+        :param target_file: name of changed file in post-image of diff,
+            after changes
+        :param change_type: one of `LINE_TYPE_*` constants from `unidiff.constants`
+        :param line_annotation: type of line ("code", "documentation",...)
+        :param purpose: purpose of file ("project", "programming", "documentation",
+            "data", "markup", "other",...)
+        :param tokens: result of `pygments.lexer.Lexer.get_tokens_unprocessed()`
+        """
         data = {
             'id': line_no,
             'type': line_annotation,
@@ -437,15 +482,31 @@ def annotate_single_diff(diff_path: PathLike) -> dict:
 
 
 class Bug:
-    """Represents single bug in dataset"""
+    """Represents a single bug in a dataset, or a set of related patches
+
+    :ivar patches: mapping from some kind of identifiers to annotated patches;
+        the identifier might be the pathname of patch file, or the commit id
+    :vartype patches: dict[str, dict]
+    :ivar _dataset: path to the dataset the bug belongs to, that is parent
+        directory to directory with patch files; present only when creating
+        `Bug` object from bug in a dataset
+    :vartype _dataset: Path
+    :ivar _bug_id: the name of directory with patch files; present only when creating
+        `Bug` object from bug in a dataset
+    :vartype _bug_id: str
+    :ivar _path: full path to the directory with patch files; present only when creating
+        `Bug` object from bug in a dataset
+    :vartype _path: Path
+    """
     PATCHES_DIR = "patches"
     ANNOTATIONS_DIR = "annotation"
 
     def __init__(self, dataset_dir: PathLike, bug_id: str):
-        """Constructor for class representing single Bug
+        """Constructor for class representing a single Bug
 
-        :dataset: path to the dataset
-        :bug: bug id
+        :param dataset_dir: path to the dataset (parent directory to
+            the directory with patch files)
+        :param bug_id: bug id (name of directory with patch files)
         """
         self._dataset: Path = Path(dataset_dir)
         self._bug: str = bug_id
@@ -506,7 +567,16 @@ class Bug:
 
 
 class BugDataset:
-    """Bugs dataset class"""
+    """Bugs dataset class
+
+    :ivar bugs: list of bug identifiers (directories with patch files)
+        contained in a given `dataset_dir`, or list of PatchSet extracted
+        from Git repo - that can be turned into annotated patch data with
+        `get_bug()` method.
+    :ivar _path: path to the dataset directory (with directories with patch files);
+        present only when creating `BugDataset` object from dataset directory.
+    :vartype _path: Path
+    """
 
     def __init__(self, dataset_dir: PathLike):
         """Constructor of bug dataset.
@@ -548,6 +618,7 @@ class BugDataset:
         """Is bug with given id contained in the dataset?"""
         return item in self.bugs
 
+# =========================================================================
 
 app = typer.Typer(no_args_is_help=True, add_completion=False)
 
