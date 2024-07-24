@@ -557,7 +557,6 @@ class Bug:
             print(f"Error during Bug constructor: '{self._path}' is not a directory")
 
         self.patches: dict = self._get_patches_from_dir(self._path)
-        self.changes: list = []
 
     def _get_patch(self, patch_file: PathLike) -> dict:
         """Get and annotate a single patch
