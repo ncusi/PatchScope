@@ -525,8 +525,6 @@ class Bug:
     :ivar _path: full path to the directory with patch files; present only when creating
         `Bug` object from bug in a dataset
     """
-    PATCHES_DIR = "patches"
-    ANNOTATIONS_DIR = "annotation"
 
     def __init__(self, dataset_dir: PathLike, bug_id: str, *,
                  patches_dir: str = "patches", annotations_dir: str = "annotation"):
@@ -664,6 +662,7 @@ class BugDataset:
     def __contains__(self, item: str) -> bool:
         """Is bug with given id contained in the dataset?"""
         return item in self.bugs
+
 
 # =========================================================================
 
