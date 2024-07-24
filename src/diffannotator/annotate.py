@@ -775,7 +775,7 @@ def dataset(datasets: Annotated[
     to annotate as *.diff file in 'patches/' subdirectory.
     """
     for dataset_dir in datasets:
-        print(f"Dataset {dataset_dir}")
+        print(f"Processing dataset in directory '{dataset_dir}'")
         bugs = BugDataset(dataset_dir)
 
         output_path: Optional[Path] = None
