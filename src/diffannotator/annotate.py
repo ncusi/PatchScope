@@ -218,6 +218,14 @@ class AnnotatedPatchedFile:
     during the `process()` method call.
 
     Fixes some problems with `unidiff.PatchedFile`
+
+    :ivar patched_file: original `unidiff.PatchedFile` to be annotated
+    :ivar source_file: name of source file (pre-image name),
+        without the "a/" prefix from diff / patch
+    :ivar target_file: name of target file (post-image name),
+        without the "b/" prefix from diff / patch
+    :ivar patch_data: gathers patch files and changed patch lines
+        annotations; mapping from file name to gathered data
     """
     # NOTE: similar signature to line_is_comment, but returning str
     # TODO: store this type as TypeVar to avoid code duplication
@@ -276,14 +284,14 @@ class AnnotatedPatchedFile:
 
         :param patched_file: patched file data parsed from unified diff
         """
-        self.patch_data = defaultdict(lambda: defaultdict(list))
+        self.patch_data: Dict[str, Dict] = defaultdict(lambda: defaultdict(list))
 
         # save original diffutils.PatchedFile
-        self.patched_file = patched_file
+        self.patched_file: unidiff.PatchedFile = patched_file
 
         # get the names and drop "a/" and "b/"
-        self.source_file = patched_file.source_file
-        self.target_file = patched_file.target_file
+        self.source_file: str = patched_file.source_file
+        self.target_file: str = patched_file.target_file
 
         if self.source_file[:2] == "a/":
             self.source_file = patched_file.source_file[2:]
