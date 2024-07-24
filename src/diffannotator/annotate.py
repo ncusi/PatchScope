@@ -520,13 +520,10 @@ class Bug:
     :ivar _dataset: path to the dataset the bug belongs to, that is parent
         directory to directory with patch files; present only when creating
         `Bug` object from bug in a dataset
-    :vartype _dataset: Path
-    :ivar _bug_id: the name of directory with patch files; present only when creating
+    :ivar _bug: the name of directory with patch files; present only when creating
         `Bug` object from bug in a dataset
-    :vartype _bug_id: str
     :ivar _path: full path to the directory with patch files; present only when creating
         `Bug` object from bug in a dataset
-    :vartype _path: Path
     """
     PATCHES_DIR = "patches"
     ANNOTATIONS_DIR = "annotation"
