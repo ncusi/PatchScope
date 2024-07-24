@@ -453,18 +453,28 @@ def annotate_single_diff(diff_path: PathLike, missing_ok: bool = False) -> dict:
 
 class Bug:
     """Represents single bug in dataset"""
-    PATCHES_DIR = "patches"
-    ANNOTATIONS_DIR = "annotation"
 
-    def __init__(self, dataset_dir: PathLike, bug_id: str):
+    def __init__(self, dataset_dir: PathLike, bug_id: str, *,
+                 patches_dir: str = "patches", annotations_dir: str = "annotation"):
         """Constructor for class representing single Bug
 
         :dataset: path to the dataset
         :bug: bug id
         """
+        self.PATCHES_DIR = patches_dir
+        self.ANNOTATIONS_DIR = annotations_dir
+
         self._dataset: Path = Path(dataset_dir)
         self._bug: str = bug_id
         self._path: Path = self._dataset.joinpath(self._bug, self.PATCHES_DIR)
+
+        # sanity checking
+        if not self._path.exists():
+            # TODO: use logger, log error
+            print(f"Error during Bug constructor: '{self._path}' path does not exist")
+        elif not self._path.is_dir():
+            # TODO: use logger, log error
+            print(f"Error during Bug constructor: '{self._path}' is not a directory")
 
         self.patches: dict = self._get_patches()
         self.changes: list = []
@@ -479,6 +489,7 @@ class Bug:
 
         # Skip diffs between multiple versions
         if "..." in str(patch_path):
+            # TODO: log a warning
             return {}
 
         return annotate_single_diff(patch_path)

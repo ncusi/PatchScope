@@ -182,13 +182,9 @@ def test_annotate_single_diff():
 def test_Bug_constructor():
     # code patch
     file_path = Path('tests/test_dataset/tqdm-1/c0dcf39b046d1b4ff6de14ac99ad9a1b10487512.diff')
-    # fiddle around if path does not have the default structure
-    saved_patches_dir = None
-    if file_path.parts[-2] != Bug.PATCHES_DIR:
-        saved_patches_dir = Bug.PATCHES_DIR
-        Bug.PATCHES_DIR = ""
 
-    bug = Bug('test_dataset', 'tqdm-1')
+    bug = Bug('tests/test_dataset', 'tqdm-1',
+              patches_dir="", annotations_dir="")
     assert file_path.name in bug.patches, \
         "retrieved annotations for the single *.diff file"
     assert len(bug.patches) == 1, \
@@ -196,16 +192,12 @@ def test_Bug_constructor():
     assert "tqdm/contrib/__init__.py" in bug.patches[file_path.name], \
         "there is expected changed file in a bug patch"
 
-    # un-fiddle, if needed
-    if saved_patches_dir is not None:
-        Bug.PATCHES_DIR = saved_patches_dir
-
 
 def test_Bug_save(tmp_path: Path):
     bug = Bug('tests/test_dataset_structured', 'keras-10')  # the one with the expected directory structure
     bug.save(tmp_path)
 
-    save_path = tmp_path.joinpath('keras-10', Bug.ANNOTATIONS_DIR)
+    save_path = tmp_path.joinpath('keras-10', bug.ANNOTATIONS_DIR)
     assert save_path.exists(), \
         "directory path to save data exists"
     assert save_path.is_dir(), \
