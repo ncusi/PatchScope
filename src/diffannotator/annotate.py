@@ -6,6 +6,7 @@ import json
 import os
 from pathlib import Path
 import re
+import sys
 import traceback
 from typing import List, Dict, Tuple, TypeVar, Optional
 from typing import Iterable, Generator, Callable  # should be imported from collections.abc
@@ -417,7 +418,8 @@ def annotate_single_diff(diff_path: PathLike, missing_ok: bool = False) -> dict:
         patch_set = unidiff.PatchSet.from_filename(diff_path, encoding="utf-8")
 
     except FileNotFoundError as ex:
-        print(f"No such patch file: '{diff_path}'")
+        # TODO?: use logger, log either warning or error
+        print(f"No such patch file: '{diff_path}'", file=sys.stderr)
 
         if not missing_ok:
             raise ex
