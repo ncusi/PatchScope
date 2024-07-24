@@ -8,6 +8,7 @@ import logging
 import os
 from pathlib import Path
 import re
+import sys
 import traceback
 from typing import List, Dict, Tuple, TypeVar, Optional
 from typing import Iterable, Generator, Callable  # should be imported from collections.abc
@@ -453,16 +454,37 @@ class AnnotatedHunk:
             self.patch_data[source_file]["-"].append(data)
 
 
-def annotate_single_diff(diff_path: PathLike) -> dict:
+def annotate_single_diff(diff_path: PathLike, missing_ok: bool = False) -> dict:
     """Annotate single unified diff patch file at given path
 
     :param diff_path: patch filename
+    :param missing_ok: if false (the default), raise exception if `diff_path`
+        does not exist, or cannot be read.
     :return: annotation data
     """
     patch_annotations = {}
 
     try:
         patch_set = unidiff.PatchSet.from_filename(diff_path, encoding="utf-8")
+
+    except FileNotFoundError as ex:
+        # TODO?: use logger, log either warning or error
+        print(f"No such patch file: '{diff_path}'", file=sys.stderr)
+
+        if not missing_ok:
+            raise ex
+        return {}
+
+    except PermissionError as ex:
+        if Path(diff_path).exists() and Path(diff_path).is_dir():
+            print(f"Path points to directory, not patch file: '{diff_path}'")
+        else:
+            print(f"Permission denied to read patch file '{diff_path}'")
+
+        if not missing_ok:
+            raise ex
+        return {}
+
     except Exception as ex:
         print(f"Error parsing patch file '{diff_path}': {ex!r}")
         # raise ex
@@ -501,16 +523,28 @@ class Bug:
     PATCHES_DIR = "patches"
     ANNOTATIONS_DIR = "annotation"
 
-    def __init__(self, dataset_dir: PathLike, bug_id: str):
+    def __init__(self, dataset_dir: PathLike, bug_id: str, *,
+                 patches_dir: str = "patches", annotations_dir: str = "annotation"):
         """Constructor for class representing a single Bug
 
         :param dataset_dir: path to the dataset (parent directory to
             the directory with patch files)
         :param bug_id: bug id (name of directory with patch files)
         """
+        self.PATCHES_DIR = patches_dir
+        self.ANNOTATIONS_DIR = annotations_dir
+
         self._dataset: Path = Path(dataset_dir)
         self._bug: str = bug_id
         self._path: Path = self._dataset.joinpath(self._bug, self.PATCHES_DIR)
+
+        # sanity checking
+        if not self._path.exists():
+            # TODO: use logger, log error
+            print(f"Error during Bug constructor: '{self._path}' path does not exist")
+        elif not self._path.is_dir():
+            # TODO: use logger, log error
+            print(f"Error during Bug constructor: '{self._path}' is not a directory")
 
         self.patches: dict = self._get_patches_from_dir(self._path)
         self.changes: list = []
@@ -525,6 +559,7 @@ class Bug:
 
         # Skip diffs between multiple versions
         if "..." in str(patch_path):
+            # TODO: log a warning
             return {}
 
         return annotate_single_diff(patch_path)
@@ -846,7 +881,7 @@ def dataset(datasets: Annotated[
     to annotate as *.diff file in 'patches/' subdirectory.
     """
     for dataset_dir in datasets:
-        print(f"Dataset {dataset_dir}")
+        print(f"Processing dataset in directory '{dataset_dir}'")
         bugs = BugDataset(dataset_dir)
 
         output_path: Optional[Path] = None
