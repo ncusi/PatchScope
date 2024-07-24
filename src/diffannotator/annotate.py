@@ -530,6 +530,13 @@ class Bug:
         :param dataset_dir: path to the dataset (parent directory to
             the directory with patch files)
         :param bug_id: bug id (name of directory with patch files)
+        :param patches_dir: name of subdirectory with patch files, if any;
+            patches are assumed to be in dataset_dir / bug_id / patches_dir directory;
+            use empty string ("") to not use subdirectory
+        :param annotations_dir: name of subdirectory where annotated data will be saved;
+            in case the `save()` method is invoked without providing `annotate_path`
+            parameter, the data is saved in dataset_dir / bug_id / annotations_dir
+            subdirectory; use empty string ("") to not use subdirectory
         """
         self.PATCHES_DIR = patches_dir
         self.ANNOTATIONS_DIR = annotations_dir
