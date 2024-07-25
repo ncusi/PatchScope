@@ -19,6 +19,7 @@ import tqdm
 import typer
 from typing_extensions import Annotated  # in typing since Python 3.9
 
+from .generate_patches import GitRepo
 from .languages import Languages, FORCE_SIMPLIFY
 from .lexer import Lexer
 
@@ -601,7 +602,7 @@ class Bug:
         """Create Bug object from unidiff.PatchSet
 
         If `patch_id` is None, then it tries to use the 'commit_id' attribute
-        of `patch_set`; if this attribute does not exist, it construct artificial
+        of `patch_set`; if this attribute does not exist, it constructs artificial
         `patch_id` (currently based on repr(patch_set), but that might change).
 
         :param patch_id: identifies source of the `patch_set`
@@ -688,28 +689,55 @@ class Bug:
 class BugDataset:
     """Bugs dataset class
 
-    :ivar bugs: list of bug identifiers (directories with patch files)
+    :ivar bug_ids: list of bug identifiers (directories with patch files)
         contained in a given `dataset_dir`, or list of PatchSet extracted
         from Git repo - that can be turned into annotated patch data with
         `get_bug()` method.
-    :ivar _path: path to the dataset directory (with directories with patch files);
+    :ivar _dataset_path: path to the dataset directory (with directories with patch files);
         present only when creating `BugDataset` object from dataset directory.
-    :vartype _path: Path
+    :vartype _dataset_path: Optional[Path]
     """
 
-    def __init__(self, dataset_dir: PathLike):
+    def __init__(self, bug_ids: List[str],
+                 dataset_path: Optional[PathLike] = None,
+                 git_repo: Optional[GitRepo] = None):
         """Constructor of bug dataset.
 
-        :param dataset_dir: path to the dataset
+        You better use alternative constructors instead:
+
+        - `BugDataset.from_directory` - from patch files in subdirectories \
+          (bugs) of a given directory (a dataset)
+
+        :param bug_ids: set of bug ids
+        :param dataset_path: path to the dataset, if BugDataset was created
+            from dataset directory via `BugDataset.from_directory`
+        :param git_repo: reserved for the future
         """
-        self._path = Path(dataset_dir)
-        self.bugs: List[str] = []
+        self.bug_ids = bug_ids
+        # identifies type of BugDataset
+        # TODO: do a sanity check - exactly one should be not None,
+        #       or both should be None and bug_ids should be empty
+        self._dataset_path = dataset_path
+        self._git_repo = git_repo
+
+    @classmethod
+    def from_directory(cls, dataset_dir: PathLike) -> 'BugDataset':
+        """Create BugDataset object from directory with directories with patch files
+
+        :param dataset_dir: path to the dataset
+        :return: BugDataset object instance
+        """
+        dataset_path = Path(dataset_dir)
 
         try:
-            self.bugs = [str(d.name) for d in self._path.iterdir()
-                         if d.is_dir()]
+            return BugDataset([str(d.name) for d in dataset_path.iterdir()
+                               if d.is_dir()],
+                              dataset_path=dataset_path)
+
+        # TODO: use a more specific exception class
         except Exception as ex:
-            print(f"Error in BugDataset for '{self._path}': {ex}")
+            print(f"Error in BugDataset.from_directory('{dataset_path}'): {ex}")
+            return BugDataset([])
 
     def get_bug(self, bug_id: str) -> Bug:
         """Return specified bug
@@ -717,25 +745,25 @@ class BugDataset:
         :param bug_id: identifier of a bug in this dataset
         :returns: Bug instance
         """
-        return Bug.from_dataset(self._path, bug_id)
+        return Bug.from_dataset(self._dataset_path, bug_id)
 
     # NOTE: alternative would be inheriting from `list`,
     # like many classes in the 'unidiff' library do
     def __iter__(self):
         """Iterate over bugs ids in the dataset"""
-        return self.bugs.__iter__()
+        return self.bug_ids.__iter__()
 
     def __len__(self) -> int:
         """Number of bugs in the dataset"""
-        return len(self.bugs)
+        return len(self.bug_ids)
 
     def __getitem__(self, idx: int) -> str:
         """Get idx-th bug in the dataset"""
-        return self.bugs[idx]
+        return self.bug_ids[idx]
 
     def __contains__(self, item: str) -> bool:
         """Is bug with given id contained in the dataset?"""
-        return item in self.bugs
+        return item in self.bug_ids
 
 
 # =========================================================================
@@ -967,7 +995,7 @@ def dataset(datasets: Annotated[
     """
     for dataset_dir in datasets:
         print(f"Processing dataset in directory '{dataset_dir}'")
-        bugs = BugDataset(dataset_dir)
+        bugs = BugDataset.from_directory(dataset_dir)
 
         output_path: Optional[Path] = None
         if output_prefix is not None:

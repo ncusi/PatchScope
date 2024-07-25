@@ -224,14 +224,14 @@ def test_Bug_save(tmp_path: Path):
         "this JSON file has expected filename"
 
 
-def test_BugDataset():
-    bugs = BugDataset('tests/test_dataset_structured')
+def test_BugDataset_from_directory():
+    bugs = BugDataset.from_directory('tests/test_dataset_structured')
 
     assert len(bugs) >= 1, \
         "there is at least one bug in the dataset"
     assert 'keras-10' in bugs, \
         "the bug with 'keras-10' identifier is included in the dataset"
-    assert bugs.bugs == list(bugs), \
+    assert bugs.bug_ids == list(bugs), \
         "iterating over bug identifiers works as expected"
 
     bug = bugs.get_bug('keras-10')
