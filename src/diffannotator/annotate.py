@@ -517,50 +517,47 @@ class Bug:
     :ivar patches: mapping from some kind of identifiers to annotated patches;
         the identifier might be the pathname of patch file, or the commit id
     :vartype patches: dict[str, dict]
-    :ivar _dataset: path to the dataset the bug belongs to, that is parent
-        directory to directory with patch files; present only when creating
-        `Bug` object from bug in a dataset
-    :ivar _bug: the name of directory with patch files; present only when creating
-        `Bug` object from bug in a dataset
-    :ivar _path: full path to the directory with patch files; present only when creating
-        `Bug` object from bug in a dataset
+    :cvar DEFAULT_PATCHES_DIR: default value for `patches_dir` parameter
+        in `Bug.from_dataset()` static method (class property)
+    :cvar DEFAULT_ANNOTATIONS_DIR:  default value for `annotations_dir` parameter
+        in `Bug.from_dataset()` static method (class property)
+    :ivar read_dir: path to the directory patches were read from, or None
+    :ivar save_dir: path to default directory where annotated data should
+        be saved (if `save()` method is called without `annotate_dir`), or None
+    :ivar relative_save_dir: bug_id / annotations_dir, i.e. subdirectory
+        where to save annotation data, relative to `annotate_dir` parameter
+        in `save()` method; **available only** if the Bug object was created
+        with `from_dataset()`
     """
+    DEFAULT_PATCHES_DIR: str = "patches"
+    DEFAULT_ANNOTATIONS_DIR: str = "annotation"
 
-    def __init__(self, dataset_dir: PathLike, bug_id: str, *,
-                 patches_dir: str = "patches", annotations_dir: str = "annotation"):
+    def __init__(self, patches_data: dict, *,
+                 read_dir: Optional[PathLike] = None,
+                 save_dir: Optional[PathLike] = None):
         """Constructor for class representing a single Bug
 
-        :param dataset_dir: path to the dataset (parent directory to
-            the directory with patch files)
-        :param bug_id: bug id (name of directory with patch files)
-        :param patches_dir: name of subdirectory with patch files, if any;
-            patches are assumed to be in dataset_dir / bug_id / patches_dir directory;
-            use empty string ("") to not use subdirectory
-        :param annotations_dir: name of subdirectory where annotated data will be saved;
-            in case the `save()` method is invoked without providing `annotate_path`
-            parameter, the data is saved in dataset_dir / bug_id / annotations_dir
-            subdirectory; use empty string ("") to not use subdirectory
+        You better use alternative constructors instead:
+
+        - `Bug.from_dataset` - from patch files in a directory (a dataset)
+
+        :param patches_data: annotation data, from annotating a patch
+            or a series of patches (e.g. from `annotate_single_diff()`);
+            a mapping from patch id (e.g. filename of a patch file)
+            to the result of annotating said patch
+        :param read_dir: path to the directory patches were read from, or None
+        :param save_dir: path to default directory where annotated data should
+            be saved, or None
         """
-        self.PATCHES_DIR = patches_dir
-        self.ANNOTATIONS_DIR = annotations_dir
+        self.read_dir: Path = Path(read_dir)
+        self.save_dir: Path = Path(save_dir)
 
-        self._dataset: Path = Path(dataset_dir)
-        self._bug: str = bug_id
-        self._path: Path = self._dataset.joinpath(self._bug, self.PATCHES_DIR)
-
-        # sanity checking
-        if not self._path.exists():
-            # TODO: use logger, log error
-            print(f"Error during Bug constructor: '{self._path}' path does not exist")
-        elif not self._path.is_dir():
-            # TODO: use logger, log error
-            print(f"Error during Bug constructor: '{self._path}' is not a directory")
-
-        self.patches: dict = self._get_patches_from_dir(self._path)
+        self.patches: dict = patches_data
 
     @classmethod
     def from_dataset(cls, dataset_dir: PathLike, bug_id: str, *,
-                     patches_dir: str = "patches", annotations_dir: str = "annotation") -> 'Bug':
+                     patches_dir: str = DEFAULT_PATCHES_DIR,
+                     annotations_dir: str = DEFAULT_ANNOTATIONS_DIR) -> 'Bug':
         """Create Bug object from patch files for given bug in given dataset
 
         Assumes that patch files have '*.diff' extension, and that they are
@@ -579,27 +576,20 @@ class Bug:
             subdirectory; use empty string ("") to not use subdirectory
         :return: Bug object instance
         """
-        # TODO: temporary, before simplifying the main constructor and using it
-        obj = cls.__new__(cls)  # Does not call __init__
-        super(Bug, obj).__init__()  # Don't forget to call any polymorphic base class initializers
-
-        obj.PATCHES_DIR = patches_dir
-        obj.ANNOTATIONS_DIR = annotations_dir
-
-        # NOTE: Non-self attribute could not be type hinted
-        obj._dataset = Path(dataset_dir)
-        obj._bug = bug_id
-        obj._path = obj._dataset.joinpath(obj._bug, obj.PATCHES_DIR)
+        read_dir = Path(dataset_dir).joinpath(bug_id, patches_dir)
+        save_dir = Path(dataset_dir).joinpath(bug_id, annotations_dir)  # default for .save()
 
         # sanity checking
-        if not obj._path.exists():
+        if not read_dir.exists():
             # TODO: use logger, log error
-            print(f"Error during Bug constructor: '{obj._path}' path does not exist")
-        elif not obj._path.is_dir():
+            print(f"Error during Bug constructor: '{read_dir}' path does not exist")
+        elif not read_dir.is_dir():
             # TODO: use logger, log error
-            print(f"Error during Bug constructor: '{obj._path}' is not a directory")
+            print(f"Error during Bug constructor: '{read_dir}' is not a directory")
 
-        obj.patches = obj._get_patches_from_dir(obj._path)
+        obj = Bug({}, read_dir=read_dir, save_dir=save_dir)
+        obj.patches = obj._get_patches_from_dir(patches_dir=read_dir)
+        obj.relative_save_dir = Path(bug_id).joinpath(annotations_dir)  # for .save()
 
         return obj
 
@@ -609,7 +599,7 @@ class Bug:
         :param patch_file: basename of a patch
         :return: annotated patch data
         """
-        patch_path = self._path.joinpath(patch_file)
+        patch_path = self.read_dir.joinpath(patch_file)
 
         # Skip diffs between multiple versions
         if "..." in str(patch_path):
@@ -633,23 +623,30 @@ class Bug:
 
         return patches_data
 
-    def save(self, annotate_path: Optional[PathLike] = None):
+    def save(self, annotate_dir: Optional[PathLike] = None):
         """Save annotated patches in JSON format
 
-        :param annotate_path: Separate dir to save annotations, optional.
-            If not set, dataset path is used as a base path.
+        :param annotate_dir: Separate dir to save annotations, optional.
+            If not set, `self.save_dir` is used as a base path.
         """
-        if annotate_path is not None:
-            base_path = Path(annotate_path).joinpath(self._bug, self.ANNOTATIONS_DIR)
+        if annotate_dir is not None:
+            base_path = Path(annotate_dir)
+
+            # use `self.relative_save_dir` if available
+            relative_save_dir = getattr(self, 'relative_save_dir', '')
+            base_path = base_path.joinpath(relative_save_dir)
         else:
-            base_path = self._dataset.joinpath(self._bug, self.ANNOTATIONS_DIR)
+            base_path = self.save_dir
+
+        if base_path is None:
+            raise ValueError("For this Bug, annotate_dir parameter must be provided to .save()")
 
         # ensure that base_path exists in filesystem
         base_path.mkdir(parents=True, exist_ok=True)
 
         # save annotated patches data
-        for patch_file, patch_data in self.patches.items():
-            out_path = base_path / Path(patch_file).with_suffix('.json')
+        for patch_id, patch_data in self.patches.items():
+            out_path = base_path / Path(patch_id).with_suffix('.json')
 
             with out_path.open('w') as out_f:
                 json.dump(patch_data, out_f)
@@ -950,7 +947,7 @@ def dataset(datasets: Annotated[
 
         for bug in tqdm.tqdm(bugs):
             # NOTE: Uses default path if annotate_path is None
-            bugs.get_bug(bug).save(annotate_path=output_path)
+            bugs.get_bug(bug).save(annotate_dir=output_path)
 
 
 @app.command()

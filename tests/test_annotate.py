@@ -197,7 +197,7 @@ def test_Bug_save(tmp_path: Path):
     bug = Bug.from_dataset('tests/test_dataset_structured', 'keras-10')  # the one with the expected directory structure
     bug.save(tmp_path)
 
-    save_path = tmp_path.joinpath('keras-10', bug.ANNOTATIONS_DIR)
+    save_path = tmp_path.joinpath('keras-10', Bug.DEFAULT_ANNOTATIONS_DIR)
     assert save_path.exists(), \
         "directory path to save data exists"
     assert save_path.is_dir(), \
