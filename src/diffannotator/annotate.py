@@ -745,7 +745,12 @@ class BugDataset:
         :param bug_id: identifier of a bug in this dataset
         :returns: Bug instance
         """
-        return Bug.from_dataset(self._dataset_path, bug_id)
+        if self._dataset_path is not None:
+            return Bug.from_dataset(self._dataset_path, bug_id)
+
+        # TODO: log an error
+        print(f"{self!r}: could not get bug with {bug_id=}")
+        return Bug()
 
     def __repr__(self):
         return f"{BugDataset.__qualname__}(bug_ids={self.bug_ids!r}, "\
