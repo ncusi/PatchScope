@@ -747,6 +747,10 @@ class BugDataset:
         """
         return Bug.from_dataset(self._dataset_path, bug_id)
 
+    def __repr__(self):
+        return f"{BugDataset.__qualname__}(bug_ids={self.bug_ids!r}, "\
+               f"dataset_path={self._dataset_path!r}, git_repo={self._git_repo!r})"
+
     # NOTE: alternative would be inheriting from `list`,
     # like many classes in the 'unidiff' library do
     def __iter__(self):
