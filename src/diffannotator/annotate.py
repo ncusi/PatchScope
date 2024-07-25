@@ -558,6 +558,51 @@ class Bug:
 
         self.patches: dict = self._get_patches_from_dir(self._path)
 
+    @classmethod
+    def from_dataset(cls, dataset_dir: PathLike, bug_id: str, *,
+                     patches_dir: str = "patches", annotations_dir: str = "annotation") -> 'Bug':
+        """Create Bug object from patch files for given bug in given dataset
+
+        Assumes that patch files have '*.diff' extension, and that they are
+        in the `dataset_dir` / `bug_id` / `patches_dir` subdirectory (if `patches_dir`
+        is an empty string, this is just `dataset_dir` / `bug_id`).
+
+        :param dataset_dir: path to the dataset (parent directory to
+            the directory with patch files)
+        :param bug_id: bug id (name of directory with patch files)
+        :param patches_dir: name of subdirectory with patch files, if any;
+            patches are assumed to be in dataset_dir / bug_id / patches_dir directory;
+            use empty string ("") to not use subdirectory
+        :param annotations_dir: name of subdirectory where annotated data will be saved;
+            in case the `save()` method is invoked without providing `annotate_path`
+            parameter, the data is saved in dataset_dir / bug_id / annotations_dir
+            subdirectory; use empty string ("") to not use subdirectory
+        :return: Bug object instance
+        """
+        # TODO: temporary, before simplifying the main constructor and using it
+        obj = cls.__new__(cls)  # Does not call __init__
+        super(Bug, obj).__init__()  # Don't forget to call any polymorphic base class initializers
+
+        obj.PATCHES_DIR = patches_dir
+        obj.ANNOTATIONS_DIR = annotations_dir
+
+        # NOTE: Non-self attribute could not be type hinted
+        obj._dataset = Path(dataset_dir)
+        obj._bug = bug_id
+        obj._path = obj._dataset.joinpath(obj._bug, obj.PATCHES_DIR)
+
+        # sanity checking
+        if not obj._path.exists():
+            # TODO: use logger, log error
+            print(f"Error during Bug constructor: '{obj._path}' path does not exist")
+        elif not obj._path.is_dir():
+            # TODO: use logger, log error
+            print(f"Error during Bug constructor: '{obj._path}' is not a directory")
+
+        obj.patches = obj._get_patches_from_dir(obj._path)
+
+        return obj
+
     def _get_patch(self, patch_file: PathLike) -> dict:
         """Get and annotate a single patch
 
@@ -642,7 +687,7 @@ class BugDataset:
         :param bug_id: identifier of a bug in this dataset
         :returns: Bug instance
         """
-        return Bug(self._path, bug_id)
+        return Bug.from_dataset(self._path, bug_id)
 
     # NOTE: alternative would be inheriting from `list`,
     # like many classes in the 'unidiff' library do

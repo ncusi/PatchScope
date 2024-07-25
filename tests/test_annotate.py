@@ -179,12 +179,12 @@ def test_annotate_single_diff():
         annotate_single_diff(file_path)
 
 
-def test_Bug_constructor():
+def test_Bug_from_dataset():
     # code patch
     file_path = Path('tests/test_dataset/tqdm-1/c0dcf39b046d1b4ff6de14ac99ad9a1b10487512.diff')
 
-    bug = Bug('tests/test_dataset', 'tqdm-1',
-              patches_dir="", annotations_dir="")
+    bug = Bug.from_dataset('tests/test_dataset', 'tqdm-1',
+                           patches_dir="", annotations_dir="")
     assert file_path.name in bug.patches, \
         "retrieved annotations for the single *.diff file"
     assert len(bug.patches) == 1, \
@@ -194,7 +194,7 @@ def test_Bug_constructor():
 
 
 def test_Bug_save(tmp_path: Path):
-    bug = Bug('tests/test_dataset_structured', 'keras-10')  # the one with the expected directory structure
+    bug = Bug.from_dataset('tests/test_dataset_structured', 'keras-10')  # the one with the expected directory structure
     bug.save(tmp_path)
 
     save_path = tmp_path.joinpath('keras-10', bug.ANNOTATIONS_DIR)
