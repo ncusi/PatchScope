@@ -193,6 +193,20 @@ def test_Bug_from_dataset():
         "there is expected changed file in a bug patch"
 
 
+def test_Bug_from_patchset():
+    file_path = 'tests/test_dataset/tqdm-1/c0dcf39b046d1b4ff6de14ac99ad9a1b10487512.diff'
+    patch = unidiff.PatchSet.from_filename(file_path, encoding='utf-8')
+
+    commit_id = Path(file_path).stem
+    bug = Bug.from_patchset(patch_id=commit_id, patch_set=patch)
+    assert commit_id in bug.patches, \
+        "retrieved annotations for the single patchset"
+    assert len(bug.patches) == 1, \
+        "there was only 1 patchset for a bug"
+    assert "tqdm/contrib/__init__.py" in bug.patches[commit_id], \
+        "there is expected changed file in a bug patch"
+
+
 def test_Bug_save(tmp_path: Path):
     bug = Bug.from_dataset('tests/test_dataset_structured', 'keras-10')  # the one with the expected directory structure
     bug.save(tmp_path)

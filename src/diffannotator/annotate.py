@@ -10,7 +10,7 @@ from pathlib import Path
 import re
 import sys
 import traceback
-from typing import List, Dict, Tuple, TypeVar, Optional
+from typing import List, Dict, Tuple, TypeVar, Optional, Union
 from typing import Iterable, Generator, Callable  # should be imported from collections.abc
 
 from pygments.token import Token
@@ -540,6 +540,7 @@ class Bug:
         You better use alternative constructors instead:
 
         - `Bug.from_dataset` - from patch files in a directory (a dataset)
+        - `Bug.from_patchset` - from patch id and unidiff.PatchSet
 
         :param patches_data: annotation data, from annotating a patch
             or a series of patches (e.g. from `annotate_single_diff()`);
@@ -549,8 +550,10 @@ class Bug:
         :param save_dir: path to default directory where annotated data should
             be saved, or None
         """
-        self.read_dir: Path = Path(read_dir)
-        self.save_dir: Path = Path(save_dir)
+        self.read_dir: Optional[Path] = Path(read_dir) \
+            if read_dir is not None else None
+        self.save_dir: Optional[Path] = Path(save_dir) \
+            if save_dir is not None else None
 
         self.patches: dict = patches_data
 
@@ -592,6 +595,36 @@ class Bug:
         obj.relative_save_dir = Path(bug_id).joinpath(annotations_dir)  # for .save()
 
         return obj
+
+    @classmethod
+    def from_patchset(cls, patch_id: Union[str, None], patch_set: unidiff.PatchSet) -> 'Bug':
+        """Create Bug object from unidiff.PatchSet
+
+        If `patch_id` is None, then it tries to use the 'commit_id' attribute
+        of `patch_set`; if this attribute does not exist, it construct artificial
+        `patch_id` (currently based on repr(patch_set), but that might change).
+
+        :param patch_id: identifies source of the `patch_set`
+        :param patch_set: changes to annotate
+        :return: Bug object instance
+        """
+        patch_annotations = {}
+        i = 0
+        try:
+            # based on annotate_single_diff() function code
+            for i, patched_file in enumerate(patch_set, start=1):
+                annotated_patch_file = AnnotatedPatchedFile(patched_file)
+                patch_annotations.update(annotated_patch_file.process())
+
+        except Exception as ex:
+            print(f"Error processing PatchSet {patch_set!r} at {i} patched file: {ex!r}")
+            traceback.print_tb(ex.__traceback__)
+            # raise ex
+
+        if patch_id is None:
+            patch_id = getattr(patch_set, 'commit_id', repr(patch_set))
+
+        return Bug({patch_id: patch_annotations})
 
     def _get_patch(self, patch_file: PathLike) -> dict:
         """Get and annotate a single patch
