@@ -58,11 +58,13 @@ jobs:
     - name: Build coverage file
       run: |
         # original: pytest --cov-report "xml:coverage.xml" --cov=src tests/
-        pytest --cov-report "xml:pytest-coverage.xml" --cov=diffannotator tests/ | tee pytest-coverage.txt
+        pytest --junitxml=pytest.xml --cov-report=term-missing:skip-covered --cov-report="xml:pytest-coverage.xml" --cov=diffannotator tests/ | tee pytest-coverage.txt
 
     - name: Pytest coverage comment
       uses: MishaKav/pytest-coverage-comment@v1.1.52
       with:
+        junitxml-path: ./pytest.xml
+        pytest-coverage-path: ./pytest-coverage.txt
         pytest-xml-coverage-path: ./pytest-coverage.xml
 
     - name: Check the output coverage
