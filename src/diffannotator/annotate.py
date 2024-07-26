@@ -3,6 +3,7 @@
 import collections.abc
 from collections import defaultdict, deque
 import importlib.metadata
+import inspect
 import json
 import logging
 import os
@@ -10,7 +11,7 @@ from pathlib import Path
 import re
 import sys
 import traceback
-from typing import List, Dict, Tuple, TypeVar, Optional, Union
+from typing import List, Dict, Tuple, TypeVar, Optional, Union, Iterator
 from typing import Iterable, Generator, Callable  # should be imported from collections.abc
 
 from pygments.token import Token
@@ -695,30 +696,32 @@ class BugDataset:
         `get_bug()` method.
     :ivar _dataset_path: path to the dataset directory (with directories with patch files);
         present only when creating `BugDataset` object from dataset directory.
-    :vartype _dataset_path: Optional[Path]
+    :ivar _patches: mapping from patch id to `unidiff.PatchSet` (unparsed);
+        present only when creating `BugDataset` object from Git repo commits.
     """
 
     def __init__(self, bug_ids: List[str],
                  dataset_path: Optional[PathLike] = None,
-                 git_repo: Optional[GitRepo] = None):
+                 patches_dict: Optional[Dict[str, unidiff.PatchSet]] = None):
         """Constructor of bug dataset.
 
         You better use alternative constructors instead:
 
         - `BugDataset.from_directory` - from patch files in subdirectories \
           (bugs) of a given directory (a dataset)
+        - `BugDataset.from_repo` - from selected commits in a Git repo
 
         :param bug_ids: set of bug ids
         :param dataset_path: path to the dataset, if BugDataset was created
             from dataset directory via `BugDataset.from_directory`
-        :param git_repo: reserved for the future
+        :param patches_dict: mapping from patch id to patch / patchset
         """
         self.bug_ids = bug_ids
         # identifies type of BugDataset
         # TODO: do a sanity check - exactly one should be not None,
         #       or both should be None and bug_ids should be empty
         self._dataset_path = dataset_path
-        self._git_repo = git_repo
+        self._patches = patches_dict
 
     @classmethod
     def from_directory(cls, dataset_dir: PathLike) -> 'BugDataset':
@@ -739,6 +742,36 @@ class BugDataset:
             print(f"Error in BugDataset.from_directory('{dataset_path}'): {ex}")
             return BugDataset([])
 
+    @classmethod
+    def from_repo(cls,
+                  repo: Union[GitRepo, PathLike],
+                  revision_range: Union[str, Iterable[str]] = 'HEAD') -> 'BugDataset':
+        """Create BugDataset object from selected commits in a Git repo
+
+        :param repo: GitRepo, or path to Git repository
+        :param revision_range: arguments to pass to `git log --patch`, see
+            https://git-scm.com/docs/git-log; by default generates patches
+            for all commits from the HEAD
+        :return: BugDataset object instance
+        """
+        # wrap in GitRepo, if necessary
+        if not isinstance(repo, GitRepo):
+            # TODO: do sanity check: does `repo` path exist, does it look like repo?
+            repo = GitRepo(repo)
+
+        # TODO: catch and handle exceptions
+        patches = repo.log_p(revision_range=revision_range, wrap=True)
+        if inspect.isgenerator(patches):
+            # evaluate generator, because BugDataset constructor expects list
+            patches = list(patches)
+
+        commit_patches = {getattr(patch_set, "commit_id", f"idx-{i}"): patch_set
+                          for i, patch_set in enumerate(patches)}
+        obj = BugDataset(list(commit_patches), patches_dict=commit_patches)
+        obj._git_repo = repo  # for debug and info
+
+        return obj
+
     def get_bug(self, bug_id: str) -> Bug:
         """Return specified bug
 
@@ -747,14 +780,28 @@ class BugDataset:
         """
         if self._dataset_path is not None:
             return Bug.from_dataset(self._dataset_path, bug_id)
+        elif self._patches is not None:
+            patch_set = self._patches[bug_id]
+            return Bug.from_patchset(bug_id, patch_set)
 
         # TODO: log an error
         print(f"{self!r}: could not get bug with {bug_id=}")
-        return Bug()
+        return Bug({})
+
+    def iter_bugs(self) -> Iterator[Bug]:
+        """Generate all bugs in the dataset, in annotated form
+
+        Generator function, returning Bug after Bug from iteration
+        to iteration.
+
+        :return: bugs in the dataset
+        """
+        for bug_id in self.bug_ids:
+            yield self.get_bug(bug_id)
 
     def __repr__(self):
         return f"{BugDataset.__qualname__}(bug_ids={self.bug_ids!r}, "\
-               f"dataset_path={self._dataset_path!r}, git_repo={self._git_repo!r})"
+               f"dataset_path={self._dataset_path!r}, patches_dict={self._patches!r})"
 
     # NOTE: alternative would be inheriting from `list`,
     # like many classes in the 'unidiff' library do
@@ -767,7 +814,7 @@ class BugDataset:
         return len(self.bug_ids)
 
     def __getitem__(self, idx: int) -> str:
-        """Get idx-th bug in the dataset"""
+        """Get identifier of idx-th bug in the dataset"""
         return self.bug_ids[idx]
 
     def __contains__(self, item: str) -> bool:

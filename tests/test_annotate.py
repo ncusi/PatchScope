@@ -1,4 +1,5 @@
 import copy
+import re
 from pathlib import Path
 from textwrap import dedent
 
@@ -11,7 +12,7 @@ from diffannotator.annotate import (split_multiline_lex_tokens, line_ends_idx,
                                     group_tokens_by_line, front_fill_gaps, deep_update,
                                     clean_text, line_is_comment, annotate_single_diff,
                                     Bug, BugDataset, AnnotatedPatchedFile)
-
+from diffannotator.generate_patches import GitRepo
 
 # Example code to be tokenized
 example_C_code = r'''
@@ -237,6 +238,45 @@ def test_BugDataset_from_directory():
     bug = bugs.get_bug('keras-10')
     assert isinstance(bug, Bug), \
         "get_bug() method returns Bug object"
+
+
+# MAYBE: mark that it requires network
+@pytest.mark.slow
+def test_BugDataset_from_repo(tmp_path: Path):
+    # MAYBE: create a global variable in __init__.py
+    sha1_re = re.compile(r"^[0-9a-fA-F]{40}$")  # SHA-1 identifier is 40 hex digits long
+    # MAYBE: create fixture
+    test_repo_url = 'https://github.com/githubtraining/hellogitworld.git'
+    repo = GitRepo.clone_repository(
+        repository=test_repo_url,
+        working_dir=tmp_path,
+        make_path_absolute=True,
+    )
+
+    bugs = BugDataset.from_repo(repo, revision_range=('-3', 'HEAD'))
+
+    assert len(bugs) == 3, \
+        "we got 3 commit ids we expected from `git log -3 HEAD` in the dataset"
+    assert all([re.fullmatch(sha1_re, bug_id)
+                for bug_id in bugs.bug_ids]), \
+        "all bug ids in the dataset look like SHA-1"
+    assert bugs._dataset_path is None, \
+        "there is no path to a dataset directory stored in BugDataset"
+    assert bugs._patches is not None, \
+        "patches data is present in _patches field"
+    assert bugs.bug_ids == list(bugs._patches.keys()), \
+        "there is 1-to-1 correspondence between bug ids and keys to patch data"
+
+    annotated_data = list(bugs.iter_bugs())
+
+    assert len(annotated_data) == 3, \
+        "we got 3 annotated bugs we expected from `git log -3 HEAD`"
+    assert all([isinstance(bug, Bug)
+                for bug in annotated_data]), \
+        "all elements of bugs.get_bugs() are Bug objects"
+    assert all([len(bug.patches) == 1 and list(bug.patches.items())[0][0] == bug_id
+                for bug_id, bug in zip(bugs.bug_ids, annotated_data)]), \
+        "all bugs remember their ids correctly"
 
 
 def test_line_callback_trivial():
