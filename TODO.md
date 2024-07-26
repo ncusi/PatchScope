@@ -25,10 +25,10 @@
     - [x] `diff-annotate` (from `annotate.py`)
     - [x] `diff-gather-stats` (from `gather_data.py`)
 - [ ] improvements and new features for `annotate.py`
-    - [ ] subcommands
+    - [x] subcommands
         - [x] `patch` - annotate a given single patch file
         - [x] `dataset` - annotate all patches in a given dataset (directory with directories with patches)
-        - [ ] `repo` - annotate changesets of given selected revisions in a given Git repository
+        - [x] `from-repo` - annotate changesets of given selected revisions in a given Git repository
     - [ ] parse whole pre-image and post-image files
           (via Git, or via GitHub / GitLab / ...)
     - [ ] configurable file type
