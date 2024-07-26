@@ -16,9 +16,10 @@
     - [ ] _maybe_ 'MANIFEST.in'
     - [x] separate repository on GitHub
     - [ ] move `__version__` to `__init__.py`
-         (see also ["version at runtime" in setuptools_scm docs](https://setuptools-scm.readthedocs.io/en/stable/usage/#version-at-runtime))
-    - [ ] add `docs/` directory (for manpages, and maybe API documentation)
-    - [ ] _maybe_ use build tool like Poetry, Hatch, PDM, Rye, uv, Flit,...
+         (see also ["version at runtime" in setuptools_scm docs](https://setuptools-scm.readthedocs.io/en/stable/usage/#version-at-runtime)
+          and ["Single-sourcing the package version" in Python Packaging User Guide](https://packaging.python.org/en/latest/guides/single-sourcing-package-version/))
+    - [ ] add `docs/` directory (for man pages, and maybe API documentation)
+    - [ ] _maybe_ use build tool like Poetry, Hatch, Hatchling, PDM, Rye, uv, Flit,...
     - [ ] _maybe_ use in HaPy-Bug (python_bug_dataset) [via a GitHub URL][1]
 - [x] 3 scripts _(their names may change in the future)_
     - [x] `diff-generate`
@@ -33,7 +34,13 @@
           (via Git, or via GitHub / GitLab / ...)
     - [ ] configurable file type
         - [x] global option `--ext-to-language` (the API it uses already existed)
+        - [ ] global option `--glob-to-language` (which includes defining purpose)
     - [ ] support [.gitattributes overrides of GitHub Linguist][2]
+    - [x] optionally use Python clone of [github/linguist][], namely [retanoj/linguist][], installed from GitHub,
+          with `--use-pylinguist` (note: [install requires libmagic-dev and libicu-dev libraries](https://github.com/douban/linguist/issues/25))
+    - [ ] optionally use Python wrapper around [github/linguist][], ~~namely [scivision/linguist-python][],~~
+          with `--use-ghlinguist` (e.g. via [RbCall](https://github.com/yohm/rb_call),
+          or ~~via [rython](https://pypi.org/project/rython/)~~, or other technique)
     - [x] configurable line annotation based on file ~~type~~ purpose
         - [x] `PURPOSE_TO_ANNOTATION` global variable
         - [x] global option `--purpose-to-annotation` in [`annotate.py`](src/diffannotator/annotate.py) script
@@ -53,6 +60,11 @@
 [git-filter-repo]: https://htmlpreview.github.io/?https://github.com/newren/git-filter-repo/blob/docs/html/git-filter-repo.html#CALLBACKS
 [scrapy]: https://docs.scrapy.org/en/latest/intro/tutorial.html#creating-a-project
 [sklearn]: https://scikit-learn.org/stable/modules/compose.html
+
+[github/linguist]: https://github.com/github/linguist
+[douban/linguist]: https://github.com/douban/linguist
+[retanoj/linguist]: https://github.com/retanoj/linguist
+[scivision/linguist-python]: https://github.com/scivision/linguist-python
 
 [1]: https://stackoverflow.com/questions/70387750/how-to-manage-sub-projects-in-python
 [2]: https://github.com/github-linguist/linguist/blob/master/docs/overrides.md#using-gitattributes

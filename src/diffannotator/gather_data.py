@@ -33,9 +33,9 @@ class PurposeCounterResults:
             return new_instance
 
     def __repr__(self):
-        return f"PurposeCounterResults(_processed_files={self._processed_files!r}, "\
-               f"_hunk_purposes={self._hunk_purposes!r}, "\
-               f"_added_line_purposes={self._added_line_purposes!r}, "\
+        return f"PurposeCounterResults(_processed_files={self._processed_files!r}, " \
+               f"_hunk_purposes={self._hunk_purposes!r}, " \
+               f"_added_line_purposes={self._added_line_purposes!r}, " \
                f"_removed_line_purposes)={self._removed_line_purposes!r})"
 
     @staticmethod
@@ -131,6 +131,23 @@ class AnnotatedBug:
             combined_results += file_results
         return combined_results
 
+    def gather_data_dict(self, bug_dict_mapper):
+        """
+        Gathers dataset data via processing each file in current bug using AnnotatedFile class and provided functions
+
+        :param bug_dict_mapper: function to map diff to dictionary
+        :return: combined dictionary of all diffs
+        """
+        combined_results = {}
+        for annotation in self.annotations:
+            if '...' in annotation:
+                continue
+            annotation_file_path = self._annotations_path / annotation
+            annotation_file = AnnotatedFile(annotation_file_path)
+            diff_file_results = annotation_file.gather_data(bug_dict_mapper)
+            combined_results |= {str(annotation): diff_file_results}
+        return combined_results
+
 
 class AnnotatedBugDataset:
     """Annotated bugs dataset class"""
@@ -170,18 +187,28 @@ class AnnotatedBugDataset:
 
         return combined_results
 
+    def gather_data_dict(self, bug_dict_mapper):
+        """
+        Gathers dataset data via processing each bug using AnnotatedBug class and provided function
+
+        :param bug_dict_mapper: function to map diff to dictionary
+        :return: combined dictionary of all bugs
+        """
+        combined_results = {}
+        for bug_id in tqdm.tqdm(self.bugs):
+            print(bug_id)
+            bug_path = self._path / bug_id
+            bug = AnnotatedBug(bug_path)
+            bug_results = bug.gather_data_dict(bug_dict_mapper)
+            combined_results |= {bug_id: bug_results}
+        return combined_results
+
 
 @app.command()
-def purpose_counter(datasets: Annotated[
-    List[Path],
-    typer.Argument(
-        exists=True,
-        file_okay=False,
-        dir_okay=True,
-        readable=True,
-        writable=False,
-    )
-]):
+def purpose_counter(
+    datasets: Annotated[
+        List[Path], typer.Argument(exists=True, file_okay=False, dir_okay=True, readable=True, writable=False)]
+):
     """Calculate count of purposes from all bugs in provided datasets
 
     Each dataset is expected to be existing directory with the following
@@ -192,11 +219,63 @@ def purpose_counter(datasets: Annotated[
     Each dataset can consist of many BUGs, each BUG should include patch
     of annotated *diff.json file in 'annotation/' subdirectory.
     """
+    result = {}
     for dataset in datasets:
         print(f"Dataset {dataset}")
         annotated_bugs = AnnotatedBugDataset(dataset)
         data = annotated_bugs.gather_data(PurposeCounterResults.create, PurposeCounterResults.default)
-        print(data)
+        result[dataset] = data
+    print(result)
+
+
+def map_diff_to_purpose_dict(diff_file_path, data):
+    """
+    Example functon mapping diff of specific commit to dictionary
+
+    :param diff_file_path: file path containing diff
+    :param data: dictionary loaded from file
+    :return: dictionary with file purposes
+    """
+    result = {}
+    for hunk in data:
+        print(hunk)
+        print(data[hunk]['purpose'])
+        if hunk not in result:
+            result[hunk] = []
+        result[hunk].append(data[hunk]['purpose'])
+    return result
+
+
+@app.command()
+def purpose_per_file(
+    result_json: Annotated[Path, typer.Argument(dir_okay=False, help="JSON file to write gathered results to")],
+    datasets: Annotated[
+        List[Path], typer.Argument(exists=True, file_okay=False, dir_okay=True, readable=True, writable=False)]
+):
+    """Calculate count of purposes from all bugs in provided datasets
+
+    Each dataset is expected to be existing directory with the following
+    structure:
+
+        <dataset_directory>/<bug_directory>/annotation/<patch_file>.json
+
+    Each dataset can consist of many BUGs, each BUG should include patch
+    of annotated *diff.json file in 'annotation/' subdirectory.
+    """
+    result = {}
+    for dataset in datasets:
+        print(f"Dataset {dataset}")
+        annotated_bugs = AnnotatedBugDataset(dataset)
+        data = annotated_bugs.gather_data_dict(map_diff_to_purpose_dict)
+        result[str(dataset)] = data
+    print(result)
+    save_result(result, result_json)
+
+
+def save_result(result, result_json):
+    print(f"Saving results to '{result_json}' JSON file")
+    with result_json.open(mode='w') as result_f:
+        json.dump(result, result_f, indent=4)
 
 
 if __name__ == "__main__":

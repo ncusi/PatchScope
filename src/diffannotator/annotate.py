@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import collections.abc
-from collections import defaultdict, deque
+from collections import defaultdict, deque, namedtuple
 import importlib.metadata
 import inspect
 import json
@@ -11,6 +11,7 @@ from pathlib import Path
 import re
 import sys
 import traceback
+from textwrap import dedent
 from typing import List, Dict, Tuple, TypeVar, Optional, Union, Iterator
 from typing import Iterable, Generator, Callable  # should be imported from collections.abc
 
@@ -19,10 +20,55 @@ import unidiff
 import tqdm
 import typer
 from typing_extensions import Annotated  # in typing since Python 3.9
+import yaml
 
 from .generate_patches import GitRepo
-from .languages import Languages, FORCE_SIMPLIFY
+from . import languages
+from .languages import Languages
 from .lexer import Lexer
+
+# optional dependencies
+try:
+    # noinspection PyPackageRequirements,PyUnresolvedReferences
+    import linguist
+    # noinspection PyPackageRequirements
+    from linguist.libs.language import Language as LinguistLanguage
+    has_pylinguist = True
+
+except ImportError:
+    class LinguistLanguage:
+        """Dummy of the linguist.libs.language.Language enough to satisfy linter"""
+        FakeLanguage = namedtuple('FakeLanguage', ['name', 'type'])
+
+        @classmethod
+        def find_by_filename(cls, _):
+            return [cls.FakeLanguage('unknown', 'unknown')]
+
+    has_pylinguist = False
+
+
+class LanguagesFromLinguist:
+    def __init__(self):
+        super(LanguagesFromLinguist, self).__init__()
+
+    def annotate(self, path: str) -> dict:
+        """Annotate file with its primary / first language metadata
+
+        :param path: file path in the repository
+        :return: metadata about language, file type, and purpose of file
+        """
+        languages = LinguistLanguage.find_by_filename(path)
+        language = languages[0]
+
+        language_name = language.name
+        file_type = language.type
+        file_purpose = Languages._path2purpose(path, file_type)
+
+        return {
+            "language": language_name,
+            "type": file_type,
+            "purpose": file_purpose,
+        }
 
 
 __version__ = "0.1.0"
@@ -866,7 +912,6 @@ def purpose_to_annotation_callback(values: Optional[List[str]]):
     :param values: list of values to parse
     """
     global PURPOSE_TO_ANNOTATION
-
     if values is None:
         return []
 
@@ -894,20 +939,18 @@ def extension_to_language_callback(values: Optional[List[str]]):
 
     :param values: list of values to parse
     """
-    global FORCE_SIMPLIFY  # imported from the 'languages' module
-
     if values is None:
         return []
 
     # TODO: add logging
     for colon_separated_pair in values:
         if not colon_separated_pair or colon_separated_pair in {'""', "''"}:
-            FORCE_SIMPLIFY = {}
+            languages.EXT_TO_LANGUAGES = {}
         elif ':' in colon_separated_pair:
             key, val = colon_separated_pair.split(sep=':', maxsplit=1)
             if not key[0] == '.':
                 key = f".{key}"
-            FORCE_SIMPLIFY[key] = [val]
+            languages.EXT_TO_LANGUAGES[key] = [val]
         else:
             # TODO: use logging
             print(f"Warning: --force-simplify={colon_separated_pair} ignored")
@@ -964,6 +1007,17 @@ def common(
                      help="Output version information and exit.",
                      callback=version_callback, is_eager=True)
     ] = False,
+    use_pylinguist: Annotated[
+        bool,
+        typer.Option(
+            "--use-pylinguist",
+            help="Use Python clone of github/linguist, if available."
+        )
+    ] = False,
+    update_languages: Annotated[
+        bool,
+        typer.Option(help="Use own version of 'languages.yml'"),
+    ] = True,
     ext_to_language: Annotated[
         Optional[List[str]],
         typer.Option(
@@ -996,6 +1050,7 @@ def common(
         )
     ] = None
 ):
+    global LANGUAGES
     # if anything is printed by this function, it needs to utilize context
     # to not break installed shell completion for the command
     # see https://typer.tiangolo.com/tutorial/options/callback-and-context/#fix-completion-using-the-context
@@ -1004,9 +1059,46 @@ def common(
 
     if version:  # this should never happen, because version_callback() exits the app
         print(f"Diff Annotator version: {get_version()}")
+    if use_pylinguist:
+        if has_pylinguist:
+            print('Detecting languages from file name using Python clone of GitHub Linguist.')
+
+            if update_languages:
+                if isinstance(LANGUAGES, Languages):
+                    languages_file = LANGUAGES.yaml
+                else:
+                    languages_file = Languages().yaml
+
+                orig_size = Path(linguist.libs.language.LANGUAGES_PATH).stat().st_size
+                updated_size = languages_file.stat().st_size
+                print(f"Updating 'languages.yml' from version with {orig_size} bytes "
+                      f"to version with {updated_size} bytes.")
+                linguist.libs.language.LANGUAGES_PATH = languages_file
+                linguist.libs.language.LANGUAGES = yaml.load(open(languages_file), Loader=yaml.FullLoader)
+
+            LANGUAGES = LanguagesFromLinguist()
+        else:
+            print(dedent("""\
+            The 'linguist' package is not installed.
+
+            Use either
+                python -m pip install --editable .[pylinguist]
+                python -m pip install diffannotator[pylinguist]
+            or
+                python -m pip install git+https://github.com/retanoj/linguist@master
+
+            NOTE that 'linguist' package requires 'charlockholmes' package,
+            which in turn requires 'libmagic-dev' and 'libicu-dev' libraries.
+            """))
+            # TODO: use common enum for exit codes
+            raise typer.Exit(code=1)
+
+    if not update_languages and not use_pylinguist:
+        print("Ignoring '--no-update-languages' option without '--use-pylinguist'")
+
     if ext_to_language is not None:
         print("Using modified mapping from file extension to programming language:")
-        for key, val in FORCE_SIMPLIFY.items():
+        for key, val in languages.EXT_TO_LANGUAGES.items():
             if len(val) == 1:
                 print(f"\t{key} is {val[0]}")
             else:
