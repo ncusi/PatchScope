@@ -60,8 +60,9 @@ class PurposeCounterResults:
         added_line_purposes = Counter()
         removed_line_purposes = Counter()
         for hunk in data:
-            print(hunk)
-            print(data[hunk]['purpose'])
+            # TODO: log info / debug
+            #print(hunk)
+            #print(data[hunk]['purpose'])
             hunk_purposes[data[hunk]['purpose']] += 1
             if '+' in data[hunk]:
                 added_lines = data[hunk]['+']
@@ -174,12 +175,16 @@ class AnnotatedBugDataset:
         :return: combined datastructure with all bug data
         """
         combined_results = datastructure_generator()
+
+        print(f"Gathering data from bugs/patches in '{self._path}' directory.")
         for bug_id in tqdm.tqdm(self.bugs):
-            print(bug_id)
+            # TODO: log info / debug
+            #print(bug_id)
             bug_path = self._path / bug_id
             bug = AnnotatedBug(bug_path)
             bug_results = bug.gather_data(bug_mapper, datastructure_generator)
             combined_results += bug_results
+
         return combined_results
 
     def gather_data_dict(self, bug_dict_mapper):

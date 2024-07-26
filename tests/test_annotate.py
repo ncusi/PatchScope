@@ -1,4 +1,5 @@
 import copy
+import re
 from pathlib import Path
 from textwrap import dedent
 
@@ -11,7 +12,7 @@ from diffannotator.annotate import (split_multiline_lex_tokens, line_ends_idx,
                                     group_tokens_by_line, front_fill_gaps, deep_update,
                                     clean_text, line_is_comment, annotate_single_diff,
                                     Bug, BugDataset, AnnotatedPatchedFile)
-
+from diffannotator.generate_patches import GitRepo
 
 # Example code to be tokenized
 example_C_code = r'''
@@ -179,16 +180,12 @@ def test_annotate_single_diff():
         annotate_single_diff(file_path)
 
 
-def test_Bug_constructor():
+def test_Bug_from_dataset():
     # code patch
     file_path = Path('tests/test_dataset/tqdm-1/c0dcf39b046d1b4ff6de14ac99ad9a1b10487512.diff')
-    # fiddle around if path does not have the default structure
-    saved_patches_dir = None
-    if file_path.parts[-2] != Bug.PATCHES_DIR:
-        saved_patches_dir = Bug.PATCHES_DIR
-        Bug.PATCHES_DIR = ""
 
-    bug = Bug('test_dataset', 'tqdm-1')
+    bug = Bug.from_dataset('tests/test_dataset', 'tqdm-1',
+                           patches_dir="", annotations_dir="")
     assert file_path.name in bug.patches, \
         "retrieved annotations for the single *.diff file"
     assert len(bug.patches) == 1, \
@@ -196,16 +193,26 @@ def test_Bug_constructor():
     assert "tqdm/contrib/__init__.py" in bug.patches[file_path.name], \
         "there is expected changed file in a bug patch"
 
-    # un-fiddle, if needed
-    if saved_patches_dir is not None:
-        Bug.PATCHES_DIR = saved_patches_dir
+
+def test_Bug_from_patchset():
+    file_path = 'tests/test_dataset/tqdm-1/c0dcf39b046d1b4ff6de14ac99ad9a1b10487512.diff'
+    patch = unidiff.PatchSet.from_filename(file_path, encoding='utf-8')
+
+    commit_id = Path(file_path).stem
+    bug = Bug.from_patchset(patch_id=commit_id, patch_set=patch)
+    assert commit_id in bug.patches, \
+        "retrieved annotations for the single patchset"
+    assert len(bug.patches) == 1, \
+        "there was only 1 patchset for a bug"
+    assert "tqdm/contrib/__init__.py" in bug.patches[commit_id], \
+        "there is expected changed file in a bug patch"
 
 
 def test_Bug_save(tmp_path: Path):
-    bug = Bug('tests/test_dataset_structured', 'keras-10')  # the one with the expected directory structure
+    bug = Bug.from_dataset('tests/test_dataset_structured', 'keras-10')  # the one with the expected directory structure
     bug.save(tmp_path)
 
-    save_path = tmp_path.joinpath('keras-10', Bug.ANNOTATIONS_DIR)
+    save_path = tmp_path.joinpath('keras-10', Bug.DEFAULT_ANNOTATIONS_DIR)
     assert save_path.exists(), \
         "directory path to save data exists"
     assert save_path.is_dir(), \
@@ -218,19 +225,58 @@ def test_Bug_save(tmp_path: Path):
         "this JSON file has expected filename"
 
 
-def test_BugDataset():
-    bugs = BugDataset('tests/test_dataset_structured')
+def test_BugDataset_from_directory():
+    bugs = BugDataset.from_directory('tests/test_dataset_structured')
 
     assert len(bugs) >= 1, \
         "there is at least one bug in the dataset"
     assert 'keras-10' in bugs, \
         "the bug with 'keras-10' identifier is included in the dataset"
-    assert bugs.bugs == list(bugs), \
+    assert bugs.bug_ids == list(bugs), \
         "iterating over bug identifiers works as expected"
 
     bug = bugs.get_bug('keras-10')
     assert isinstance(bug, Bug), \
         "get_bug() method returns Bug object"
+
+
+# MAYBE: mark that it requires network
+@pytest.mark.slow
+def test_BugDataset_from_repo(tmp_path: Path):
+    # MAYBE: create a global variable in __init__.py
+    sha1_re = re.compile(r"^[0-9a-fA-F]{40}$")  # SHA-1 identifier is 40 hex digits long
+    # MAYBE: create fixture
+    test_repo_url = 'https://github.com/githubtraining/hellogitworld.git'
+    repo = GitRepo.clone_repository(
+        repository=test_repo_url,
+        working_dir=tmp_path,
+        make_path_absolute=True,
+    )
+
+    bugs = BugDataset.from_repo(repo, revision_range=('-3', 'HEAD'))
+
+    assert len(bugs) == 3, \
+        "we got 3 commit ids we expected from `git log -3 HEAD` in the dataset"
+    assert all([re.fullmatch(sha1_re, bug_id)
+                for bug_id in bugs.bug_ids]), \
+        "all bug ids in the dataset look like SHA-1"
+    assert bugs._dataset_path is None, \
+        "there is no path to a dataset directory stored in BugDataset"
+    assert bugs._patches is not None, \
+        "patches data is present in _patches field"
+    assert bugs.bug_ids == list(bugs._patches.keys()), \
+        "there is 1-to-1 correspondence between bug ids and keys to patch data"
+
+    annotated_data = list(bugs.iter_bugs())
+
+    assert len(annotated_data) == 3, \
+        "we got 3 annotated bugs we expected from `git log -3 HEAD`"
+    assert all([isinstance(bug, Bug)
+                for bug in annotated_data]), \
+        "all elements of bugs.get_bugs() are Bug objects"
+    assert all([len(bug.patches) == 1 and list(bug.patches.items())[0][0] == bug_id
+                for bug_id, bug in zip(bugs.bug_ids, annotated_data)]), \
+        "all bugs remember their ids correctly"
 
 
 def test_line_callback_trivial():

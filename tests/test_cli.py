@@ -35,6 +35,34 @@ def test_annotate_dataset(tmp_path: Path):
         "app prints about processing the dataset"
 
 
+def test_annotate_from_repo(tmp_path: Path):
+    # TODO: create a fixture with a common code
+    test_repo_url = 'https://github.com/githubtraining/hellogitworld.git'
+    repo_dir = tmp_path / 'hellogitworld'
+    output_dir = tmp_path / 'annotation'
+
+    # clone the repository "by hand"
+    subprocess.run([
+        'git', '-C', str(tmp_path), 'clone', test_repo_url
+    ], capture_output=True, check=True)
+
+    result = runner.invoke(annotate_app, [
+        "from-repo",
+        f"--output-dir={output_dir}",
+        str(repo_dir),
+        '-5', 'HEAD'  # 5 latest commit on the current branch
+    ])
+
+    assert result.exit_code == 0, \
+        "app runs 'from-repo' subcommand without errors"
+    assert f"{output_dir}" in result.stdout, \
+        "app prints about the output directory"
+    assert f"{repo_dir}" in result.stdout, \
+        "app mentions the path to the Git repository"
+    assert output_dir.exists() and output_dir.is_dir(), \
+        "app created the output directory (or it existed)"
+
+
 def test_annotate_patch_with_line_callback(tmp_path: Path):
     file_path = Path('tests/test_dataset/tqdm-1/c0dcf39b046d1b4ff6de14ac99ad9a1b10487512.diff')
     save_path = tmp_path.joinpath(file_path).with_suffix('.json')

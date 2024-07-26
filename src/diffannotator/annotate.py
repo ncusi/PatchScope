@@ -3,14 +3,16 @@
 import collections.abc
 from collections import defaultdict, deque, namedtuple
 import importlib.metadata
+import inspect
 import json
 import logging
 import os
 from pathlib import Path
 import re
+import sys
 import traceback
 from textwrap import dedent
-from typing import List, Dict, Tuple, TypeVar, Optional
+from typing import List, Dict, Tuple, TypeVar, Optional, Union, Iterator
 from typing import Iterable, Generator, Callable  # should be imported from collections.abc
 
 from pygments.token import Token
@@ -20,6 +22,7 @@ import typer
 from typing_extensions import Annotated  # in typing since Python 3.9
 import yaml
 
+from .generate_patches import GitRepo
 from . import languages
 from .languages import Languages
 from .lexer import Lexer
@@ -263,6 +266,14 @@ class AnnotatedPatchedFile:
     during the `process()` method call.
 
     Fixes some problems with `unidiff.PatchedFile`
+
+    :ivar patched_file: original `unidiff.PatchedFile` to be annotated
+    :ivar source_file: name of source file (pre-image name),
+        without the "a/" prefix from diff / patch
+    :ivar target_file: name of target file (post-image name),
+        without the "b/" prefix from diff / patch
+    :ivar patch_data: gathers patch files and changed patch lines
+        annotations; mapping from file name to gathered data
     """
     # NOTE: similar signature to line_is_comment, but returning str
     # TODO: store this type as TypeVar to avoid code duplication
@@ -321,14 +332,14 @@ class AnnotatedPatchedFile:
 
         :param patched_file: patched file data parsed from unified diff
         """
-        self.patch_data = defaultdict(lambda: defaultdict(list))
+        self.patch_data: Dict[str, Dict] = defaultdict(lambda: defaultdict(list))
 
         # save original diffutils.PatchedFile
-        self.patched_file = patched_file
+        self.patched_file: unidiff.PatchedFile = patched_file
 
         # get the names and drop "a/" and "b/"
-        self.source_file = patched_file.source_file
-        self.target_file = patched_file.target_file
+        self.source_file: str = patched_file.source_file
+        self.target_file: str = patched_file.target_file
 
         if self.source_file[:2] == "a/":
             self.source_file = patched_file.source_file[2:]
@@ -359,6 +370,10 @@ class AnnotatedHunk:
 
     Note that major part of the annotation process is performed on demand,
     during the `process()` method call.
+
+    :ivar patched_file: `AnnotatedPatchedFile` this `AnnotatedHunk` belongs to
+    :ivar hunk: source `unidiff.Hunk` (modified blocks of a file) to annotate
+    :ivar patch_data: place to gather annotated hunk data
     """
     def __init__(self, patched_file: AnnotatedPatchedFile, hunk: unidiff.Hunk):
         """Initialize AnnotatedHunk with AnnotatedPatchedFile and Hunk
@@ -377,6 +392,33 @@ class AnnotatedHunk:
         self.patch_data = defaultdict(lambda: defaultdict(list))
 
     def process(self):
+        """Process associated patch hunk, annotating changes
+
+        Returns single-element mapping from filename to pre- and post-image
+        line annotations.  The pre-image line annotations use "-" as key,
+        while post-image use "+".  For each line, there is currently gathered
+        the following data:
+
+        - "id": line number in the hunk itself (it is not line number in pre-image
+          for "-" lines, or line image in post-image for "+" lines); this numbering
+          counts context lines, which are currently ignored.
+        - "type": "documentation" or "code", or the value mapped from the file purpose
+          by the `PURPOSE_TO_ANNOTATION` global variable, or the value provided by the
+          `AnnotatedPatchedFile.line_callback` function; comments and docstrings
+          counts as "documentation", and so do every line of documentation file
+        - "purpose": file purpose
+        - "tokens": list of tokens from Pygments lexer (`get_tokens_unprocessed()`)
+
+        If file purpose is in `PURPOSE_TO_ANNOTATION`, then line annotation that
+        corresponds to that file purpose in this mapping is used for all lines
+        of the hunk as "type".
+
+        Updates and returns the `self.patch_data` field.
+
+        :return: annotated patch data, mapping from changed file name
+            to '+'/'-', to annotated line info (from post-image or pre-image)
+        :rtype: dict[str, dict[str, dict]
+        """
         # choose file name to be used to select file type and lexer
         if self.patched_file.source_file == "/dev/null":
             file_path = self.patched_file.target_file
@@ -438,8 +480,22 @@ class AnnotatedHunk:
 
         return self.patch_data
 
-    def add_line_annotation(self, line_no, source_file, target_file, change_type,
-                            line_annotation, purpose, tokens):
+    def add_line_annotation(self, line_no: int, source_file: str, target_file: str,
+                            change_type: str, line_annotation: str, purpose: str,
+                            tokens: List[Tuple]) -> None:
+        """Add line annotations for a given line in a hunk
+
+        :param line_no: line number in a diff hunk body
+        :param source_file: name of changed file in pre-image of diff,
+            before changes
+        :param target_file: name of changed file in post-image of diff,
+            after changes
+        :param change_type: one of `LINE_TYPE_*` constants from `unidiff.constants`
+        :param line_annotation: type of line ("code", "documentation",...)
+        :param purpose: purpose of file ("project", "programming", "documentation",
+            "data", "markup", "other",...)
+        :param tokens: result of `pygments.lexer.Lexer.get_tokens_unprocessed()`
+        """
         data = {
             'id': line_no,
             'type': line_annotation,
@@ -454,16 +510,37 @@ class AnnotatedHunk:
             self.patch_data[source_file]["-"].append(data)
 
 
-def annotate_single_diff(diff_path: PathLike) -> dict:
+def annotate_single_diff(diff_path: PathLike, missing_ok: bool = False) -> dict:
     """Annotate single unified diff patch file at given path
 
     :param diff_path: patch filename
+    :param missing_ok: if false (the default), raise exception if `diff_path`
+        does not exist, or cannot be read.
     :return: annotation data
     """
     patch_annotations = {}
 
     try:
         patch_set = unidiff.PatchSet.from_filename(diff_path, encoding="utf-8")
+
+    except FileNotFoundError as ex:
+        # TODO?: use logger, log either warning or error
+        print(f"No such patch file: '{diff_path}'", file=sys.stderr)
+
+        if not missing_ok:
+            raise ex
+        return {}
+
+    except PermissionError as ex:
+        if Path(diff_path).exists() and Path(diff_path).is_dir():
+            print(f"Path points to directory, not patch file: '{diff_path}'")
+        else:
+            print(f"Permission denied to read patch file '{diff_path}'")
+
+        if not missing_ok:
+            raise ex
+        return {}
+
     except Exception as ex:
         print(f"Error parsing patch file '{diff_path}': {ex!r}")
         # raise ex
@@ -483,22 +560,119 @@ def annotate_single_diff(diff_path: PathLike) -> dict:
 
 
 class Bug:
-    """Represents single bug in dataset"""
-    PATCHES_DIR = "patches"
-    ANNOTATIONS_DIR = "annotation"
+    """Represents a single bug in a dataset, or a set of related patches
 
-    def __init__(self, dataset_dir: PathLike, bug_id: str):
-        """Constructor for class representing single Bug
+    :ivar patches: mapping from some kind of identifiers to annotated patches;
+        the identifier might be the pathname of patch file, or the commit id
+    :vartype patches: dict[str, dict]
+    :cvar DEFAULT_PATCHES_DIR: default value for `patches_dir` parameter
+        in `Bug.from_dataset()` static method (class property)
+    :cvar DEFAULT_ANNOTATIONS_DIR:  default value for `annotations_dir` parameter
+        in `Bug.from_dataset()` static method (class property)
+    :ivar read_dir: path to the directory patches were read from, or None
+    :ivar save_dir: path to default directory where annotated data should
+        be saved (if `save()` method is called without `annotate_dir`), or None
+    :ivar relative_save_dir: bug_id / annotations_dir, i.e. subdirectory
+        where to save annotation data, relative to `annotate_dir` parameter
+        in `save()` method; **available only** if the Bug object was created
+        with `from_dataset()`
+    """
+    DEFAULT_PATCHES_DIR: str = "patches"
+    DEFAULT_ANNOTATIONS_DIR: str = "annotation"
 
-        :dataset: path to the dataset
-        :bug: bug id
+    def __init__(self, patches_data: dict, *,
+                 read_dir: Optional[PathLike] = None,
+                 save_dir: Optional[PathLike] = None):
+        """Constructor for class representing a single Bug
+
+        You better use alternative constructors instead:
+
+        - `Bug.from_dataset` - from patch files in a directory (a dataset)
+        - `Bug.from_patchset` - from patch id and unidiff.PatchSet
+
+        :param patches_data: annotation data, from annotating a patch
+            or a series of patches (e.g. from `annotate_single_diff()`);
+            a mapping from patch id (e.g. filename of a patch file)
+            to the result of annotating said patch
+        :param read_dir: path to the directory patches were read from, or None
+        :param save_dir: path to default directory where annotated data should
+            be saved, or None
         """
-        self._dataset: Path = Path(dataset_dir)
-        self._bug: str = bug_id
-        self._path: Path = self._dataset.joinpath(self._bug, self.PATCHES_DIR)
+        self.read_dir: Optional[Path] = Path(read_dir) \
+            if read_dir is not None else None
+        self.save_dir: Optional[Path] = Path(save_dir) \
+            if save_dir is not None else None
 
-        self.patches: dict = self._get_patches()
-        self.changes: list = []
+        self.patches: dict = patches_data
+
+    @classmethod
+    def from_dataset(cls, dataset_dir: PathLike, bug_id: str, *,
+                     patches_dir: str = DEFAULT_PATCHES_DIR,
+                     annotations_dir: str = DEFAULT_ANNOTATIONS_DIR) -> 'Bug':
+        """Create Bug object from patch files for given bug in given dataset
+
+        Assumes that patch files have '*.diff' extension, and that they are
+        in the `dataset_dir` / `bug_id` / `patches_dir` subdirectory (if `patches_dir`
+        is an empty string, this is just `dataset_dir` / `bug_id`).
+
+        :param dataset_dir: path to the dataset (parent directory to
+            the directory with patch files)
+        :param bug_id: bug id (name of directory with patch files)
+        :param patches_dir: name of subdirectory with patch files, if any;
+            patches are assumed to be in dataset_dir / bug_id / patches_dir directory;
+            use empty string ("") to not use subdirectory
+        :param annotations_dir: name of subdirectory where annotated data will be saved;
+            in case the `save()` method is invoked without providing `annotate_path`
+            parameter, the data is saved in dataset_dir / bug_id / annotations_dir
+            subdirectory; use empty string ("") to not use subdirectory
+        :return: Bug object instance
+        """
+        read_dir = Path(dataset_dir).joinpath(bug_id, patches_dir)
+        save_dir = Path(dataset_dir).joinpath(bug_id, annotations_dir)  # default for .save()
+
+        # sanity checking
+        if not read_dir.exists():
+            # TODO: use logger, log error
+            print(f"Error during Bug constructor: '{read_dir}' path does not exist")
+        elif not read_dir.is_dir():
+            # TODO: use logger, log error
+            print(f"Error during Bug constructor: '{read_dir}' is not a directory")
+
+        obj = Bug({}, read_dir=read_dir, save_dir=save_dir)
+        obj.patches = obj._get_patches_from_dir(patches_dir=read_dir)
+        obj.relative_save_dir = Path(bug_id).joinpath(annotations_dir)  # for .save()
+
+        return obj
+
+    @classmethod
+    def from_patchset(cls, patch_id: Union[str, None], patch_set: unidiff.PatchSet) -> 'Bug':
+        """Create Bug object from unidiff.PatchSet
+
+        If `patch_id` is None, then it tries to use the 'commit_id' attribute
+        of `patch_set`; if this attribute does not exist, it constructs artificial
+        `patch_id` (currently based on repr(patch_set), but that might change).
+
+        :param patch_id: identifies source of the `patch_set`
+        :param patch_set: changes to annotate
+        :return: Bug object instance
+        """
+        patch_annotations = {}
+        i = 0
+        try:
+            # based on annotate_single_diff() function code
+            for i, patched_file in enumerate(patch_set, start=1):
+                annotated_patch_file = AnnotatedPatchedFile(patched_file)
+                patch_annotations.update(annotated_patch_file.process())
+
+        except Exception as ex:
+            print(f"Error processing PatchSet {patch_set!r} at {i} patched file: {ex!r}")
+            traceback.print_tb(ex.__traceback__)
+            # raise ex
+
+        if patch_id is None:
+            patch_id = getattr(patch_set, 'commit_id', repr(patch_set))
+
+        return Bug({patch_id: patch_annotations})
 
     def _get_patch(self, patch_file: PathLike) -> dict:
         """Get and annotate a single patch
@@ -506,61 +680,143 @@ class Bug:
         :param patch_file: basename of a patch
         :return: annotated patch data
         """
-        patch_path = self._path.joinpath(patch_file)
+        patch_path = self.read_dir.joinpath(patch_file)
 
         # Skip diffs between multiple versions
         if "..." in str(patch_path):
+            # TODO: log a warning
             return {}
 
         return annotate_single_diff(patch_path)
 
-    def _get_patches(self) -> dict:
+    def _get_patches_from_dir(self, patches_dir: PathLike) -> dict[str, dict]:
+        """Get and annotate set of patches from given directory
+
+        :param patches_dir: directory with patches
+        :return: mapping from patch filename (patch source)
+            to annotated patch data
+        """
         patches_data = {}
 
-        for patch_file in self._path.glob('*.diff'):
+        for patch_file in patches_dir.glob('*.diff'):
             patch_data = self._get_patch(patch_file.name)
             patches_data[patch_file.name] = patch_data
 
         return patches_data
 
-    def save(self, annotate_path: Optional[PathLike] = None):
+    def save(self, annotate_dir: Optional[PathLike] = None):
         """Save annotated patches in JSON format
 
-        :param annotate_path: Separate dir to save annotations, optional.
-            If not set, dataset path is used as a base path.
+        :param annotate_dir: Separate dir to save annotations, optional.
+            If not set, `self.save_dir` is used as a base path.
         """
-        if annotate_path is not None:
-            base_path = Path(annotate_path).joinpath(self._bug, self.ANNOTATIONS_DIR)
+        if annotate_dir is not None:
+            base_path = Path(annotate_dir)
+
+            # use `self.relative_save_dir` if available
+            relative_save_dir = getattr(self, 'relative_save_dir', '')
+            base_path = base_path.joinpath(relative_save_dir)
         else:
-            base_path = self._dataset.joinpath(self._bug, self.ANNOTATIONS_DIR)
+            base_path = self.save_dir
+
+        if base_path is None:
+            raise ValueError("For this Bug, annotate_dir parameter must be provided to .save()")
 
         # ensure that base_path exists in filesystem
         base_path.mkdir(parents=True, exist_ok=True)
 
         # save annotated patches data
-        for patch_file, patch_data in self.patches.items():
-            out_path = base_path / Path(patch_file).with_suffix('.json')
+        for patch_id, patch_data in self.patches.items():
+            out_path = base_path / Path(patch_id).with_suffix('.json')
 
             with out_path.open('w') as out_f:
                 json.dump(patch_data, out_f)
 
 
 class BugDataset:
-    """Bugs dataset class"""
+    """Bugs dataset class
 
-    def __init__(self, dataset_dir: PathLike):
+    :ivar bug_ids: list of bug identifiers (directories with patch files)
+        contained in a given `dataset_dir`, or list of PatchSet extracted
+        from Git repo - that can be turned into annotated patch data with
+        `get_bug()` method.
+    :ivar _dataset_path: path to the dataset directory (with directories with patch files);
+        present only when creating `BugDataset` object from dataset directory.
+    :ivar _patches: mapping from patch id to `unidiff.PatchSet` (unparsed);
+        present only when creating `BugDataset` object from Git repo commits.
+    """
+
+    def __init__(self, bug_ids: List[str],
+                 dataset_path: Optional[PathLike] = None,
+                 patches_dict: Optional[Dict[str, unidiff.PatchSet]] = None):
         """Constructor of bug dataset.
 
-        :param dataset_dir: path to the dataset
+        You better use alternative constructors instead:
+
+        - `BugDataset.from_directory` - from patch files in subdirectories \
+          (bugs) of a given directory (a dataset)
+        - `BugDataset.from_repo` - from selected commits in a Git repo
+
+        :param bug_ids: set of bug ids
+        :param dataset_path: path to the dataset, if BugDataset was created
+            from dataset directory via `BugDataset.from_directory`
+        :param patches_dict: mapping from patch id to patch / patchset
         """
-        self._path = Path(dataset_dir)
-        self.bugs: List[str] = []
+        self.bug_ids = bug_ids
+        # identifies type of BugDataset
+        # TODO: do a sanity check - exactly one should be not None,
+        #       or both should be None and bug_ids should be empty
+        self._dataset_path = dataset_path
+        self._patches = patches_dict
+
+    @classmethod
+    def from_directory(cls, dataset_dir: PathLike) -> 'BugDataset':
+        """Create BugDataset object from directory with directories with patch files
+
+        :param dataset_dir: path to the dataset
+        :return: BugDataset object instance
+        """
+        dataset_path = Path(dataset_dir)
 
         try:
-            self.bugs = [str(d.name) for d in self._path.iterdir()
-                         if d.is_dir()]
+            return BugDataset([str(d.name) for d in dataset_path.iterdir()
+                               if d.is_dir()],
+                              dataset_path=dataset_path)
+
+        # TODO: use a more specific exception class
         except Exception as ex:
-            print(f"Error in BugDataset for '{self._path}': {ex}")
+            print(f"Error in BugDataset.from_directory('{dataset_path}'): {ex}")
+            return BugDataset([])
+
+    @classmethod
+    def from_repo(cls,
+                  repo: Union[GitRepo, PathLike],
+                  revision_range: Union[str, Iterable[str]] = 'HEAD') -> 'BugDataset':
+        """Create BugDataset object from selected commits in a Git repo
+
+        :param repo: GitRepo, or path to Git repository
+        :param revision_range: arguments to pass to `git log --patch`, see
+            https://git-scm.com/docs/git-log; by default generates patches
+            for all commits from the HEAD
+        :return: BugDataset object instance
+        """
+        # wrap in GitRepo, if necessary
+        if not isinstance(repo, GitRepo):
+            # TODO: do sanity check: does `repo` path exist, does it look like repo?
+            repo = GitRepo(repo)
+
+        # TODO: catch and handle exceptions
+        patches = repo.log_p(revision_range=revision_range, wrap=True)
+        if inspect.isgenerator(patches):
+            # evaluate generator, because BugDataset constructor expects list
+            patches = list(patches)
+
+        commit_patches = {getattr(patch_set, "commit_id", f"idx-{i}"): patch_set
+                          for i, patch_set in enumerate(patches)}
+        obj = BugDataset(list(commit_patches), patches_dict=commit_patches)
+        obj._git_repo = repo  # for debug and info
+
+        return obj
 
     def get_bug(self, bug_id: str) -> Bug:
         """Return specified bug
@@ -568,26 +824,51 @@ class BugDataset:
         :param bug_id: identifier of a bug in this dataset
         :returns: Bug instance
         """
-        return Bug(self._path, bug_id)
+        if self._dataset_path is not None:
+            return Bug.from_dataset(self._dataset_path, bug_id)
+        elif self._patches is not None:
+            patch_set = self._patches[bug_id]
+            return Bug.from_patchset(bug_id, patch_set)
+
+        # TODO: log an error
+        print(f"{self!r}: could not get bug with {bug_id=}")
+        return Bug({})
+
+    def iter_bugs(self) -> Iterator[Bug]:
+        """Generate all bugs in the dataset, in annotated form
+
+        Generator function, returning Bug after Bug from iteration
+        to iteration.
+
+        :return: bugs in the dataset
+        """
+        for bug_id in self.bug_ids:
+            yield self.get_bug(bug_id)
+
+    def __repr__(self):
+        return f"{BugDataset.__qualname__}(bug_ids={self.bug_ids!r}, "\
+               f"dataset_path={self._dataset_path!r}, patches_dict={self._patches!r})"
 
     # NOTE: alternative would be inheriting from `list`,
     # like many classes in the 'unidiff' library do
     def __iter__(self):
         """Iterate over bugs ids in the dataset"""
-        return self.bugs.__iter__()
+        return self.bug_ids.__iter__()
 
     def __len__(self) -> int:
         """Number of bugs in the dataset"""
-        return len(self.bugs)
+        return len(self.bug_ids)
 
     def __getitem__(self, idx: int) -> str:
-        """Get idx-th bug in the dataset"""
-        return self.bugs[idx]
+        """Get identifier of idx-th bug in the dataset"""
+        return self.bug_ids[idx]
 
     def __contains__(self, item: str) -> bool:
         """Is bug with given id contained in the dataset?"""
-        return item in self.bugs
+        return item in self.bug_ids
 
+
+# =========================================================================
 
 app = typer.Typer(no_args_is_help=True, add_completion=False)
 
@@ -861,8 +1142,8 @@ def dataset(datasets: Annotated[
     to annotate as *.diff file in 'patches/' subdirectory.
     """
     for dataset_dir in datasets:
-        print(f"Dataset {dataset_dir}")
-        bugs = BugDataset(dataset_dir)
+        print(f"Processing dataset in directory '{dataset_dir}'")
+        bugs = BugDataset.from_directory(dataset_dir)
 
         output_path: Optional[Path] = None
         if output_prefix is not None:
@@ -875,7 +1156,7 @@ def dataset(datasets: Annotated[
 
         for bug in tqdm.tqdm(bugs):
             # NOTE: Uses default path if annotate_path is None
-            bugs.get_bug(bug).save(annotate_path=output_path)
+            bugs.get_bug(bug).save(annotate_dir=output_path)
 
 
 @app.command()
@@ -894,6 +1175,66 @@ def patch(patch_file: Annotated[Path, typer.Argument(exists=True, dir_okay=False
     print(f"Saving results to '{result_json}' JSON file")
     with result_json.open(mode='w') as result_f:
         json.dump(result, result_f, indent=4)
+
+
+# TODO: reduce code duplication between this and generate_patches.py::main()
+@app.command(
+    # all unknown params will be considered arguments to `git log -p`
+    context_settings={"allow_extra_args": True, "ignore_unknown_options": True}
+)
+def from_repo(
+    repo_path: Annotated[
+        Path,
+        typer.Argument(
+            exists=True,      # repository must exist
+            file_okay=False,  # dropping corner case: gitdir file
+            dir_okay=True,    # ordinarily Git repo is a directory
+            readable=True,
+            help="Path to git repository.",
+        )
+    ],
+    output_dir: Annotated[
+        Path,
+        typer.Option(
+            file_okay=False,  # cannot be ordinary file, if exists
+            dir_okay=True,    # if exists, must be a directory
+            help="Where to save generated annotated data.",
+        )
+    ],
+    # TODO: find a way to add these to synopsis and list of arguments in help
+    log_args: Annotated[
+        typer.Context,
+        typer.Argument(help="Arguments passed to `git log -p`", metavar="LOG_OPTIONS"),
+    ],
+) -> None:
+    """Create annotation data for commits from local Git repository
+
+    You can add additional options and parameters, which will be passed to
+    the `git log -p` command.  With those options and arguments you
+    can specify which commits to operate on (defaults to all commits).\n
+    See https://git-scm.com/docs/git-log or `man git-log` (or `git log -help`).
+
+    When no <revision-range> is specified, it defaults to HEAD (i.e. the whole
+    history leading to the current commit). origin..HEAD specifies all the
+    commits reachable from the current commit (i.e. HEAD), but not from origin.
+    For a complete list of ways to spell <revision-range>, see the
+    "Specifying Ranges" section of the gitrevisions(7) manpage:\n
+    https://git-scm.com/docs/gitrevisions#_specifying_revisions
+    """
+    # create GitRepo 'helper' object
+    repo = GitRepo(repo_path)
+
+    # ensure that output directory exists
+    print(f"Ensuring that output directory '{output_dir}' exists")
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    print(f"Generating patches from local Git repo '{repo_path}'\n"
+          f"  using `git log -p {' '.join([repr(arg) for arg in log_args.args])}")
+    bugs = BugDataset.from_repo(repo, revision_range=log_args.args)
+
+    print(f"Annotating commits and saving annotated data, for {len(bugs)} commits")
+    for bug in tqdm.tqdm(bugs, desc='commits'):
+        bugs.get_bug(bug).save(annotate_dir=output_dir)
 
 
 if __name__ == "__main__":

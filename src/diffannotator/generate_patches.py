@@ -13,12 +13,14 @@ Example (after installing the 'diffannotator' package):
 import os
 import re
 import subprocess
+from io import StringIO
 from pathlib import Path
-from typing import Optional, Union, TypeVar
-from typing import Iterable  # should be imported from collections.abc
+from typing import Optional, Union, TypeVar, overload, Literal
+from typing import Iterable, Iterator  # should be imported from collections.abc
 
 import typer
 from typing_extensions import Annotated
+from unidiff import PatchSet
 
 # TODO: move to __init__.py (it is common to all scripts)
 PathLike = TypeVar("PathLike", str, bytes, Path, os.PathLike)
@@ -30,6 +32,11 @@ class GitRepo:
     path_encoding = 'utf8'
     default_file_encoding = 'utf8'
     log_encoding = 'utf8'
+    fallback_encoding = 'latin1'  # must be 8-bit encoding
+    # see 346245a1bb ("hard-code the empty tree object", 2008-02-13)
+    # https://github.com/git/git/commit/346245a1bb6272dd370ba2f7b9bf86d3df5fed9a
+    # https://github.com/git/git/commit/e1ccd7e2b1cae8d7dab4686cddbd923fb6c46953
+    empty_tree_sha1 = '4b825dc642cb6eb9a060e54bf8d69288fbee4904'
 
     def __init__(self, repo_dir: PathLike):
         """Constructor for `GitRepo` class
@@ -182,6 +189,168 @@ class GitRepo:
         else:
             return process.stderr
 
+    @overload
+    def unidiff(self, commit: str = ..., prev: Optional[str] = ..., wrap: Literal[True] = ...) -> PatchSet:
+        ...
+
+    @overload
+    def unidiff(self, commit: str = ..., prev: Optional[str] = ..., *, wrap: Literal[False]) -> Union[str, bytes]:
+        ...
+
+    @overload
+    def unidiff(self, commit: str = ..., prev: Optional[str] = ..., wrap: bool = ...) -> Union[str, bytes, PatchSet]:
+        ...
+
+    def unidiff(self, commit='HEAD', prev=None, wrap=True):
+        """Return unified diff between `commit` and `prev`
+
+        If `prev` is None (which is the default), return diff between the
+        `commit` and its first parent, or between the `commit` and the empty
+        tree if `commit` does not have any parents (if it is a root commit).
+
+        If `wrap` is True (which is the default), wrap the result in
+        unidiff.PatchSet to make it easier to extract information from
+        the diff.  Otherwise, return diff as plain text.
+
+        :param str commit: later (second) of two commits to compare,
+            defaults to 'HEAD', that is the current commit
+        :param prev: earlier (first) of two commits to compare,
+            defaults to None, which means comparing to parent of `commit`
+        :type prev: str or None
+        :param bool wrap: whether to wrap the result in PatchSet
+        :return: the changes between two arbitrary commits,
+            `prev` and `commit`
+        :rtype: str or bytes or PatchSet
+        """
+        if prev is None:
+            try:
+                # NOTE: this means first-parent changes for merge commits
+                return self.unidiff(commit=commit, prev=commit + '^', wrap=wrap)
+            except subprocess.CalledProcessError:
+                # commit^ does not exist for a root commits (for first commits)
+                return self.unidiff(commit=commit, prev=self.empty_tree_sha1, wrap=wrap)
+
+        cmd = [
+            'git', '-C', self.repo,
+            'diff', '--find-renames', '--find-copies', '--find-copies-harder',
+            prev, commit
+        ]
+        process = subprocess.run(cmd,
+                                 capture_output=True, check=True)
+        try:
+            diff_output = process.stdout.decode(self.default_file_encoding)
+        except UnicodeDecodeError:
+            # unidiff.PatchSet can only handle strings
+            diff_output = process.stdout.decode(self.fallback_encoding)
+
+        if wrap:
+            return PatchSet(diff_output)
+        else:
+            return diff_output
+
+    @overload
+    def log_p(self, revision_range: Union[str, Iterable[str]] = ..., wrap: Literal[True] = ...) \
+            -> Iterator[PatchSet]:
+        ...
+
+    @overload
+    def log_p(self, revision_range: Union[str, Iterable[str]] = ..., wrap: Literal[False] = ...) \
+            -> Iterator[str]:
+        ...
+
+    @overload
+    def log_p(self, revision_range: Union[str, Iterable[str]] = ..., wrap: bool = ...) \
+            -> Union[Iterator[str], Iterator[PatchSet]]:
+        ...
+
+    def log_p(self, revision_range=('-1', 'HEAD'), wrap=True):
+        """Generate commits with unified diffs for a given `revision_range`
+
+        If `revision_range` is not provided, it generates single most recent
+        commit on the current branch.
+
+        The `wrap` parameter controls the output format.  If true (the
+        default), generate series of `unidiff.PatchSet` for commits changes.
+        If false, generate series of raw commit + unified diff of commit
+        changes (as `str`).  This is similar to how `unidiff()` method works.
+
+        :param revision_range: arguments to pass to `git log --patch`, see
+            https://git-scm.com/docs/git-log; by default generates single patch
+            from the HEAD
+        :param wrap: whether to wrap the result in PatchSet
+        :return: the changes for given `revision_range`
+        """
+        def commit_with_patch(_commit_id: str, _commit_data: StringIO) -> PatchSet:
+            """Helper to create PatchSet with `_commit_id` as commit_id attribute"""
+            _commit_data.seek(0)  # rewind to beginning for reading by the PatchSet constructor
+            patch_set = PatchSet(_commit_data)  # parse commit with patch to PatchSet
+            patch_set.commit_id = _commit_id  # remember the commit id in an attribute
+            return patch_set
+
+        cmd = [
+            'git', '-C', str(self.repo),
+            # NOTE: `git rev-list` does not support --patch option
+            'log', '--format=raw', '--diff-merges=first-parent', '--patch', '-z',  # log options
+            '--find-renames', '--find-copies', '--find-copies-harder',  # diff options
+        ]
+        if isinstance(revision_range, str):
+            cmd.append(revision_range)
+        else:
+            cmd.extend(revision_range)
+
+        ## DEBUG (TODO: switch to logger.debug())
+        #print(f"{cmd=}")
+
+        process = subprocess.Popen(
+            cmd,
+            bufsize=1,  # line buffered
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            encoding='utf-8',
+            text=True,
+        )
+
+        commit_data = StringIO()
+        commit_id: Optional[str] = None
+        while process.poll() is None:
+            log_p_line = process.stdout.readline()
+            if log_p_line:
+                if not commit_id and log_p_line[0] != '\0':
+                    # first line in output
+                    commit_id = log_p_line.strip()[7:]  # strip "commit "
+
+                if log_p_line[0] == '\0':
+                    # end of old commit, start of new commit
+                    ## DEBUG (TODO: switch to logger.debug())
+                    #print(f"new commit: {log_p_line[1:]}", end="")
+                    # return old commit data
+                    if wrap:
+                        yield commit_with_patch(commit_id, commit_data)
+                    else:
+                        yield commit_data.getvalue()
+                    # start gathering data for a new commit
+                    commit_data.truncate(0)
+                    # strip the '\0' separator
+                    log_p_line = log_p_line[1:]
+                    commit_id = log_p_line.strip()[7:]  # strip "commit "
+
+                # gather next line of commit data
+                commit_data.write(log_p_line)
+
+        if commit_data.tell() > 0:
+            # there is gathered data from the last commit
+            ## DEBUG (TODO: switch to logger.debug())
+            #print("last commit")
+            if wrap:
+                yield commit_with_patch(commit_id, commit_data)
+            else:
+                yield commit_data.getvalue()
+
+        return_code = process.wait()
+        if return_code != 0:
+            print(f"Error running 'git log' for {self.repo.name} repo, error code = {return_code}")
+            print(f"- repository path: '{self.repo}'")
+
 
 app = typer.Typer(no_args_is_help=True, add_completion=False)
 
@@ -190,7 +359,7 @@ app = typer.Typer(no_args_is_help=True, add_completion=False)
     context_settings={"allow_extra_args": True, "ignore_unknown_options": True}
 )
 def main(
-ctx: typer.Context,
+    ctx: typer.Context,
     repo_path: Annotated[
         Path,
         typer.Argument(
