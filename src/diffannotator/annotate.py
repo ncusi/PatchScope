@@ -1085,5 +1085,65 @@ def patch(patch_file: Annotated[Path, typer.Argument(exists=True, dir_okay=False
         json.dump(result, result_f, indent=4)
 
 
+# TODO: reduce code duplication between this and generate_patches.py::main()
+@app.command(
+    # all unknown params will be considered arguments to `git log -p`
+    context_settings={"allow_extra_args": True, "ignore_unknown_options": True}
+)
+def from_repo(
+    repo_path: Annotated[
+        Path,
+        typer.Argument(
+            exists=True,      # repository must exist
+            file_okay=False,  # dropping corner case: gitdir file
+            dir_okay=True,    # ordinarily Git repo is a directory
+            readable=True,
+            help="Path to git repository.",
+        )
+    ],
+    output_dir: Annotated[
+        Path,
+        typer.Option(
+            file_okay=False,  # cannot be ordinary file, if exists
+            dir_okay=True,    # if exists, must be a directory
+            help="Where to save generated annotated data.",
+        )
+    ],
+    # TODO: find a way to add these to synopsis and list of arguments in help
+    log_args: Annotated[
+        typer.Context,
+        typer.Argument(help="Arguments passed to `git log -p`", metavar="LOG_OPTIONS"),
+    ],
+) -> None:
+    """Create annotation data for commits from local Git repository
+
+    You can add additional options and parameters, which will be passed to
+    the `git log -p` command.  With those options and arguments you
+    can specify which commits to operate on (defaults to all commits).\n
+    See https://git-scm.com/docs/git-log or `man git-log` (or `git log -help`).
+
+    When no <revision-range> is specified, it defaults to HEAD (i.e. the whole
+    history leading to the current commit). origin..HEAD specifies all the
+    commits reachable from the current commit (i.e. HEAD), but not from origin.
+    For a complete list of ways to spell <revision-range>, see the
+    "Specifying Ranges" section of the gitrevisions(7) manpage:\n
+    https://git-scm.com/docs/gitrevisions#_specifying_revisions
+    """
+    # create GitRepo 'helper' object
+    repo = GitRepo(repo_path)
+
+    # ensure that output directory exists
+    print(f"Ensuring that output directory '{output_dir}' exists")
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    print(f"Generating patches from local Git repo '{repo_path}'\n"
+          f"  using `git log -p {' '.join([repr(arg) for arg in log_args.args])}")
+    bugs = BugDataset.from_repo(repo, revision_range=log_args.args)
+
+    print(f"Annotating commits and saving annotated data, for {len(bugs)} commits")
+    for bug in tqdm.tqdm(bugs, desc='commits'):
+        bugs.get_bug(bug).save(annotate_dir=output_dir)
+
+
 if __name__ == "__main__":
     app()
