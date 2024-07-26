@@ -33,7 +33,7 @@ jobs:
         key: venv-${{ runner.os }}-${{ steps.setup_python.outputs.python-version }}-${{ hashFiles('requirements.txt') }}
         path: .venv
         
-    - name: Install dependencies
+    - name: Install dependencies, using cached venv
       run: |
         # use [cached] virtual environment, see https://adamj.eu/tech/2023/11/02/github-actions-faster-python-virtual-environments/
         python -m venv .venv
@@ -41,7 +41,7 @@ jobs:
         # upgrade pip
         python -m pip install --upgrade pip
         # install dependencies for next steps
-        python -m pip install flake8 pytest
+        python -m pip install flake8 pytest ruff
         # install the package and its dependencies; note: it uses requirements.txt
         python -m pip install --editable .[dev]
         # add to $VIRTUAL_ENV/bin to $PATH to be able to run scripts
@@ -61,6 +61,12 @@ jobs:
         flake8 src/ --count --select=E9,F63,F7,F82 --show-source --statistics
         # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
         flake8 src/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+
+    - name: Lint with ruff (non-blocking)
+      run: |
+        # --target-version should match requires-python in pyproject.toml
+        ruff check src/ --target-version=py37 --output-format=github
+      continue-on-error: true
         
     - name: Test with pytest
       run: |
