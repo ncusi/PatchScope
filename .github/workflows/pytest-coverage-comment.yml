@@ -1,0 +1,74 @@
+# This workflow will install dependencies, create coverage tests and run Pytest Coverage Comment
+# For more information see: https://github.com/MishaKav/pytest-coverage-comment/
+name: Pytest Coverage Comment on PR
+on:
+  pull_request:
+    branches:
+      - '*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout project source code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.10"
+        cache: pip
+
+    - name: Restore cached virtualenv
+      uses: actions/cache/restore@v4
+      with:
+        key: venv-${{ runner.os }}-${{ steps.setup_python.outputs.python-version }}-${{ hashFiles('requirements.txt') }}
+        path: .venv
+        
+    - name: Install dependencies
+      run: |
+        # use [cached] virtual environment, see https://adamj.eu/tech/2023/11/02/github-actions-faster-python-virtual-environments/
+        python -m venv .venv
+        source .venv/bin/activate
+        # upgrade pip
+        python -m pip install --upgrade pip
+        # install dependencies for next steps
+        python -m pip install pytest pytest-cov
+        # install the package and its dependencies; note: it uses requirements.txt
+        python -m pip install --editable .[dev]
+        # add to $VIRTUAL_ENV/bin to $PATH to be able to run scripts
+        echo "$VIRTUAL_ENV/bin" >> $GITHUB_PATH
+        # add information about active virtual environment to environment variables
+        echo "VIRTUAL_ENV=$VIRTUAL_ENV" >> $GITHUB_ENV
+
+    - name: Saved cached virtualenv
+      uses: actions/cache/save@v4
+      with:
+        key: venv-${{ runner.os }}-${{ steps.setup_python.outputs.python-version }}-${{ hashFiles('requirements.txt') }}
+        path: .venv
+
+    - name: Build coverage file
+      run: |
+        # original: pytest --cov-report "xml:coverage.xml" --cov=src tests/
+        pytest --cov-report "xml:pytest-coverage.xml" --cov=diffannotator tests/ | tee pytest-coverage.txt
+
+    - name: Pytest coverage comment
+      uses: MishaKav/pytest-coverage-comment@v1.1.52
+      with:
+        pytest-xml-coverage-path: ./pytest-coverage.xml
+
+    - name: Check the output coverage
+      run: |
+        echo "Coverage Percentage - ${{ steps.coverageComment.outputs.coverage }}"
+        echo "Coverage Color - ${{ steps.coverageComment.outputs.color }}"
+        echo "Coverage Html - ${{ steps.coverageComment.outputs.coverageHtml }}"
+
+        echo "Coverage Warnings - ${{ steps.coverageComment.outputs.warnings }}"
+
+        echo "Coverage Errors - ${{ steps.coverageComment.outputs.errors }}"
+        echo "Coverage Failures - ${{ steps.coverageComment.outputs.failures }}"
+        echo "Coverage Skipped - ${{ steps.coverageComment.outputs.skipped }}"
+        echo "Coverage Tests - ${{ steps.coverageComment.outputs.tests }}"
+        echo "Coverage Time - ${{ steps.coverageComment.outputs.time }}"
+
+        echo "Not Success Test Info - ${{ steps.coverageComment.outputs.notSuccessTestInfo }}"
