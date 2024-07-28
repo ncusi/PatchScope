@@ -63,7 +63,8 @@
       maybe using [Dynaconf][],
       maybe using [configparser][] standard library
       (see also: files read by [rcfile](https://pypi.org/project/rcfile/) package,
-      or better use [platformdirs](https://pypi.org/project/platformdirs/))
+      or better use [platformdirs](https://pypi.org/project/platformdirs/)
+      or [appdirs](https://pypi.org/project/appdirs/))
     - [ ] documentation on how to use API, and change behavior
     - [ ] configure output format (and what to output)
         - [ ] for `from-repo` subcommand: `--use-fanout` 
@@ -82,7 +83,8 @@
     - [ ] option or subcommand to output flow diagram using 
       [Mermaid][] diagramming language (optionally wrapped in Markdown block)
     - [ ] option or subcommand to generate ASCII-art chart in terminal;<br>
-      perhaps using [Rich][] (used by typer by default) or  [Textual][].
+      perhaps using [Rich][] (used by typer by default) or  [Textual][],
+      or just [Colorama][] - perhaps with [tabulate](https://pypi.org/project/tabulate/).
 
 [click]: https://click.palletsprojects.com/
 [typer]: https://typer.tiangolo.com/
@@ -95,6 +97,7 @@
 [Mermaid]: https://mermaid.js.org/
 [Rich]: https://github.com/Textualize/rich
 [Textual]: https://github.com/Textualize/textual
+[Colorama]: https://github.com/tartley/colorama
 
 [github/linguist]: https://github.com/github/linguist
 [douban/linguist]: https://github.com/douban/linguist
