@@ -9,6 +9,19 @@
 Annotates files and lines of diffs (patches) with their purpose and type,
 and performs statistical analysis on the generated annotation data.
 
+## Installation
+
+Use the package manager [pip](https://pip.pypa.io/en/stable/) to install diffannotator.
+
+To install the most recent version, use
+```commandline
+python -m pip install diffannotator@git+https://github.com/ncusi/python-diff-annotator#egg=main
+```
+or (assuming that you can clone the repository with SSH)
+```commandline
+python -m pip install diffannotator@git+ssh://git@github.com/ncusi/python-diff-annotator.git#egg=main
+```
+
 ## Development
 
 ### Virtual environment
@@ -61,7 +74,7 @@ or
 python -m pytest
 ```
 
-## Related
+## Related projects
 
 Here are some related projects that can also be used
 to extract development statistics from project or a repository.
@@ -154,3 +167,14 @@ Visualizations for a specific repository:
   is the tool that Greg KH and Jonathan Corbet have used
   to create statistics on where kernel patches come from.
   Written in Python.  Original at `git://git.lwn.net/gitdm.git`
+
+## Contributing
+
+Pull requests are welcome. For major changes, please open an issue first
+to discuss what you would like to change.
+
+Please make sure to update tests as appropriate.
+
+## License
+
+[MIT](https://choosealicense.com/licenses/mit/)
