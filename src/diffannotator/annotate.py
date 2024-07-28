@@ -928,9 +928,11 @@ def purpose_to_annotation_callback(values: Optional[List[str]]):
     return values
 
 
-# TODO: reduce code duplication
-def extension_to_language_callback(values: Optional[List[str]]):
-    """Update extension to language mapping with '<key>:<value>'s
+# TODO: reduce code duplication (there is some similar code in purpose_to_annotation_callback)
+def to_language_mapping_callback(values: Optional[List[str]],
+                                 option_name: str,
+                                 mapping: Dict[str, List[str]]) -> List[str]:
+    """To create callback for providing to language mapping with '<key>:<value>'s
 
     If there is no ':' (colon) separating key from value,
     it ignores the value.
@@ -938,6 +940,8 @@ def extension_to_language_callback(values: Optional[List[str]]):
     On empty string it resets the whole mapping.
 
     :param values: list of values to parse
+    :param option_name: name of option that this callback code runs for
+    :param mapping: mapping to change
     """
     if values is None:
         return []
@@ -945,17 +949,24 @@ def extension_to_language_callback(values: Optional[List[str]]):
     # TODO: add logging
     for colon_separated_pair in values:
         if not colon_separated_pair or colon_separated_pair in {'""', "''"}:
-            languages.EXT_TO_LANGUAGES = {}
+            mapping.clear()
         elif ':' in colon_separated_pair:
             key, val = colon_separated_pair.split(sep=':', maxsplit=1)
             if not key[0] == '.':
                 key = f".{key}"
-            languages.EXT_TO_LANGUAGES[key] = [val]
+            mapping[key] = [val]
         else:
             # TODO: use logging
-            print(f"Warning: --force-simplify={colon_separated_pair} ignored")
+            print(f"Warning: {option_name}={colon_separated_pair} ignored")
 
     return values
+
+
+def extension_to_language_callback(values: Optional[List[str]]) -> List[str]:
+    """Update extension to language mapping with '<key>:<value>'s"""
+    return to_language_mapping_callback(values,
+                                        option_name="--ext-to-language",
+                                        mapping=languages.EXT_TO_LANGUAGES)
 
 
 def parse_line_callback(code_str: Optional[str]) -> Optional[LineCallback]:
