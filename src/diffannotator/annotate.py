@@ -952,8 +952,9 @@ def to_language_mapping_callback(values: Optional[List[str]],
             mapping.clear()
         elif ':' in colon_separated_pair:
             key, val = colon_separated_pair.split(sep=':', maxsplit=1)
-            if not key[0] == '.':
-                key = f".{key}"
+            if key in mapping:
+                # TODO: use logging
+                print(f"Warning: changing mapping for {key} from {mapping[key]} to {[val]}")
             mapping[key] = [val]
         else:
             # TODO: use logging
@@ -1109,15 +1110,25 @@ def common(
 
     if ext_to_language is not None:
         print("Using modified mapping from file extension to programming language:")
-        for key, val in languages.EXT_TO_LANGUAGES.items():
-            if len(val) == 1:
-                print(f"\t{key} is {val[0]}")
+        for ext, langs in languages.EXT_TO_LANGUAGES.items():
+            # make sure that extension begins with a dot
+            if not ext[0] == '.':
+                # delete "<extension>", replace with ".<extension>"
+                del languages.EXT_TO_LANGUAGES[ext]
+                ext = f".{ext}"
+                languages.EXT_TO_LANGUAGES[ext] = langs  # here `val` is a list
+
+            # don't need to print `langs` as list, if there is only one element on it
+            if len(langs) == 1:
+                print(f"\t{ext} is {langs[0]}")
             else:
-                print(f"\t{key} is {val}")
+                print(f"\t{ext} in {langs}")
+
     if purpose_to_annotation is not None:
         print("Using modified mapping from file purpose to line annotation:")
-        for key, val in PURPOSE_TO_ANNOTATION.items():
-            print(f"\t{key}\t=>\t{val}")
+        for purpose, annotation in PURPOSE_TO_ANNOTATION.items():
+            print(f"\t{purpose}\t=>\t{annotation}")
+
     if line_callback is not None:
         print("Using custom line callback to perform line annotation")
         AnnotatedPatchedFile.line_callback = line_callback
