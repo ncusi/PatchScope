@@ -900,32 +900,63 @@ def version_callback(value: bool):
         raise typer.Exit()
 
 
-def purpose_to_annotation_callback(values: Optional[List[str]]):
-    """Update purpose to annotation mapping with '<key>:<value>'s
+def to_simple_mapping_callback(ctx: typer.Context, param: typer.CallbackParam,
+                               values: Optional[List[str]],
+                               mapping: Dict[str, str],
+                               allow_simplified: bool = False):
+    """Update given to simple `mapping` with '<key>:<value>'s
 
-    If there is no ':' (colon) separating key from value, add
-    the original both as key and as value.  This means that
-    using '<value>' adds {<value>: <value>} mapping.
+    If `allow_simplified` is true, and there is no ':' (colon) separating
+    key from value, add the original both as key and as value.  This means
+    that using '<value>' adds {<value>: <value>} mapping.
+
+    If `allow_simplified` is false, and there is no ':' (colon) separating
+    key from value, it ignores the value (with warning).
 
     On empty string it resets the whole mapping.
 
+    :param ctx: Context object with additional data about the current
+        execution of your program
+    :param param: the specific Click Parameter object with information
+        about the current parameter (argument or option)
     :param values: list of values to parse
+    :param mapping: mapping to change
+    :param allow_simplified: whether <value> means <value>:<value>,
+        or just gets ignored
+    :return: list of values, or empty list
     """
-    global PURPOSE_TO_ANNOTATION
+    # ctx.resilient_parsing will be True when handling completion
+    if ctx.resilient_parsing:
+        # this call is for handling command line completions, return early
+        return []
     if values is None:
         return []
 
     # TODO: add logging
     for colon_separated_pair in values:
         if not colon_separated_pair or colon_separated_pair in {'""', "''"}:
-            PURPOSE_TO_ANNOTATION = {}
+            mapping.clear()
         elif ':' in colon_separated_pair:
             key, val = colon_separated_pair.split(sep=':', maxsplit=1)
-            PURPOSE_TO_ANNOTATION[key] = val
+            mapping[key] = val
         else:
-            PURPOSE_TO_ANNOTATION[colon_separated_pair] = colon_separated_pair
+            if allow_simplified:
+                mapping[colon_separated_pair] = colon_separated_pair
+            else:
+                # TODO: use logging
+                quotes = '\'"'  # work around limitations of f-strings in older Python
+                print(f"Warning: {param.get_error_hint(ctx).strip(quotes)}="
+                      f"{colon_separated_pair} ignored, no colon (:)")
 
     return values
+
+
+def purpose_to_annotation_callback(ctx: typer.Context, param: typer.CallbackParam,
+                                   values: Optional[List[str]]) -> List[str]:
+    """Update purpose to annotation mapping with '<key>:<value>'s"""
+    return to_simple_mapping_callback(ctx, param, values,
+                                      mapping=PURPOSE_TO_ANNOTATION,
+                                      allow_simplified=True)
 
 
 # TODO: reduce code duplication (there is some similar code in purpose_to_annotation_callback)
