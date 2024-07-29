@@ -120,6 +120,35 @@ def test_annotate_patch_with_purpose_to_annotation(tmp_path: Path):
         "app correctly prints that mapping changed to the requested values"
 
 
+# NOTE: some duplication with/similarities to test_annotate_patch_with_purpose_to_annotation
+def test_annotate_patch_with_pattern_to_purpose(tmp_path: Path):
+    file_path = Path('tests/test_dataset/tqdm-1/c0dcf39b046d1b4ff6de14ac99ad9a1b10487512.diff')
+    save_path = tmp_path.joinpath(file_path).with_suffix('.json')
+
+    result = runner.invoke(annotate_app, [
+        "--pattern-to-purpose=",  # reset mapping
+        "--pattern-to-purpose=tests/test_*.py:test",  # explicit mapping
+        "--pattern-to-purpose=test",  # implicit mapping, should warn
+        "patch", f"{file_path}", f"{save_path}"
+    ])
+
+    # print("----- (result.stdout)")
+    # print(result.stdout)
+    # print("-----")
+
+    separator = " has purpose "
+    assert result.exit_code == 0, \
+        "app runs 'patch' subcommand with a --pattern-to-purpose without errors"
+    assert f"CMakeLists.txt{separator}project" not in result.stdout, \
+        "app resets the mapping with empty --pattern-to-purpose, removing defaults"
+    assert f"tests/test_*.py{separator}test" in result.stdout, \
+        "app adds the requested mapping with --pattern-to-purpose"
+    assert \
+        f"test{separator}test" not in result.stdout and \
+        "Warning: --pattern-to-purpose=test ignored" in result.stdout, \
+        "app does not add mapping via --pattern-to-purpose=<pattern> (no purpose)"
+
+
 def test_annotate_patch_with_ext_to_language(tmp_path: Path):
     file_path = Path('tests/test_dataset/tqdm-1/c0dcf39b046d1b4ff6de14ac99ad9a1b10487512.diff')
     save_path = tmp_path.joinpath(file_path).with_suffix('.json')

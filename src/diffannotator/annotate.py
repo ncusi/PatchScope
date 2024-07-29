@@ -959,6 +959,14 @@ def purpose_to_annotation_callback(ctx: typer.Context, param: typer.CallbackPara
                                       allow_simplified=True)
 
 
+def pattern_to_purpose_callback(ctx: typer.Context, param: typer.CallbackParam,
+                                values: Optional[List[str]]) -> List[str]:
+    """Update pattern to purpose mapping with '<key>:<value>'s"""
+    return to_simple_mapping_callback(ctx, param, values,
+                                      mapping=languages.PATTERN_TO_PURPOSE,
+                                      allow_simplified=False)
+
+
 # TODO: reduce code duplication (there is some similar code in purpose_to_annotation_callback)
 def to_language_mapping_callback(ctx: typer.Context, param: typer.CallbackParam,
                                  values: Optional[List[str]],
@@ -1110,6 +1118,14 @@ def common(
             callback=purpose_to_annotation_callback,
         )
     ] = None,
+    pattern_to_purpose: Annotated[
+        Optional[List[str]],
+        typer.Option(
+            help="Mapping from pattern to match file path, to that file purpose. Empty value resets mapping.",
+            metavar="PATTERN:PURPOSE",
+            callback=pattern_to_purpose_callback,
+        )
+    ] = None,
     line_callback: Annotated[
         Optional[Callable[[Iterable[Tuple]], str]],
         typer.Option(
@@ -1202,6 +1218,22 @@ def common(
         print("Using modified mapping from file purpose to line annotation:")
         for purpose, annotation in PURPOSE_TO_ANNOTATION.items():
             print(f"\t{purpose}\t=>\t{annotation}")
+
+    if pattern_to_purpose is not None:
+        if not languages.PATTERN_TO_PURPOSE:
+            print("Cleared modified mapping, defining file purpose based on pathname pattern.")
+        else:
+            print("Using modified mapping, defining file purpose based on pathname pattern:")
+
+        warn_globstar = False
+        for pattern, purpose in languages.PATTERN_TO_PURPOSE.items():
+            print(f"\t{pattern} has purpose {purpose}")
+            if '**' in pattern:
+                warn_globstar = True
+
+        if warn_globstar:
+            print("Warning: the recursive wildcard “**” is not supported in patterns\n"
+                  "         (it acts like non-recursive “*”.)")
 
     if line_callback is not None:
         print("Using custom line callback to perform line annotation")
