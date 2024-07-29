@@ -134,6 +134,19 @@ def test_annotate_patch_with_ext_to_language(tmp_path: Path):
     assert ".lock" in result.stdout and "YAML" in result.stdout, \
         "app correctly prints that ext mapping changed to the requested values"
 
+    result = runner.invoke(annotate_app, [
+        "--ext-to-language=",  # clear the mapping
+        "--ext-to-language=.extension",  # extension without language name
+        "patch", f"{file_path}", f"{save_path}"
+    ])
+
+    assert result.exit_code == 0, \
+        "app runs 'patch' subcommand with special cases of --ext-to-language without errors"
+    assert "Warning:" in result.stdout and ".extension ignored" in result.stdout, \
+        "app warns about --ext-to-language with value without colon (:)"
+    assert "Cleared mapping from file extension to programming language" in result.stdout, \
+        "app mentions that it cleared mapping because of empty value of --ext-to-language"
+
 
 def test_generate_patches(tmp_path: Path):
     test_repo_url = 'https://github.com/githubtraining/hellogitworld.git'

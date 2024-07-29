@@ -929,8 +929,8 @@ def purpose_to_annotation_callback(values: Optional[List[str]]):
 
 
 # TODO: reduce code duplication (there is some similar code in purpose_to_annotation_callback)
-def to_language_mapping_callback(values: Optional[List[str]],
-                                 option_name: str,
+def to_language_mapping_callback(ctx: typer.Context, param: typer.CallbackParam,
+                                 values: Optional[List[str]],
                                  mapping: Dict[str, List[str]]) -> List[str]:
     """To create callback for providing to language mapping with '<key>:<value>'s
 
@@ -939,10 +939,17 @@ def to_language_mapping_callback(values: Optional[List[str]],
 
     On empty string it resets the whole mapping.
 
+    :param ctx: Context object with additional data about the current
+        execution of your program
+    :param param: the specific Click Parameter object with information
+        about the current parameter (argument or option)
     :param values: list of values to parse
-    :param option_name: name of option that this callback code runs for
     :param mapping: mapping to change
     """
+    # ctx.resilient_parsing will be True when handling completion
+    if ctx.resilient_parsing:
+        # handling command line completions
+        return []
     if values is None:
         return []
 
@@ -958,15 +965,16 @@ def to_language_mapping_callback(values: Optional[List[str]],
             mapping[key] = [val]
         else:
             # TODO: use logging
-            print(f"Warning: {option_name}={colon_separated_pair} ignored")
+            quotes = '\'"'  # work around limitations of f-strings in older Python
+            print(f"Warning: {param.get_error_hint(ctx).strip(quotes)}={colon_separated_pair} ignored, no colon (:)")
 
     return values
 
 
-def extension_to_language_callback(values: Optional[List[str]]) -> List[str]:
+def extension_to_language_callback(ctx: typer.Context, param: typer.CallbackParam,
+                                   values: Optional[List[str]]) -> List[str]:
     """Update extension to language mapping with '<key>:<value>'s"""
-    return to_language_mapping_callback(values,
-                                        option_name="--ext-to-language",
+    return to_language_mapping_callback(ctx, param, values,
                                         mapping=languages.EXT_TO_LANGUAGES)
 
 
@@ -1109,7 +1117,10 @@ def common(
         print("Ignoring '--no-update-languages' option without '--use-pylinguist'")
 
     if ext_to_language is not None:
-        print("Using modified mapping from file extension to programming language:")
+        if not languages.EXT_TO_LANGUAGES:
+            print("Cleared mapping from file extension to programming language")
+        else:
+            print("Using modified mapping from file extension to programming language:")
         for ext, langs in languages.EXT_TO_LANGUAGES.items():
             # make sure that extension begins with a dot
             if not ext[0] == '.':
