@@ -939,6 +939,10 @@ def to_language_mapping_callback(ctx: typer.Context, param: typer.CallbackParam,
 
     On empty string it resets the whole mapping.
 
+    Assumes that values in mapping are lists (following GitHub Linguist's
+    languages.yml), and that getting value for a key that exists in the
+    mapping replaces the whole list.
+
     :param ctx: Context object with additional data about the current
         execution of your program
     :param param: the specific Click Parameter object with information
@@ -976,6 +980,13 @@ def extension_to_language_callback(ctx: typer.Context, param: typer.CallbackPara
     """Update extension to language mapping with '<key>:<value>'s"""
     return to_language_mapping_callback(ctx, param, values,
                                         mapping=languages.EXT_TO_LANGUAGES)
+
+
+def filename_to_language_callback(ctx: typer.Context, param: typer.CallbackParam,
+                                  values: Optional[List[str]]) -> List[str]:
+    """Update filename to language mapping with '<key>:<value>'s"""
+    return to_language_mapping_callback(ctx, param, values,
+                                        mapping=languages.FILENAME_TO_LANGUAGES)
 
 
 def parse_line_callback(code_str: Optional[str]) -> Optional[LineCallback]:
@@ -1047,6 +1058,14 @@ def common(
             # AssertionError: List types with complex sub-types are not currently supported
             # see https://github.com/tiangolo/typer/issues/387
             callback=extension_to_language_callback,
+        )
+    ] = None,
+    filename_to_language: Annotated[
+        Optional[List[str]],
+        typer.Option(
+            help="Mapping from filename to file language. Empty value resets mapping.",
+            metavar="FILENAME:LANGUAGE",
+            callback=filename_to_language_callback,
         )
     ] = None,
     purpose_to_annotation: Annotated[
@@ -1131,9 +1150,22 @@ def common(
 
             # don't need to print `langs` as list, if there is only one element on it
             if len(langs) == 1:
-                print(f"\t{ext} is {langs[0]}")
+                print(f"\t*{ext} is {langs[0]}")
             else:
-                print(f"\t{ext} in {langs}")
+                print(f"\t*{ext} in {langs}")
+
+    # slight code duplication with previous block
+    if filename_to_language is not None:
+        if not languages.FILENAME_TO_LANGUAGES:
+            print("Cleared mapping from filename to programming language")
+        else:
+            print("Using modified mapping from filename to programming language:")
+        for filename, langs in languages.FILENAME_TO_LANGUAGES.items():
+            # don't need to print `langs` as list, if there is only one element on it
+            if len(langs) == 1:
+                print(f"\t{filename} is {langs[0]}")
+            else:
+                print(f"\t{filename} in {langs}")
 
     if purpose_to_annotation is not None:
         print("Using modified mapping from file purpose to line annotation:")

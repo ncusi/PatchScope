@@ -148,6 +148,35 @@ def test_annotate_patch_with_ext_to_language(tmp_path: Path):
         "app mentions that it cleared mapping because of empty value of --ext-to-language"
 
 
+# TODO: very similar to previous test, use parametrized test
+def test_annotate_patch_with_filename_to_language(tmp_path: Path):
+    file_path = Path('tests/test_dataset/tqdm-1/c0dcf39b046d1b4ff6de14ac99ad9a1b10487512.diff')
+    save_path = tmp_path.joinpath(file_path).with_suffix('.json')
+
+    result = runner.invoke(annotate_app, [
+        "--filename-to-language=LICENSE:txt",  # explicit mapping with unique language name
+        "patch", f"{file_path}", f"{save_path}"
+    ])
+
+    assert result.exit_code == 0, \
+        "app runs 'patch' subcommand with a --filename-to-language without errors"
+    assert "LICENSE" in result.stdout and "txt" in result.stdout, \
+        "app correctly prints that ext mapping changed to the requested values"
+
+    result = runner.invoke(annotate_app, [
+        "--filename-to-language=",  # clear the mapping
+        "--filename-to-language=COPYING",  # extension without language name
+        "patch", f"{file_path}", f"{save_path}"
+    ])
+
+    assert result.exit_code == 0, \
+        "app runs 'patch' subcommand with special cases of --filename-to-language without errors"
+    assert "Warning:" in result.stdout and "COPYING ignored" in result.stdout, \
+        "app warns about --filename-to-language with value without colon (:)"
+    assert "Cleared mapping from filename to programming language" in result.stdout, \
+        "app mentions that it cleared mapping because of empty value of --filename-to-language"
+
+
 def test_generate_patches(tmp_path: Path):
     test_repo_url = 'https://github.com/githubtraining/hellogitworld.git'
     repo_dir = tmp_path / 'hellogitworld'
