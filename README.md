@@ -153,6 +153,10 @@ Tools to generate HTML dashboard, or providing an interactive web application:
   It uses [novel techniques (paper)](https://arxiv.org/abs/2009.03115) (graph reconstruction,
   clustering, and Context-Preserving Squash Merge (CSM) methods) to abstract
   a large-scale Git commit graph.
+- [Assayo](https://github.com/bakhirev/assayo) is a dashboard
+  providing visualization and analysis of git commit statistics.
+  Requires exporting data from Git.  Has a [homepage with demo](https://assayo.online/).
+  It's use is described in _[The visualization and analysis of git commit statistics for IT team leaders.](https://dev.to/responsivecrocodile/the-visualization-and-analysis-of-git-commit-statistics-for-it-team-leaders-2pof)_.
 
 Visualizations for a specific repository:
 
