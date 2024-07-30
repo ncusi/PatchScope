@@ -84,7 +84,20 @@
       [Mermaid][] diagramming language (optionally wrapped in Markdown block)
     - [ ] option or subcommand to generate ASCII-art chart in terminal;<br>
       perhaps using [Rich][] (used by typer by default) or  [Textual][],
-      or just [Colorama][] - perhaps with [tabulate](https://pypi.org/project/tabulate/).
+      or just [Colorama][] - perhaps with [tabulate](https://pypi.org/project/tabulate/)
+      or [termtables](https://pypi.org/project/termtables/).  Possibilities:
+      - pure Python: horizontal bar, created by repeating a character N times, like in
+        [How to Create Stunning Graphs in the Terminal with Python](https://medium.com/@SrvZ/how-to-create-stunning-graphs-in-the-terminal-with-python-2adf9d012131)
+      - [terminalplot](https://github.com/kressi/terminalplot) - only XY plot with '*', minimalistic
+      - [asciichartpy](https://pypi.org/project/asciichartpy/) - only XY plot, somewhat configurable, uses Node.js [asciichart](https://github.com/kroitor/asciichart)
+      - [uniplot](https://github.com/olavolav/uniplot) - XY plots using Unicode, fast, uses NumPy
+      - [termplot](https://github.com/justnoise/termplot) - XY plots and histograms, somewhat flexible
+      - [termplotlib](https://github.com/nschloe/termplotlib) - XY plots (using gnuplot), horizontal and vertical histograms
+      - [termgraph](https://github.com/sgeisler/termgraph) - candle stick graphs drawn using unicode box drawing characters, with [Colorama][] used for colors
+      - [plotille](https://github.com/tammoippen/plotille) - XY plots, scatter plots, histograms and heatmaps in the terminal using braille dots
+      - [termcharts](https://github.com/Abdur-RahmaanJ/termcharts/) - bar, pie, and doughnut charts, with [Rich][] compatibility
+      - [plotext](https://github.com/piccolomo/plotext) - scatter, line, bar, histogram and date-time plots (including candlestick), with support for error bars and confusion matrices
+      - [matplotlib-sixel](https://github.com/koppa/matplotlib-sixel) - a matplotlib backend which outputs sixel graphics onto the terminal (`matplotlib.use('module://matplotlib-sixel')`)
 
 [click]: https://click.palletsprojects.com/
 [typer]: https://typer.tiangolo.com/
