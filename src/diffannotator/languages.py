@@ -179,6 +179,7 @@ class Languages(object):
         #print(f"{file_path=}: {filename=}, {ext=}, {basename=}")
 
         # NOTE: or dict(itertools.chain.from_iterable(d.items() for d in (d1, d2, d3)))
+        # NOTE: FILENAME_TO_LANGUAGES overrides what's from Linguist 'languages.yml'
         if basename in dict(self.filenames_lang, **FILENAME_TO_LANGUAGES):
             ret = languages_exceptions(file_path, self.filenames_lang[basename])
             # Debug to catch filenames (basenames) with language collisions
@@ -187,6 +188,10 @@ class Languages(object):
 
             #print(f"... filenames_lang: {ret}")
             return ret[0]
+
+        # NOTE: EXT_TO_LANGUAGES overrides what's from Linguist 'languages.yml'
+        if ext in EXT_TO_LANGUAGES:
+            return EXT_TO_LANGUAGES[ext][0]
 
         if ext in self.ext_primary:
             ret = languages_exceptions(file_path, self.ext_primary[ext])
