@@ -900,62 +900,132 @@ def version_callback(value: bool):
         raise typer.Exit()
 
 
-def purpose_to_annotation_callback(values: Optional[List[str]]):
-    """Update purpose to annotation mapping with '<key>:<value>'s
+def to_simple_mapping_callback(ctx: typer.Context, param: typer.CallbackParam,
+                               values: Optional[List[str]],
+                               mapping: Dict[str, str],
+                               allow_simplified: bool = False):
+    """Update given to simple `mapping` with '<key>:<value>'s
 
-    If there is no ':' (colon) separating key from value, add
-    the original both as key and as value.  This means that
-    using '<value>' adds {<value>: <value>} mapping.
+    If `allow_simplified` is true, and there is no ':' (colon) separating
+    key from value, add the original both as key and as value.  This means
+    that using '<value>' adds {<value>: <value>} mapping.
+
+    If `allow_simplified` is false, and there is no ':' (colon) separating
+    key from value, it ignores the value (with warning).
 
     On empty string it resets the whole mapping.
 
+    :param ctx: Context object with additional data about the current
+        execution of your program
+    :param param: the specific Click Parameter object with information
+        about the current parameter (argument or option)
     :param values: list of values to parse
+    :param mapping: mapping to change
+    :param allow_simplified: whether <value> means <value>:<value>,
+        or just gets ignored
+    :return: list of values, or empty list
     """
-    global PURPOSE_TO_ANNOTATION
+    # ctx.resilient_parsing will be True when handling completion
+    if ctx.resilient_parsing:
+        # this call is for handling command line completions, return early
+        return []
     if values is None:
         return []
 
     # TODO: add logging
     for colon_separated_pair in values:
         if not colon_separated_pair or colon_separated_pair in {'""', "''"}:
-            PURPOSE_TO_ANNOTATION = {}
+            mapping.clear()
         elif ':' in colon_separated_pair:
             key, val = colon_separated_pair.split(sep=':', maxsplit=1)
-            PURPOSE_TO_ANNOTATION[key] = val
+            mapping[key] = val
         else:
-            PURPOSE_TO_ANNOTATION[colon_separated_pair] = colon_separated_pair
+            if allow_simplified:
+                mapping[colon_separated_pair] = colon_separated_pair
+            else:
+                # TODO: use logging
+                quotes = '\'"'  # work around limitations of f-strings in older Python
+                print(f"Warning: {param.get_error_hint(ctx).strip(quotes)}="
+                      f"{colon_separated_pair} ignored, no colon (:)")
 
     return values
 
 
-# TODO: reduce code duplication
-def extension_to_language_callback(values: Optional[List[str]]):
-    """Update extension to language mapping with '<key>:<value>'s
+def purpose_to_annotation_callback(ctx: typer.Context, param: typer.CallbackParam,
+                                   values: Optional[List[str]]) -> List[str]:
+    """Update purpose to annotation mapping with '<key>:<value>'s"""
+    return to_simple_mapping_callback(ctx, param, values,
+                                      mapping=PURPOSE_TO_ANNOTATION,
+                                      allow_simplified=True)
+
+
+def pattern_to_purpose_callback(ctx: typer.Context, param: typer.CallbackParam,
+                                values: Optional[List[str]]) -> List[str]:
+    """Update pattern to purpose mapping with '<key>:<value>'s"""
+    return to_simple_mapping_callback(ctx, param, values,
+                                      mapping=languages.PATTERN_TO_PURPOSE,
+                                      allow_simplified=False)
+
+
+# TODO: reduce code duplication (there is some similar code in purpose_to_annotation_callback)
+def to_language_mapping_callback(ctx: typer.Context, param: typer.CallbackParam,
+                                 values: Optional[List[str]],
+                                 mapping: Dict[str, List[str]]) -> List[str]:
+    """To create callback for providing to language mapping with '<key>:<value>'s
 
     If there is no ':' (colon) separating key from value,
     it ignores the value.
 
     On empty string it resets the whole mapping.
 
+    Assumes that values in mapping are lists (following GitHub Linguist's
+    languages.yml), and that getting value for a key that exists in the
+    mapping replaces the whole list.
+
+    :param ctx: Context object with additional data about the current
+        execution of your program
+    :param param: the specific Click Parameter object with information
+        about the current parameter (argument or option)
     :param values: list of values to parse
+    :param mapping: mapping to change
     """
+    # ctx.resilient_parsing will be True when handling completion
+    if ctx.resilient_parsing:
+        # handling command line completions
+        return []
     if values is None:
         return []
 
     # TODO: add logging
     for colon_separated_pair in values:
         if not colon_separated_pair or colon_separated_pair in {'""', "''"}:
-            languages.EXT_TO_LANGUAGES = {}
+            mapping.clear()
         elif ':' in colon_separated_pair:
             key, val = colon_separated_pair.split(sep=':', maxsplit=1)
-            if not key[0] == '.':
-                key = f".{key}"
-            languages.EXT_TO_LANGUAGES[key] = [val]
+            if key in mapping:
+                # TODO: use logging
+                print(f"Warning: changing mapping for {key} from {mapping[key]} to {[val]}")
+            mapping[key] = [val]
         else:
             # TODO: use logging
-            print(f"Warning: --force-simplify={colon_separated_pair} ignored")
+            quotes = '\'"'  # work around limitations of f-strings in older Python
+            print(f"Warning: {param.get_error_hint(ctx).strip(quotes)}={colon_separated_pair} ignored, no colon (:)")
 
     return values
+
+
+def extension_to_language_callback(ctx: typer.Context, param: typer.CallbackParam,
+                                   values: Optional[List[str]]) -> List[str]:
+    """Update extension to language mapping with '<key>:<value>'s"""
+    return to_language_mapping_callback(ctx, param, values,
+                                        mapping=languages.EXT_TO_LANGUAGES)
+
+
+def filename_to_language_callback(ctx: typer.Context, param: typer.CallbackParam,
+                                  values: Optional[List[str]]) -> List[str]:
+    """Update filename to language mapping with '<key>:<value>'s"""
+    return to_language_mapping_callback(ctx, param, values,
+                                        mapping=languages.FILENAME_TO_LANGUAGES)
 
 
 def parse_line_callback(code_str: Optional[str]) -> Optional[LineCallback]:
@@ -1029,6 +1099,14 @@ def common(
             callback=extension_to_language_callback,
         )
     ] = None,
+    filename_to_language: Annotated[
+        Optional[List[str]],
+        typer.Option(
+            help="Mapping from filename to file language. Empty value resets mapping.",
+            metavar="FILENAME:LANGUAGE",
+            callback=filename_to_language_callback,
+        )
+    ] = None,
     purpose_to_annotation: Annotated[
         Optional[List[str]],
         typer.Option(
@@ -1038,6 +1116,14 @@ def common(
             # AssertionError: List types with complex sub-types are not currently supported
             # see https://github.com/tiangolo/typer/issues/387
             callback=purpose_to_annotation_callback,
+        )
+    ] = None,
+    pattern_to_purpose: Annotated[
+        Optional[List[str]],
+        typer.Option(
+            help="Mapping from pattern to match file path, to that file purpose. Empty value resets mapping.",
+            metavar="PATTERN:PURPOSE",
+            callback=pattern_to_purpose_callback,
         )
     ] = None,
     line_callback: Annotated[
@@ -1097,16 +1183,58 @@ def common(
         print("Ignoring '--no-update-languages' option without '--use-pylinguist'")
 
     if ext_to_language is not None:
-        print("Using modified mapping from file extension to programming language:")
-        for key, val in languages.EXT_TO_LANGUAGES.items():
-            if len(val) == 1:
-                print(f"\t{key} is {val[0]}")
+        if not languages.EXT_TO_LANGUAGES:
+            print("Cleared mapping from file extension to programming language")
+        else:
+            print("Using modified mapping from file extension to programming language:")
+        for ext, langs in languages.EXT_TO_LANGUAGES.items():
+            # make sure that extension begins with a dot
+            if not ext[0] == '.':
+                # delete "<extension>", replace with ".<extension>"
+                del languages.EXT_TO_LANGUAGES[ext]
+                ext = f".{ext}"
+                languages.EXT_TO_LANGUAGES[ext] = langs  # here `val` is a list
+
+            # don't need to print `langs` as list, if there is only one element on it
+            if len(langs) == 1:
+                print(f"\t*{ext} is {langs[0]}")
             else:
-                print(f"\t{key} is {val}")
+                print(f"\t*{ext} in {langs}")
+
+    # slight code duplication with previous block
+    if filename_to_language is not None:
+        if not languages.FILENAME_TO_LANGUAGES:
+            print("Cleared mapping from filename to programming language")
+        else:
+            print("Using modified mapping from filename to programming language:")
+        for filename, langs in languages.FILENAME_TO_LANGUAGES.items():
+            # don't need to print `langs` as list, if there is only one element on it
+            if len(langs) == 1:
+                print(f"\t{filename} is {langs[0]}")
+            else:
+                print(f"\t{filename} in {langs}")
+
     if purpose_to_annotation is not None:
         print("Using modified mapping from file purpose to line annotation:")
-        for key, val in PURPOSE_TO_ANNOTATION.items():
-            print(f"\t{key}\t=>\t{val}")
+        for purpose, annotation in PURPOSE_TO_ANNOTATION.items():
+            print(f"\t{purpose}\t=>\t{annotation}")
+
+    if pattern_to_purpose is not None:
+        if not languages.PATTERN_TO_PURPOSE:
+            print("Cleared modified mapping, defining file purpose based on pathname pattern.")
+        else:
+            print("Using modified mapping, defining file purpose based on pathname pattern:")
+
+        warn_globstar = False
+        for pattern, purpose in languages.PATTERN_TO_PURPOSE.items():
+            print(f"\t{pattern} has purpose {purpose}")
+            if '**' in pattern:
+                warn_globstar = True
+
+        if warn_globstar:
+            print("Warning: the recursive wildcard “**” is not supported in patterns\n"
+                  "         (it acts like non-recursive “*”.)")
+
     if line_callback is not None:
         print("Using custom line callback to perform line annotation")
         AnnotatedPatchedFile.line_callback = line_callback

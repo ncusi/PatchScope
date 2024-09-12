@@ -41,9 +41,9 @@
           (via Git, or via GitHub / GitLab / ...)
     - [ ] configurable file type
         - [x] global option `--ext-to-language` (the API it uses already existed)
+        - [x] global option `--filename-to-language` (using new API)
         - [ ] global option `--glob-to-language` (using new API)
-        - [ ] global option `--filename-to-language` (using new API)
-        - [ ] global option `--pattern-to-purpose` (using new API)
+        - [x] global option `--pattern-to-purpose` (using new API)
         - [ ] (optionally?) use [`wcmatch.pathlib`](https://facelessuser.github.io/wcmatch/pathlib/)
           to be able to use `**` in patterns (with `globmatch` and `pathlib.GLOBSTAR`)
     - [ ] support [.gitattributes overrides of GitHub Linguist][2]

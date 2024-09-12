@@ -120,6 +120,35 @@ def test_annotate_patch_with_purpose_to_annotation(tmp_path: Path):
         "app correctly prints that mapping changed to the requested values"
 
 
+# NOTE: some duplication with/similarities to test_annotate_patch_with_purpose_to_annotation
+def test_annotate_patch_with_pattern_to_purpose(tmp_path: Path):
+    file_path = Path('tests/test_dataset/tqdm-1/c0dcf39b046d1b4ff6de14ac99ad9a1b10487512.diff')
+    save_path = tmp_path.joinpath(file_path).with_suffix('.json')
+
+    result = runner.invoke(annotate_app, [
+        "--pattern-to-purpose=",  # reset mapping
+        "--pattern-to-purpose=tests/test_*.py:test",  # explicit mapping
+        "--pattern-to-purpose=test",  # implicit mapping, should warn
+        "patch", f"{file_path}", f"{save_path}"
+    ])
+
+    # print("----- (result.stdout)")
+    # print(result.stdout)
+    # print("-----")
+
+    separator = " has purpose "
+    assert result.exit_code == 0, \
+        "app runs 'patch' subcommand with a --pattern-to-purpose without errors"
+    assert f"CMakeLists.txt{separator}project" not in result.stdout, \
+        "app resets the mapping with empty --pattern-to-purpose, removing defaults"
+    assert f"tests/test_*.py{separator}test" in result.stdout, \
+        "app adds the requested mapping with --pattern-to-purpose"
+    assert \
+        f"test{separator}test" not in result.stdout and \
+        "Warning: --pattern-to-purpose=test ignored" in result.stdout, \
+        "app does not add mapping via --pattern-to-purpose=<pattern> (no purpose)"
+
+
 def test_annotate_patch_with_ext_to_language(tmp_path: Path):
     file_path = Path('tests/test_dataset/tqdm-1/c0dcf39b046d1b4ff6de14ac99ad9a1b10487512.diff')
     save_path = tmp_path.joinpath(file_path).with_suffix('.json')
@@ -133,6 +162,48 @@ def test_annotate_patch_with_ext_to_language(tmp_path: Path):
         "app runs 'patch' subcommand with a --ext-to-language without errors"
     assert ".lock" in result.stdout and "YAML" in result.stdout, \
         "app correctly prints that ext mapping changed to the requested values"
+
+    result = runner.invoke(annotate_app, [
+        "--ext-to-language=",  # clear the mapping
+        "--ext-to-language=.extension",  # extension without language name
+        "patch", f"{file_path}", f"{save_path}"
+    ])
+
+    assert result.exit_code == 0, \
+        "app runs 'patch' subcommand with special cases of --ext-to-language without errors"
+    assert "Warning:" in result.stdout and ".extension ignored" in result.stdout, \
+        "app warns about --ext-to-language with value without colon (:)"
+    assert "Cleared mapping from file extension to programming language" in result.stdout, \
+        "app mentions that it cleared mapping because of empty value of --ext-to-language"
+
+
+# TODO: very similar to previous test, use parametrized test
+def test_annotate_patch_with_filename_to_language(tmp_path: Path):
+    file_path = Path('tests/test_dataset/tqdm-1/c0dcf39b046d1b4ff6de14ac99ad9a1b10487512.diff')
+    save_path = tmp_path.joinpath(file_path).with_suffix('.json')
+
+    result = runner.invoke(annotate_app, [
+        "--filename-to-language=LICENSE:txt",  # explicit mapping with unique language name
+        "patch", f"{file_path}", f"{save_path}"
+    ])
+
+    assert result.exit_code == 0, \
+        "app runs 'patch' subcommand with a --filename-to-language without errors"
+    assert "LICENSE" in result.stdout and "txt" in result.stdout, \
+        "app correctly prints that ext mapping changed to the requested values"
+
+    result = runner.invoke(annotate_app, [
+        "--filename-to-language=",  # clear the mapping
+        "--filename-to-language=COPYING",  # extension without language name
+        "patch", f"{file_path}", f"{save_path}"
+    ])
+
+    assert result.exit_code == 0, \
+        "app runs 'patch' subcommand with special cases of --filename-to-language without errors"
+    assert "Warning:" in result.stdout and "COPYING ignored" in result.stdout, \
+        "app warns about --filename-to-language with value without colon (:)"
+    assert "Cleared mapping from filename to programming language" in result.stdout, \
+        "app mentions that it cleared mapping because of empty value of --filename-to-language"
 
 
 def test_generate_patches(tmp_path: Path):
