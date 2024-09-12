@@ -225,6 +225,15 @@ def test_Bug_save(tmp_path: Path):
         "this JSON file has expected filename"
 
 
+def test_Bug_save_with_fanout(tmp_path: Path):
+    bug = Bug.from_dataset('tests/test_dataset_structured', 'keras-10')  # the one with the expected directory structure
+    bug.save(tmp_path, fan_out=True)
+
+    save_path = tmp_path.joinpath('keras-10', Bug.DEFAULT_ANNOTATIONS_DIR)
+    assert save_path.joinpath('c1', 'c4afe60b1355a6c0e83577791a0423f37a3324.json').is_file(), \
+        "JSON file was saved with fan-out"
+
+
 def test_BugDataset_from_directory():
     bugs = BugDataset.from_directory('tests/test_dataset_structured')
 

@@ -603,7 +603,7 @@ class Bug:
         self.save_dir: Optional[Path] = Path(save_dir) \
             if save_dir is not None else None
 
-        self.patches: dict = patches_data
+        self.patches: dict[str, dict] = patches_data
 
     @classmethod
     def from_dataset(cls, dataset_dir: PathLike, bug_id: str, *,
@@ -704,11 +704,14 @@ class Bug:
 
         return patches_data
 
-    def save(self, annotate_dir: Optional[PathLike] = None):
+    def save(self, annotate_dir: Optional[PathLike] = None, fan_out: bool = False):
         """Save annotated patches in JSON format
 
         :param annotate_dir: Separate dir to save annotations, optional.
             If not set, `self.save_dir` is used as a base path.
+        :param fan_out: Save annotated data in a fan-out directory,
+            named after first 2 hexdigits of patch_id; the rest is used
+            for the basename.
         """
         if annotate_dir is not None:
             base_path = Path(annotate_dir)
@@ -727,7 +730,11 @@ class Bug:
 
         # save annotated patches data
         for patch_id, patch_data in self.patches.items():
-            out_path = base_path / Path(patch_id).with_suffix('.json')
+            if fan_out:
+                base_path.joinpath(patch_id[:2]).mkdir(exist_ok=True)
+                out_path = base_path / Path(patch_id[:2], patch_id[2:]).with_suffix('.json')
+            else:
+                out_path = base_path / Path(patch_id).with_suffix('.json')
 
             with out_path.open('w') as out_f:
                 json.dump(patch_data, out_f)
