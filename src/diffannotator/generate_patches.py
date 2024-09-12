@@ -13,11 +13,13 @@ Example (after installing the 'diffannotator' package):
 import os
 import re
 import subprocess
+import sys
 from io import StringIO
 from pathlib import Path
 from typing import Optional, Union, TypeVar, overload, Literal
 from typing import Iterable, Iterator  # should be imported from collections.abc
 
+import tqdm
 import typer
 from typing_extensions import Annotated
 from unidiff import PatchSet
@@ -378,6 +380,12 @@ def main(
             help="Where to save generated patches.",
         )
     ] = None,
+    use_fanout: Annotated[
+        bool,
+        typer.Option(
+            help="Use fan-out when saving patches, save as *.diff"
+        )
+    ] = False,
 ) -> None:
     """Create patches from local Git repository with provided REPO_PATH
 
@@ -388,6 +396,7 @@ def main(
     1. A single commit, <since>, specifies that the commits leading to
        the tip of the current branch that are not in the history
        that leads to the <since> to be output.  Example: 'HEAD~2'.
+       Not supported with '--use-fanout'.
 
     2. Generic <revision-range> expression means the commits in the
        specified range.  Example: 'origin/main..main', or '--root HEAD',
@@ -407,9 +416,35 @@ def main(
         output_dir.mkdir(parents=True, exist_ok=True)
 
     print(f"Generating patches from local Git repo '{repo_path}'")
-    result = repo.format_patch(output_dir=output_dir,
-                               revision_range=ctx.args)
-    print(result)
+    if use_fanout:
+        print("using `git log -p` and saving as *.diff only")
+
+        with tqdm.tqdm(desc="commit") as progress_bar:
+            for patch in repo.log_p(revision_range=ctx.args, wrap=True):
+                sha = getattr(patch, 'commit_id', '') # added by log_p method
+                if not sha:
+                    # TODO: use logger.error
+                    print("ERROR: failed to get SHA-1 id for a commit, exiting",
+                          file=sys.stderr)
+                    return
+
+                # sha is defined
+                progress_bar.set_postfix(sha1=sha[:7])
+
+                fanout_dir = sha[:2]
+                basename = sha[2:]
+                output_dir.joinpath(fanout_dir).mkdir(parents=True, exist_ok=True)
+                output_dir.joinpath(fanout_dir, f"{basename}.diff")\
+                    .write_text(str(patch))
+
+                progress_bar.update()
+
+    else:
+        print("using `git format-patch` and saving as *.patch")
+
+        result = repo.format_patch(output_dir=output_dir,
+                                   revision_range=ctx.args)
+        print(result)
 
 
 if __name__ == "__main__":

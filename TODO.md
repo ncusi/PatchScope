@@ -28,10 +28,11 @@
     - [x] `diff-gather-stats` (from [`gather_data.py`](src/diffannotator/gather_data.py))
 - [ ] improvements and new features for `generate_patches.py`
     - [ ] configure what and where to output
-        - [ ] `--use-fanout` 
-          (e.g. save in 'c0<b>/</b>dcf39b046d1b4ff6de14ac99ad9a1b10487512.diff',
+        - [x] `--use-fanout` 
+          (e.g. save result in 'c0<b>/</b>dcf39b046d1b4ff6de14ac99ad9a1b10487512.diff'
           instead of in '0001-Create-.gitignore-file.patch');<br>
-          **NOTE**: this would probably require switching from using `git format-patch` to using `git log -p` (and needs to extract common code).
+          **NOTE**: this required switching from using `git format-patch`
+          to using `git log -p`, and currently does not save the commit message.
 - [ ] improvements and new features for `annotate.py`
     - [x] subcommands
         - [x] `patch` - annotate a given single patch file

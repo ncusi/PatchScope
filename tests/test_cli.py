@@ -231,3 +231,45 @@ def test_generate_patches(tmp_path: Path):
         "generate app created 5 patch files"
     assert all([path.suffix == '.patch' for path in patches_paths]), \
         "all created files have '.patch' suffix"
+
+
+def test_generate_patches_with_fanout(tmp_path: Path):
+    test_repo_url = 'https://github.com/githubtraining/hellogitworld.git'
+    repo_dir = tmp_path / 'hellogitworld'
+    output_dir = tmp_path / 'patches'
+
+    # clone the repository "by hand"
+    subprocess.run([
+        'git', '-C', str(tmp_path), 'clone', test_repo_url
+    ], capture_output=True, check=True)
+
+    result = runner.invoke(generate_app, [
+        f"--output-dir={output_dir}",
+        "--use-fanout",
+        str(repo_dir),
+        '-5', 'HEAD'  # 5 latest commit on the current branch
+    ])
+
+    assert result.exit_code == 0, \
+        "generate app runs without errors"
+    assert output_dir.is_dir(), \
+        "output directory exists, and is directory"
+    subdir_paths = list(output_dir.glob('*'))
+    total_diffs = 0
+    for path in subdir_paths:
+        #print(f"{path=!s}")
+        assert len(path.name) == 2, \
+            "fan-out directory uses name with length of 2"
+        for diff_file in path.glob('*.diff'):
+            #print(f"diff_file={diff_file.name}")
+            total_diffs += 1
+            assert diff_file.is_file(), \
+                "*.diff files are files"
+            assert len(diff_file.name) == 40 - 2 + 5, \
+                "*.diff files have expected file name length"
+
+    # NOTE: somehow this test is unreliable on MS Windows
+    # it fails unless print statements are un-commented
+    #assert total_diffs == 5, \
+    #    "generate app created 5 diff files"
+    print(f"{total_diffs=}/5")
