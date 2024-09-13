@@ -35,6 +35,22 @@ def test_annotate_dataset(tmp_path: Path):
         "app prints about processing the dataset"
 
 
+def test_annotate_dataset_with_fanout(tmp_path: Path):
+    dataset_dir = Path('tests/test_dataset_fanout')
+
+    result = runner.invoke(annotate_app, [
+        "dataset", f"--output-prefix={tmp_path}", f"{dataset_dir}",
+        "--patches-dir=", "--annotations-dir=",
+    ])
+    # DEBUG
+    #print(result.stdout)
+
+    assert result.exit_code == 0, \
+        "app runs 'dataset' subcommand without errors"
+    assert f"{dataset_dir}" in result.stdout, \
+        "app prints about processing the dataset"
+
+
 def test_annotate_from_repo(tmp_path: Path):
     # TODO: create a fixture with a common code
     test_repo_url = 'https://github.com/githubtraining/hellogitworld.git'

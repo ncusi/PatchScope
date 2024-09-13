@@ -1334,37 +1334,69 @@ def common(
 
 
 @app.command()
-def dataset(datasets: Annotated[
-                List[Path],
-                typer.Argument(
-                    exists=True,
-                    file_okay=False,
-                    dir_okay=True,
-                    readable=True,
-                    writable=True,  # to save results
-                )
-            ],
-            output_prefix: Annotated[
-                Optional[Path],
-                typer.Option(
-                    file_okay=False,
-                    dir_okay=True,
-                    help="Where to save files with annotation data.",
-                )
-            ] = None):
+def dataset(
+    datasets: Annotated[
+        List[Path],
+        typer.Argument(
+            exists=True,
+            file_okay=False,
+            dir_okay=True,
+            readable=True,
+            writable=True,  # to save results
+        )
+    ],
+    output_prefix: Annotated[
+        Optional[Path],
+        typer.Option(
+            file_okay=False,
+            dir_okay=True,
+            help="Where to save files with annotation data.",
+        )
+    ] = None,
+    patches_dir: Annotated[
+        str,
+        typer.Option(
+            metavar="DIR_NAME",
+            help="Subdirectory with patches; use '' to do without such"
+        )
+    ] = Bug.DEFAULT_PATCHES_DIR,
+    annotations_dir: Annotated[
+        str,
+        typer.Option(
+            metavar="DIR_NAME",
+            help="Subdirectory to write annotations to; use '' to do without such"
+        )
+    ] = Bug.DEFAULT_ANNOTATIONS_DIR,
+    uses_fanout: Annotated[
+        bool,
+        typer.Option(
+            help="Dataset was generated with fan-out"
+        )
+    ] = False,
+) -> None:
     """Annotate all bugs in provided DATASETS
 
     Each DATASET is expected to be existing directory with the following
-    structure:
+    structure, by default:
 
         <dataset_directory>/<bug_directory>/patches/<patch_file>.diff
 
+    You can change the `/patches/` part with --patches-dir option.
+    For example with --patches-dir='' the script would expect data
+    to have the following structure:
+
+        <dataset_directory>/<bug_directory>/<patch_file>.diff
+
     Each DATASET can consist of many BUGs, each BUG should include patch
-    to annotate as *.diff file in 'patches/' subdirectory.
+    to annotate as *.diff file in 'patches/' subdirectory (or in subdirectory
+    you provide via --patches-dir option).
     """
     for dataset_dir in datasets:
-        print(f"Processing dataset in directory '{dataset_dir}'")
-        bugs = BugDataset.from_directory(dataset_dir)
+        print(f"Processing dataset in directory '{dataset_dir}'{' with fanout' if uses_fanout else ''}")
+        bugs = BugDataset.from_directory(dataset_dir,
+                                         patches_dir=patches_dir,
+                                         annotations_dir=annotations_dir,
+                                         fan_out=uses_fanout)
 
         output_path: Optional[Path] = None
         if output_prefix is not None:
