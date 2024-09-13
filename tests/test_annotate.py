@@ -265,6 +265,17 @@ def test_BugDataset_from_directory():
         "get_bug() method returns Bug object"
 
 
+def test_BugDataset_from_directory_with_fanout():
+    bugs = BugDataset.from_directory(dataset_dir='tests/test_dataset_fanout',
+                                     patches_dir='', annotations_dir='', fan_out=True)
+
+    bug = bugs.get_bug('tqdm-1')
+    assert isinstance(bug, Bug), \
+        "get_bug() method returns Bug object"
+    assert len(bug.patches) == 1, \
+        "there is exactly 1 patch for 'tqdm-1' bug"
+
+
 # MAYBE: mark that it requires network
 @pytest.mark.slow
 def test_BugDataset_from_repo(tmp_path: Path):
