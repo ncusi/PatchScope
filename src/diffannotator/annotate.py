@@ -754,7 +754,7 @@ class Bug:
             If not set, `self.save_dir` is used as a base path.
         :param fan_out: Save annotated data in a fan-out directory,
             named after first 2 hexdigits of patch_id; the rest is used
-            for the basename.
+            for the basename; splits patch_id.
         """
         if annotate_dir is not None:
             base_path = Path(annotate_dir)
@@ -775,7 +775,8 @@ class Bug:
         for patch_id, patch_data in self.patches.items():
             if fan_out:
                 base_path.joinpath(patch_id[:2]).mkdir(exist_ok=True)
-                out_path = base_path / Path(patch_id[:2], patch_id[2:]).with_suffix('.json')
+                offset = int('/' in patch_id)  #: for '12345' and '12/345' to both split into '12' / '345'
+                out_path = base_path / Path(patch_id[:2], patch_id[2+offset:]).with_suffix('.json')
             else:
                 out_path = base_path / Path(patch_id).with_suffix('.json')
 
