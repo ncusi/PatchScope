@@ -194,6 +194,22 @@ def test_Bug_from_dataset():
         "there is expected changed file in a bug patch"
 
 
+def test_Bug_from_dataset_with_fanout():
+    # code patch
+    file_path = 'tests/test_dataset_fanout/tqdm-1/c0/dcf39b046d1b4ff6de14ac99ad9a1b10487512.diff'
+
+    commit_id = '/'.join(Path(file_path).parts[-2:])
+    bug = Bug.from_dataset('tests/test_dataset_fanout', 'tqdm-1',
+                           patches_dir="", annotations_dir="", fan_out=True)
+
+    assert commit_id in bug.patches, \
+        "retrieved annotations for the single *.diff file"
+    assert len(bug.patches) == 1, \
+        "there was only 1 patch file for a bug"
+    assert "tqdm/contrib/__init__.py" in bug.patches[commit_id], \
+        "there is expected changed file in a bug patch"
+
+
 def test_Bug_from_patchset():
     file_path = 'tests/test_dataset/tqdm-1/c0dcf39b046d1b4ff6de14ac99ad9a1b10487512.diff'
     patch = unidiff.PatchSet.from_filename(file_path, encoding='utf-8')
