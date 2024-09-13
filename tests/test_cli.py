@@ -46,6 +46,7 @@ def test_annotate_from_repo(tmp_path: Path):
         'git', '-C', str(tmp_path), 'clone', test_repo_url
     ], capture_output=True, check=True)
 
+    # without --use-fanout
     result = runner.invoke(annotate_app, [
         "from-repo",
         f"--output-dir={output_dir}",
@@ -61,6 +62,20 @@ def test_annotate_from_repo(tmp_path: Path):
         "app mentions the path to the Git repository"
     assert output_dir.exists() and output_dir.is_dir(), \
         "app created the output directory (or it existed)"
+
+    # with --use-fanout
+    result = runner.invoke(annotate_app, [
+        "from-repo",
+        f"--output-dir={output_dir}",
+        "--use-fanout",
+        str(repo_dir),
+        '-5', 'HEAD'  # 5 latest commit on the current branch
+    ])
+
+    if result.exit_code != 0:
+        print(result.stdout)
+    assert result.exit_code == 0, \
+        "app runs 'from-repo --with-fanout' subcommand without errors"
 
 
 def test_annotate_patch_with_line_callback(tmp_path: Path):

@@ -1385,6 +1385,12 @@ def from_repo(
         typer.Context,
         typer.Argument(help="Arguments passed to `git log -p`", metavar="LOG_OPTIONS"),
     ],
+    use_fanout: Annotated[
+        bool,
+        typer.Option(
+            help="Use fan-out when saving annotation data"
+        )
+    ] = False,
 ) -> None:
     """Create annotation data for commits from local Git repository
 
@@ -1413,7 +1419,7 @@ def from_repo(
 
     print(f"Annotating commits and saving annotated data, for {len(bugs)} commits")
     for bug in tqdm.tqdm(bugs, desc='commits'):
-        bugs.get_bug(bug).save(annotate_dir=output_dir)
+        bugs.get_bug(bug).save(annotate_dir=output_dir, fan_out=use_fanout)
 
 
 if __name__ == "__main__":
