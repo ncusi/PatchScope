@@ -156,7 +156,7 @@ Tools to generate HTML dashboard, or providing an interactive web application:
 - [Assayo](https://github.com/bakhirev/assayo) is a dashboard
   providing visualization and analysis of git commit statistics.
   Requires exporting data from Git.  Has a [homepage with demo](https://assayo.online/).
-  It's use is described in _[The visualization and analysis of git commit statistics for IT team leaders.](https://dev.to/responsivecrocodile/the-visualization-and-analysis-of-git-commit-statistics-for-it-team-leaders-2pof)_.
+  Its use is described in _[The visualization and analysis of git commit statistics for IT team leaders.](https://dev.to/responsivecrocodile/the-visualization-and-analysis-of-git-commit-statistics-for-it-team-leaders-2pof)_.
 
 Visualizations for a specific repository:
 
@@ -171,6 +171,27 @@ Visualizations for a specific repository:
   is the tool that Greg KH and Jonathan Corbet have used
   to create statistics on where kernel patches come from.
   Written in Python.  Original at `git://git.lwn.net/gitdm.git`
+
+Web applications that demonstrate some MSR tool:
+
+- [Assayo](https://github.com/bakhirev/assayo) has a
+  [homepage with demo](https://assayo.online/) where you can
+  provide the output of given Git CLI command in your repo
+  to create the demo for your repo,
+  and there is also view a demo with mock data.
+  Written in JavaScript with React.
+- [Githru](https://github.com/githru/githru) has an
+  [interactive demo](https://githru.github.io/demo/),
+  where you can select one of the following two GitHub repositories
+  to visualize: `vuejs/vue` and `realm/realm-java`.
+  Written in JavaScript with React, D3, dagre.
+- [GitVision](https://github.com/gaspardIV/gitvision), a 3D repository
+  graph visualization tool, has [live demo](https://gitvis.web.app/)
+  with visualization for more than 20 repositories (ranging from tiny
+  to large), and where you can visualize your own repository by
+  uploading the result of running the [GitVision script](https://github.com/GaspardIV/gitvision/tree/main/tool).
+  The demo [is written](https://github.com/GaspardIV/gitvision/tree/main/gitvisionwebapp)
+  in JavaScript using Vue and deployed with Vite.
 
 ## Contributing
 
