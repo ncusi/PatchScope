@@ -1466,6 +1466,12 @@ def from_repo(
             help="Use fan-out when saving annotation data"
         )
     ] = False,
+    bugsinpy_layout: Annotated[
+        bool,
+        typer.Option(
+            help="Create layout like the one in BugsInPy"
+        )
+    ] = False,
 ) -> None:
     """Create annotation data for commits from local Git repository
 
@@ -1480,7 +1486,14 @@ def from_repo(
     For a complete list of ways to spell <revision-range>, see the
     "Specifying Ranges" section of the gitrevisions(7) manpage:\n
     https://git-scm.com/docs/gitrevisions#_specifying_revisions
+
+    Note that --use-fanout and --bugsinpy-layout are mutually exclusive.
     """
+    # sanity checks for options
+    if use_fanout and bugsinpy_layout:
+        print("Options --use-fanout and --bugsinpy-layout are mutually exclusive")
+        raise typer.Exit(code=2)
+
     # create GitRepo 'helper' object
     repo = GitRepo(repo_path)
 
@@ -1494,8 +1507,12 @@ def from_repo(
 
     print(f"Annotating commits and saving annotated data, for {len(bugs)} commits")
     with logging_redirect_tqdm():
-        for bug in tqdm.tqdm(bugs, desc='commits'):
-            bugs.get_bug(bug).save(annotate_dir=output_dir, fan_out=use_fanout)
+        for bug_id in tqdm.tqdm(bugs, desc='commits'):
+            if bugsinpy_layout:
+                bugs.get_bug(bug_id).save(annotate_dir=output_dir.joinpath(bug_id,
+                                                                           'annotate'))
+            else:
+                bugs.get_bug(bug_id).save(annotate_dir=output_dir, fan_out=use_fanout)
 
 
 if __name__ == "__main__":
