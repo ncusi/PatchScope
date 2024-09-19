@@ -194,6 +194,22 @@ def test_Bug_from_dataset():
         "there is expected changed file in a bug patch"
 
 
+def test_Bug_from_dataset_with_fanout():
+    # code patch
+    file_path = 'tests/test_dataset_fanout/tqdm-1/c0/dcf39b046d1b4ff6de14ac99ad9a1b10487512.diff'
+
+    commit_id = '/'.join(Path(file_path).parts[-2:])
+    bug = Bug.from_dataset('tests/test_dataset_fanout', 'tqdm-1',
+                           patches_dir="", annotations_dir="", fan_out=True)
+
+    assert commit_id in bug.patches, \
+        "retrieved annotations for the single *.diff file"
+    assert len(bug.patches) == 1, \
+        "there was only 1 patch file for a bug"
+    assert "tqdm/contrib/__init__.py" in bug.patches[commit_id], \
+        "there is expected changed file in a bug patch"
+
+
 def test_Bug_from_patchset():
     file_path = 'tests/test_dataset/tqdm-1/c0dcf39b046d1b4ff6de14ac99ad9a1b10487512.diff'
     patch = unidiff.PatchSet.from_filename(file_path, encoding='utf-8')
@@ -225,6 +241,15 @@ def test_Bug_save(tmp_path: Path):
         "this JSON file has expected filename"
 
 
+def test_Bug_save_with_fanout(tmp_path: Path):
+    bug = Bug.from_dataset('tests/test_dataset_structured', 'keras-10')  # the one with the expected directory structure
+    bug.save(tmp_path, fan_out=True)
+
+    save_path = tmp_path.joinpath('keras-10', Bug.DEFAULT_ANNOTATIONS_DIR)
+    assert save_path.joinpath('c1', 'c4afe60b1355a6c0e83577791a0423f37a3324.json').is_file(), \
+        "JSON file was saved with fan-out"
+
+
 def test_BugDataset_from_directory():
     bugs = BugDataset.from_directory('tests/test_dataset_structured')
 
@@ -238,6 +263,17 @@ def test_BugDataset_from_directory():
     bug = bugs.get_bug('keras-10')
     assert isinstance(bug, Bug), \
         "get_bug() method returns Bug object"
+
+
+def test_BugDataset_from_directory_with_fanout():
+    bugs = BugDataset.from_directory(dataset_dir='tests/test_dataset_fanout',
+                                     patches_dir='', annotations_dir='', fan_out=True)
+
+    bug = bugs.get_bug('tqdm-1')
+    assert isinstance(bug, Bug), \
+        "get_bug() method returns Bug object"
+    assert len(bug.patches) == 1, \
+        "there is exactly 1 patch for 'tqdm-1' bug"
 
 
 # MAYBE: mark that it requires network

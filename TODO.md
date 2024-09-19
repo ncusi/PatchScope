@@ -28,10 +28,11 @@
     - [x] `diff-gather-stats` (from [`gather_data.py`](src/diffannotator/gather_data.py))
 - [ ] improvements and new features for `generate_patches.py`
     - [ ] configure what and where to output
-        - [ ] `--use-fanout` 
-          (e.g. save in 'c0<b>/</b>dcf39b046d1b4ff6de14ac99ad9a1b10487512.diff',
+        - [x] `--use-fanout` 
+          (e.g. save result in 'c0<b>/</b>dcf39b046d1b4ff6de14ac99ad9a1b10487512.diff'
           instead of in '0001-Create-.gitignore-file.patch');<br>
-          **NOTE**: this would probably require switching from using `git format-patch` to using `git log -p` (and needs to extract common code).
+          **NOTE**: this required switching from using `git format-patch`
+          to using `git log -p`, and currently does not save the commit message.
 - [ ] improvements and new features for `annotate.py`
     - [x] subcommands
         - [x] `patch` - annotate a given single patch file
@@ -67,11 +68,13 @@
       or [appdirs](https://pypi.org/project/appdirs/))
     - [ ] documentation on how to use API, and change behavior
     - [ ] configure output format (and what to output)
-        - [ ] for `from-repo` subcommand: `--use-fanout` 
+        - [x] for `from-repo` subcommand: `--use-fanout` 
           (e.g. save in 'c0<b>/</b>dcf39b046d1b4ff6de14ac99ad9a1b10487512.json',
           instead of in 'c0dcf39b046d1b4ff6de14ac99ad9a1b10487512.json')
+        - [x] for `dataset` subcommand: `--uses-fanout`
+          to process the result of generating patches with `--use-fanout`
         - [ ] for `from-repo` and `dataset`: `--output-file=<filename>`
-          to save everything into single JSON file
+          to save everything into single JSON or JSON Lines file
     - [ ] _maybe_ configuration options
     - [ ] _maybe_ configuration callbacks (in Python), like in [git-filter-repo][]
         - [x] `AnnotatedPatchedFile.line_callback` static field
