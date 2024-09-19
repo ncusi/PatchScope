@@ -186,11 +186,13 @@ class Languages(object):
             if len(ret) > 1:
                 logger.warning(f"Filename collision in filenames_lang for '{file_path}': {ret}")
 
-            #print(f"... filenames_lang: {ret}")
+            #print(f"... filenames_to_languages: {ret}")
             return ret[0]
 
         # NOTE: EXT_TO_LANGUAGES overrides what's from Linguist 'languages.yml'
+        #print(f"checking if {ext=} is in EXT_TO_LANGUAGES keys: {EXT_TO_LANGUAGES.keys()}")
         if ext in EXT_TO_LANGUAGES:
+            #print(f"... ext_to_languages: {EXT_TO_LANGUAGES[ext]}")
             return EXT_TO_LANGUAGES[ext][0]
 
         if ext in self.ext_primary:
@@ -218,6 +220,7 @@ class Languages(object):
         # DEBUG information
         logger.warning(f"Unknown file type for '{file_path}' ({filename} + {ext})")
 
+        #print(f"... unknown type for {file_path=}")
         return "unknown"
 
     @staticmethod
