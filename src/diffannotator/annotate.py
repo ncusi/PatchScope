@@ -18,6 +18,7 @@ from typing import Iterable, Generator, Callable  # should be imported from coll
 from pygments.token import Token
 import unidiff
 import tqdm
+from tqdm.contrib.logging import logging_redirect_tqdm
 import typer
 from typing_extensions import Annotated  # in typing since Python 3.9
 import yaml
@@ -1492,7 +1493,7 @@ def from_repo(
     bugs = BugDataset.from_repo(repo, revision_range=log_args.args)
 
     print(f"Annotating commits and saving annotated data, for {len(bugs)} commits")
-    with tqdm.contrib.logging.logging_redirect_tqdm():
+    with logging_redirect_tqdm():
         for bug in tqdm.tqdm(bugs, desc='commits'):
             bugs.get_bug(bug).save(annotate_dir=output_dir, fan_out=use_fanout)
 
