@@ -902,7 +902,7 @@ class BugDataset:
 
         commit_patches = {getattr(patch_set, "commit_id", f"idx-{i}"): patch_set
                           for i, patch_set in enumerate(patches)}
-        obj = BugDataset(list(commit_patches), patches_dict=commit_patches)
+        obj = BugDataset(bug_ids=list(commit_patches), patches_dict=commit_patches)
         obj._git_repo = repo  # for debug and info
 
         return obj
@@ -1488,12 +1488,13 @@ def from_repo(
     output_dir.mkdir(parents=True, exist_ok=True)
 
     print(f"Generating patches from local Git repo '{repo_path}'\n"
-          f"  using `git log -p {' '.join([repr(arg) for arg in log_args.args])}")
+          f"  using `git log -p {' '.join([repr(arg) for arg in log_args.args])}`")
     bugs = BugDataset.from_repo(repo, revision_range=log_args.args)
 
     print(f"Annotating commits and saving annotated data, for {len(bugs)} commits")
-    for bug in tqdm.tqdm(bugs, desc='commits'):
-        bugs.get_bug(bug).save(annotate_dir=output_dir, fan_out=use_fanout)
+    with tqdm.contrib.logging.logging_redirect_tqdm():
+        for bug in tqdm.tqdm(bugs, desc='commits'):
+            bugs.get_bug(bug).save(annotate_dir=output_dir, fan_out=use_fanout)
 
 
 if __name__ == "__main__":
