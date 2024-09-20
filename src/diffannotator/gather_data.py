@@ -3,7 +3,7 @@ import json
 import os
 from collections import Counter
 from pathlib import Path
-from typing import List, TypeVar
+from typing import List, TypeVar, Optional
 
 import tqdm
 import typer
@@ -40,6 +40,14 @@ class PurposeCounterResults:
                f"_hunk_purposes={self._hunk_purposes!r}, " \
                f"_added_line_purposes={self._added_line_purposes!r}, " \
                f"_removed_line_purposes)={self._removed_line_purposes!r})"
+
+    def to_dict(self) -> dict:
+        return {
+            "processed_files": self._processed_files,
+            "hunk_purposes": self._hunk_purposes,
+            "added_line_purposes": self._added_line_purposes,
+            "removed_line_purposes": self._removed_line_purposes,
+        }
 
     @staticmethod
     def default():
@@ -232,6 +240,15 @@ def purpose_counter(
             help="Subdirectory to read annotations from; use '' to do without such"
         )
     ] = Bug.DEFAULT_ANNOTATIONS_DIR,
+    result_json: Annotated[
+        Optional[Path],
+        typer.Option(
+            "--output", "-o",
+            dir_okay=False,
+            metavar="JSON_FILE",
+            help="JSON file to write gathered results to",
+        )
+    ] = None,
 ):
     """Calculate count of purposes from all bugs in provided datasets
 
@@ -252,7 +269,14 @@ def purpose_counter(
                                           annotations_dir=annotations_dir)
         result[dataset] = data
 
-    print(result)
+    if result_json is None:
+        print(result)
+    else:
+        save_result({
+                        str(key): value.to_dict()
+                        for key, value in result.items()
+                    },
+                    result_json)
 
 
 def map_diff_to_purpose_dict(diff_file_path, data):
