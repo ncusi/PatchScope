@@ -1409,9 +1409,11 @@ def dataset(
             # ensure that directory exists
             output_path.mkdir(parents=True, exist_ok=True)
 
-        for bug in tqdm.tqdm(bugs):
-            # NOTE: Uses default path if annotate_path is None
-            bugs.get_bug(bug).save(annotate_dir=output_path)
+        print(f"Annotating patches and saving annotated data, for {len(bugs)} bugs")
+        with logging_redirect_tqdm():
+            for bug_id in tqdm.tqdm(bugs, desc='bug'):
+                # NOTE: Uses default path if annotate_path is None
+                bugs.get_bug(bug_id).save(annotate_dir=output_path)
 
 
 @app.command()
