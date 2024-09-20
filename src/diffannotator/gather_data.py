@@ -222,6 +222,30 @@ class AnnotatedBugDataset:
         return combined_results
 
 
+def map_diff_to_purpose_dict(diff_file_path, data):
+    """
+    Example functon mapping diff of specific commit to dictionary
+
+    :param diff_file_path: file path containing diff
+    :param data: dictionary loaded from file
+    :return: dictionary with file purposes
+    """
+    result = {}
+    for hunk in data:
+        print(hunk)
+        print(data[hunk]['purpose'])
+        if hunk not in result:
+            result[hunk] = []
+        result[hunk].append(data[hunk]['purpose'])
+    return result
+
+
+def save_result(result, result_json):
+    print(f"Saving results to '{result_json}' JSON file")
+    with result_json.open(mode='w') as result_f:
+        json.dump(result, result_f, indent=4)
+
+
 # implementing options common to all subcommands
 # see https://jacobian.org/til/common-arguments-with-typer/
 @app.callback()
@@ -299,24 +323,6 @@ def purpose_counter(
                     result_json)
 
 
-def map_diff_to_purpose_dict(diff_file_path, data):
-    """
-    Example functon mapping diff of specific commit to dictionary
-
-    :param diff_file_path: file path containing diff
-    :param data: dictionary loaded from file
-    :return: dictionary with file purposes
-    """
-    result = {}
-    for hunk in data:
-        print(hunk)
-        print(data[hunk]['purpose'])
-        if hunk not in result:
-            result[hunk] = []
-        result[hunk].append(data[hunk]['purpose'])
-    return result
-
-
 @app.command()
 def purpose_per_file(
     ctx: typer.Context,
@@ -359,12 +365,6 @@ def purpose_per_file(
 
     print(result)
     save_result(result, result_json)
-
-
-def save_result(result, result_json):
-    print(f"Saving results to '{result_json}' JSON file")
-    with result_json.open(mode='w') as result_f:
-        json.dump(result, result_f, indent=4)
 
 
 if __name__ == "__main__":
