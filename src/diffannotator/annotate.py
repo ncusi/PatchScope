@@ -10,6 +10,7 @@ import os
 from pathlib import Path
 import re
 import sys
+import time
 import traceback
 from textwrap import dedent
 from typing import List, Dict, Tuple, TypeVar, Optional, Union, Iterator
@@ -1490,7 +1491,10 @@ def from_repo(
 
     print(f"Generating patches from local Git repo '{repo_path}'\n"
           f"  using `git log -p {' '.join([repr(arg) for arg in log_args.args])}`")
+    beg_time = time.perf_counter()
     bugs = BugDataset.from_repo(repo, revision_range=log_args.args)
+    end_time = time.perf_counter()
+    print(f"  took {end_time - beg_time:0.4f} seconds")
 
     print(f"Annotating commits and saving annotated data, for {len(bugs)} commits")
     with logging_redirect_tqdm():
