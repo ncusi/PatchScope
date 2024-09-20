@@ -307,9 +307,10 @@ def test_generate_patches_with_fanout(tmp_path: Path):
     print(f"{total_diffs=}/5")
 
 
-def test_gather_data_purpose_counter(tmp_path: Path):
+def test_gather_data(tmp_path: Path):
     dataset_dir_patches = Path('tests/test_dataset_structured')
 
+    # TODO: create fixture creating annotations, split the test
     result = runner.invoke(annotate_app, [
         # select subcommand
         "dataset",
@@ -327,7 +328,7 @@ def test_gather_data_purpose_counter(tmp_path: Path):
     #print(f"{json_files=}")
 
     dataset_dir_annotations = tmp_path / dataset_dir_patches
-    json_path = Path(f"{dataset_dir_annotations}.json")
+    json_path = Path(f"{dataset_dir_annotations}.purpose-counter.json")
 
     result = runner.invoke(gather_app, [
         # exercise common arguments
@@ -352,3 +353,24 @@ def test_gather_data_purpose_counter(tmp_path: Path):
 
     # DEBUG
     #print(json_path.read_text())
+
+    json_path = Path(f"{dataset_dir_annotations}.purpose-per-file.json")
+
+    result = runner.invoke(gather_app, [
+        # select subcommand
+        "purpose-per-file",
+        # pass options and arguments to subcommand
+        f"{json_path}",
+        f"{dataset_dir_annotations}",
+    ])
+
+    # DEBUG
+    # print(result.stdout)
+
+    assert result.exit_code == 0, \
+        "gather app runs 'purpose-per-file' subcommand on generated annotations without errors"
+
+    assert json_path.is_file(), \
+        "output file app was requested to use exists (it was created)"
+    assert json_path.stat().st_size > 0, \
+        "generated JSON file with results is not empty"
