@@ -9,6 +9,9 @@ import tqdm
 import typer
 from typing_extensions import Annotated
 
+from .annotate import Bug
+
+
 PathLike = TypeVar("PathLike", str, bytes, Path, os.PathLike)
 
 app = typer.Typer(no_args_is_help=True, add_completion=False)
@@ -100,13 +103,13 @@ class AnnotatedFile:
 class AnnotatedBug:
     """Annotated bug class"""
 
-    def __init__(self, bug_dir: PathLike):
+    def __init__(self, bug_dir: PathLike, annotations_dir: str = Bug.DEFAULT_ANNOTATIONS_DIR):
         """Constructor of the annotated bug
 
         :param bug_dir: path to the single bug
         """
         self._path = Path(bug_dir)
-        self._annotations_path = self._path / "annotation"
+        self._annotations_path = self._path / annotations_dir
 
         try:
             self.annotations = [str(d.name) for d in self._annotations_path.iterdir()]
@@ -166,22 +169,24 @@ class AnnotatedBugDataset:
         except Exception as ex:
             print(f"Error in AnnotatedBugDataset for '{self._path}': {ex}")
 
-    def gather_data(self, bug_mapper, datastructure_generator):
+    def gather_data(self, bug_mapper, datastructure_generator, annotations_dir: str = Bug.DEFAULT_ANNOTATIONS_DIR):
         """
         Gathers dataset data via processing each bug using AnnotatedBug class and provided functions
 
         :param bug_mapper: function to map bug to datastructure
         :param datastructure_generator: function to create empty datastructure to combine results via "+"
+        :param annotations_dir: subdirectory where annotations are; path
+            to annotation in a dataset is <bug_id>/<annotations_dir>/<patch_data>.json
         :return: combined datastructure with all bug data
         """
         combined_results = datastructure_generator()
 
         print(f"Gathering data from bugs/patches in '{self._path}' directory.")
-        for bug_id in tqdm.tqdm(self.bugs):
+        for bug_id in tqdm.tqdm(self.bugs, desc='bug'):
             # TODO: log info / debug
             #print(bug_id)
             bug_path = self._path / bug_id
-            bug = AnnotatedBug(bug_path)
+            bug = AnnotatedBug(bug_path, annotations_dir=annotations_dir)
             bug_results = bug.gather_data(bug_mapper, datastructure_generator)
             combined_results += bug_results
 
@@ -207,7 +212,22 @@ class AnnotatedBugDataset:
 @app.command()
 def purpose_counter(
     datasets: Annotated[
-        List[Path], typer.Argument(exists=True, file_okay=False, dir_okay=True, readable=True, writable=False)]
+        List[Path],
+        typer.Argument(
+            exists=True,
+            file_okay=False,
+            dir_okay=True,
+            readable=True,
+            writable=False
+        )
+    ],
+    annotations_dir: Annotated[
+        str,
+        typer.Option(
+            metavar="DIR_NAME",
+            help="Subdirectory to read annotations from; use '' to do without such"
+        )
+    ] = Bug.DEFAULT_ANNOTATIONS_DIR,
 ):
     """Calculate count of purposes from all bugs in provided datasets
 
@@ -223,8 +243,11 @@ def purpose_counter(
     for dataset in datasets:
         print(f"Dataset {dataset}")
         annotated_bugs = AnnotatedBugDataset(dataset)
-        data = annotated_bugs.gather_data(PurposeCounterResults.create, PurposeCounterResults.default)
+        data = annotated_bugs.gather_data(PurposeCounterResults.create,
+                                          PurposeCounterResults.default,
+                                          annotations_dir=annotations_dir)
         result[dataset] = data
+
     print(result)
 
 
