@@ -3,6 +3,7 @@ import json
 import os
 from collections import Counter
 from pathlib import Path
+from types import SimpleNamespace
 from typing import List, TypeVar, Optional
 
 import tqdm
@@ -221,8 +222,34 @@ class AnnotatedBugDataset:
         return combined_results
 
 
+# implementing options common to all subcommands
+# see https://jacobian.org/til/common-arguments-with-typer/
+@app.callback()
+def common(
+    ctx: typer.Context,
+    annotations_dir: Annotated[
+        str,
+        typer.Option(
+            metavar="DIR_NAME",
+            help="Subdirectory to read annotations from; use '' to do without such"
+        )
+    ] = Bug.DEFAULT_ANNOTATIONS_DIR,
+):
+    # if anything is printed by this function, it needs to utilize context
+    # to not break installed shell completion for the command
+    # see https://typer.tiangolo.com/tutorial/options/callback-and-context/#fix-completion-using-the-context
+    if ctx.resilient_parsing:
+        return
+
+    # pass to subcommands via context
+    ctx.obj = SimpleNamespace(
+        annotations_dir=annotations_dir,
+    )
+
+
 @app.command()
 def purpose_counter(
+    ctx: typer.Context,
     datasets: Annotated[
         List[Path],
         typer.Argument(
@@ -233,13 +260,6 @@ def purpose_counter(
             writable=False
         )
     ],
-    annotations_dir: Annotated[
-        str,
-        typer.Option(
-            metavar="DIR_NAME",
-            help="Subdirectory to read annotations from; use '' to do without such"
-        )
-    ] = Bug.DEFAULT_ANNOTATIONS_DIR,
     result_json: Annotated[
         Optional[Path],
         typer.Option(
@@ -266,7 +286,7 @@ def purpose_counter(
         annotated_bugs = AnnotatedBugDataset(dataset)
         data = annotated_bugs.gather_data(PurposeCounterResults.create,
                                           PurposeCounterResults.default,
-                                          annotations_dir=annotations_dir)
+                                          annotations_dir=ctx.obj.annotations_dir)
         result[dataset] = data
 
     if result_json is None:
@@ -299,6 +319,7 @@ def map_diff_to_purpose_dict(diff_file_path, data):
 
 @app.command()
 def purpose_per_file(
+    ctx: typer.Context,
     result_json: Annotated[
         Path,
         typer.Argument(
@@ -317,13 +338,6 @@ def purpose_per_file(
             help="list of dirs with datasets to process"
         )
     ],
-    annotations_dir: Annotated[
-        str,
-        typer.Option(
-            metavar="DIR_NAME",
-            help="Subdirectory to read annotations from; use '' to do without such"
-        )
-    ] = Bug.DEFAULT_ANNOTATIONS_DIR,
 ):
     """Calculate per-file count of purposes from all bugs in provided datasets
 
@@ -340,7 +354,7 @@ def purpose_per_file(
         print(f"Dataset {dataset}")
         annotated_bugs = AnnotatedBugDataset(dataset)
         data = annotated_bugs.gather_data_dict(map_diff_to_purpose_dict,
-                                               annotations_dir=annotations_dir)
+                                               annotations_dir=ctx.obj.annotations_dir)
         result[str(dataset)] = data
 
     print(result)

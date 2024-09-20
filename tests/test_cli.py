@@ -3,7 +3,7 @@ from pathlib import Path
 
 from typer.testing import CliRunner
 
-from diffannotator.annotate import app as annotate_app
+from diffannotator.annotate import app as annotate_app, Bug
 from diffannotator.generate_patches import app as generate_app
 from diffannotator.gather_data import app as gather_app
 
@@ -311,7 +311,9 @@ def test_gather_data_purpose_counter(tmp_path: Path):
     dataset_dir_patches = Path('tests/test_dataset_structured')
 
     result = runner.invoke(annotate_app, [
+        # select subcommand
         "dataset",
+        # pass options and arguments to subcommand
         f"--output-prefix={tmp_path}",
         f"{dataset_dir_patches}",
     ])
@@ -328,7 +330,11 @@ def test_gather_data_purpose_counter(tmp_path: Path):
     json_path = Path(f"{dataset_dir_annotations}.json")
 
     result = runner.invoke(gather_app, [
+        # exercise common arguments
+        f"--annotations-dir={Bug.DEFAULT_ANNOTATIONS_DIR}",  # should and must be no-op
+        # select subcommand
         "purpose-counter",
+        # pass options and arguments to subcommand
         f"--output={json_path}",
         f"{dataset_dir_annotations}",
     ])
