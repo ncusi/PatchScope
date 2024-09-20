@@ -1472,6 +1472,13 @@ def from_repo(
             help="Create layout like the one in BugsInPy"
         )
     ] = False,
+    annotations_dir: Annotated[
+        str,
+        typer.Option(
+            metavar="DIR_NAME",
+            help="Subdirectory to write annotations to; use '' to do without such"
+        )
+    ] = Bug.DEFAULT_ANNOTATIONS_DIR,
 ) -> None:
     """Create annotation data for commits from local Git repository
 
@@ -1494,6 +1501,10 @@ def from_repo(
         print("Options --use-fanout and --bugsinpy-layout are mutually exclusive")
         raise typer.Exit(code=2)
 
+    if annotations_dir != Bug.DEFAULT_ANNOTATIONS_DIR and not bugsinpy_layout:
+        print(f"ignoring the value of --annotations-dir={annotations_dir}")
+        print(f"no --bugsinpy-layout option present")
+
     # create GitRepo 'helper' object
     repo = GitRepo(repo_path)
 
@@ -1510,7 +1521,7 @@ def from_repo(
         for bug_id in tqdm.tqdm(bugs, desc='commits'):
             if bugsinpy_layout:
                 bugs.get_bug(bug_id).save(annotate_dir=output_dir.joinpath(bug_id,
-                                                                           'annotate'))
+                                                                           annotations_dir))
             else:
                 bugs.get_bug(bug_id).save(annotate_dir=output_dir, fan_out=use_fanout)
 
