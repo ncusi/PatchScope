@@ -5,6 +5,7 @@ from typer.testing import CliRunner
 
 from diffannotator.annotate import app as annotate_app
 from diffannotator.generate_patches import app as generate_app
+from diffannotator.gather_data import app as gather_app
 
 
 runner = CliRunner()
@@ -304,3 +305,44 @@ def test_generate_patches_with_fanout(tmp_path: Path):
     #assert total_diffs == 5, \
     #    "generate app created 5 diff files"
     print(f"{total_diffs=}/5")
+
+
+def test_gather_data_purpose_counter(tmp_path: Path):
+    dataset_dir_patches = Path('tests/test_dataset_structured')
+
+    result = runner.invoke(annotate_app, [
+        "dataset",
+        f"--output-prefix={tmp_path}",
+        f"{dataset_dir_patches}",
+    ])
+
+    assert result.exit_code == 0, \
+        "annotate app runs 'dataset' subcommand on structured dataset without errors"
+
+    # DEBUG
+    #json_files = sorted(tmp_path.glob('**/*.json'))
+    #print(f"{tmp_path=}")
+    #print(f"{json_files=}")
+
+    dataset_dir_annotations = tmp_path / dataset_dir_patches
+    json_path = Path(f"{dataset_dir_annotations}.json")
+
+    result = runner.invoke(gather_app, [
+        "purpose-counter",
+        f"--output={json_path}",
+        f"{dataset_dir_annotations}",
+    ])
+
+    # DEBUG
+    #print(result.stdout)
+
+    assert result.exit_code == 0, \
+        "gather app runs 'purpose-counter' subcommand on generated annotations without errors"
+
+    assert json_path.is_file(), \
+        "output file app was requested to use exists (it was created)"
+    assert json_path.stat().st_size > 0, \
+        "generated JSON file with results is not empty"
+
+    # DEBUG
+    #print(json_path.read_text())
