@@ -169,7 +169,8 @@ class AnnotatedBugDataset:
         except Exception as ex:
             print(f"Error in AnnotatedBugDataset for '{self._path}': {ex}")
 
-    def gather_data(self, bug_mapper, datastructure_generator, annotations_dir: str = Bug.DEFAULT_ANNOTATIONS_DIR):
+    def gather_data(self, bug_mapper, datastructure_generator,
+                    annotations_dir: str = Bug.DEFAULT_ANNOTATIONS_DIR):
         """
         Gathers dataset data via processing each bug using AnnotatedBug class and provided functions
 
@@ -192,18 +193,21 @@ class AnnotatedBugDataset:
 
         return combined_results
 
-    def gather_data_dict(self, bug_dict_mapper):
+    def gather_data_dict(self, bug_dict_mapper,
+                         annotations_dir: str = Bug.DEFAULT_ANNOTATIONS_DIR):
         """
         Gathers dataset data via processing each bug using AnnotatedBug class and provided function
 
         :param bug_dict_mapper: function to map diff to dictionary
+        :param annotations_dir: subdirectory where annotations are; path
+            to annotation in a dataset is <bug_id>/<annotations_dir>/<patch_data>.json
         :return: combined dictionary of all bugs
         """
         combined_results = {}
         for bug_id in tqdm.tqdm(self.bugs):
             print(bug_id)
             bug_path = self._path / bug_id
-            bug = AnnotatedBug(bug_path)
+            bug = AnnotatedBug(bug_path, annotations_dir=annotations_dir)
             bug_results = bug.gather_data_dict(bug_dict_mapper)
             combined_results |= {bug_id: bug_results}
         return combined_results
@@ -271,11 +275,33 @@ def map_diff_to_purpose_dict(diff_file_path, data):
 
 @app.command()
 def purpose_per_file(
-    result_json: Annotated[Path, typer.Argument(dir_okay=False, help="JSON file to write gathered results to")],
+    result_json: Annotated[
+        Path,
+        typer.Argument(
+            dir_okay=False,
+            help="JSON file to write gathered results to"
+        )
+    ],
     datasets: Annotated[
-        List[Path], typer.Argument(exists=True, file_okay=False, dir_okay=True, readable=True, writable=False)]
+        List[Path],
+        typer.Argument(
+            exists=True,
+            file_okay=False,
+            dir_okay=True,
+            readable=True,
+            writable=False,
+            help="list of dirs with datasets to process"
+        )
+    ],
+    annotations_dir: Annotated[
+        str,
+        typer.Option(
+            metavar="DIR_NAME",
+            help="Subdirectory to read annotations from; use '' to do without such"
+        )
+    ] = Bug.DEFAULT_ANNOTATIONS_DIR,
 ):
-    """Calculate count of purposes from all bugs in provided datasets
+    """Calculate per-file count of purposes from all bugs in provided datasets
 
     Each dataset is expected to be existing directory with the following
     structure:
@@ -289,8 +315,10 @@ def purpose_per_file(
     for dataset in datasets:
         print(f"Dataset {dataset}")
         annotated_bugs = AnnotatedBugDataset(dataset)
-        data = annotated_bugs.gather_data_dict(map_diff_to_purpose_dict)
+        data = annotated_bugs.gather_data_dict(map_diff_to_purpose_dict,
+                                               annotations_dir=annotations_dir)
         result[str(dataset)] = data
+
     print(result)
     save_result(result, result_json)
 
