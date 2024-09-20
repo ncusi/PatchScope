@@ -1466,6 +1466,19 @@ def from_repo(
             help="Use fan-out when saving annotation data"
         )
     ] = False,
+    bugsinpy_layout: Annotated[
+        bool,
+        typer.Option(
+            help="Create layout like the one in BugsInPy"
+        )
+    ] = False,
+    annotations_dir: Annotated[
+        str,
+        typer.Option(
+            metavar="DIR_NAME",
+            help="Subdirectory to write annotations to; use '' to do without such"
+        )
+    ] = Bug.DEFAULT_ANNOTATIONS_DIR,
 ) -> None:
     """Create annotation data for commits from local Git repository
 
@@ -1480,7 +1493,18 @@ def from_repo(
     For a complete list of ways to spell <revision-range>, see the
     "Specifying Ranges" section of the gitrevisions(7) manpage:\n
     https://git-scm.com/docs/gitrevisions#_specifying_revisions
+
+    Note that --use-fanout and --bugsinpy-layout are mutually exclusive.
     """
+    # sanity checks for options
+    if use_fanout and bugsinpy_layout:
+        print("Options --use-fanout and --bugsinpy-layout are mutually exclusive")
+        raise typer.Exit(code=2)
+
+    if annotations_dir != Bug.DEFAULT_ANNOTATIONS_DIR and not bugsinpy_layout:
+        print(f"ignoring the value of --annotations-dir={annotations_dir}")
+        print(f"no --bugsinpy-layout option present")
+
     # create GitRepo 'helper' object
     repo = GitRepo(repo_path)
 
@@ -1494,8 +1518,12 @@ def from_repo(
 
     print(f"Annotating commits and saving annotated data, for {len(bugs)} commits")
     with logging_redirect_tqdm():
-        for bug in tqdm.tqdm(bugs, desc='commits'):
-            bugs.get_bug(bug).save(annotate_dir=output_dir, fan_out=use_fanout)
+        for bug_id in tqdm.tqdm(bugs, desc='commits'):
+            if bugsinpy_layout:
+                bugs.get_bug(bug_id).save(annotate_dir=output_dir.joinpath(bug_id,
+                                                                           annotations_dir))
+            else:
+                bugs.get_bug(bug_id).save(annotate_dir=output_dir, fan_out=use_fanout)
 
 
 if __name__ == "__main__":
