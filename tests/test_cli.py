@@ -373,9 +373,34 @@ def test_gather_data(tmp_path: Path):
     assert result.exit_code == 0, \
         "gather app runs 'purpose-per-file' subcommand on generated annotations without errors"
     assert json_path.is_file(), \
-        "output file app was requested to use exists (it was created)"
+        "output 'purpose-per-file' file app was requested to use exists (it was created)"
     assert json_path.stat().st_size > 0, \
-        "generated JSON file with results is not empty"
+        "generated 'purpose-per-file' JSON file with results is not empty"
+
+    # DEBUG
+    #print(json_path.read_text())
+
+
+    ### for 'lines-stats'
+
+    json_path = Path(f"{dataset_dir_annotations}.lines-stats.json")
+    result = runner.invoke(gather_app, [
+        # select subcommand
+        "lines-stats",
+        # pass options and arguments to subcommand
+        f"{json_path}",
+        f"{dataset_dir_annotations}",
+    ])
+
+    # DEBUG
+    #print(result.stdout)
+
+    assert result.exit_code == 0, \
+        "gather app runs 'lines-stats' subcommand on generated annotations without errors"
+    assert json_path.is_file(), \
+        "output 'lines-stats' file app was requested to use exists (it was created)"
+    assert json_path.stat().st_size > 0, \
+        "generated 'lines-stats' JSON file with results is not empty"
 
     # DEBUG
     #print(json_path.read_text())

@@ -240,6 +240,83 @@ def map_diff_to_purpose_dict(diff_file_path, data):
     return result
 
 
+def map_diff_to_lines_stats(annotation_file_basename: str,
+                            annotation_data: dict) -> dict:
+    """Mapper passed by line_stats() to *.gather_data_dict() method
+
+    It gathers information about file, and counts information about
+    changed lines (in pre-image i.e. "-", in post-image i.e. "+",...).
+
+    :param annotation_file_basename: name of JSON file with annotation data
+    :param annotation_data: parsed annotations data, retrieved from
+        `annotation_file_basename` file.
+    """
+    # Example fragment of annotation file:
+    #
+    # {
+    #   "third_party/xla/xla/service/gpu/ir_emitter_unnested.cc": {
+    #     "language": "C++",
+    #     "type": "programming",
+    #     "purpose": "programming",
+    #     "+": [
+    #       {
+    #         "id": 4,
+    #         "type": "code",
+    #         "purpose": "programming",
+    #         "tokens": […],
+    #       },
+    #       {"id":…},
+    #     ],
+    #     "-": […],
+    #   },…
+    # }
+    result = {}
+    # TODO: replace commented out DEBUG lines with logging (info or debug)
+    # DEBUG
+    #print(f"map_diff_to_lines_stats('{annotation_file_basename}', {{...}}):")
+    for filename, file_data in annotation_data.items():
+        # DEBUG
+        #print(f" {filename=}")
+        # NOTE: each file should be present only once for given patch/commit
+        if filename in result:
+            print(f"Warning: '{filename}' file present more than once in '{annotation_file_basename}'")
+
+        if filename not in result:
+            # per-file data
+            result[filename] = {
+                key: value for key, value in file_data.items()
+                if key in {"language", "type", "purpose"}
+            }
+            # DEBUG
+            #print(f"  {result[filename]=}")
+            # summary of per-line data
+            result[filename].update({
+                "+": Counter(),
+                "-": Counter(),
+                "+/-": Counter(),  # probably not necessary
+            })
+            # DEBUG
+            #print(f"  {result[filename]=}")
+
+        # DEBUG
+        #print(f"  {type(file_data)=}, {file_data.keys()=}")
+
+        for line_type in "+-":  # str used as iterable
+            # diff might have removed lines, or any added lines
+            if line_type not in file_data:
+                continue
+
+            for line in file_data[line_type]:
+                result[filename][line_type]["count"] += 1  # count of added/removed lines
+
+                for data_type in ["type", "purpose"]:  # ignore "id" and "tokens" fields
+                    line_data = line[data_type]
+                    result[filename][line_type][f"{data_type}.{line_data}"] += 1
+                    result[filename]["+/-"][f"{data_type}.{line_data}"] += 1
+
+    return result
+
+
 def save_result(result, result_json):
     print(f"Saving results to '{result_json}' JSON file")
     with result_json.open(mode='w') as result_f:
@@ -365,6 +442,51 @@ def purpose_per_file(
 
     print(result)
     save_result(result, result_json)
+
+
+@app.command()
+def lines_stats(
+    ctx: typer.Context,
+    output_file: Annotated[
+        Path,
+        typer.Argument(
+            dir_okay=False,
+            help="JSON file to write gathered results to"
+        )
+    ],
+    datasets: Annotated[
+        List[Path],
+        typer.Argument(
+            exists=True,
+            file_okay=False,
+            dir_okay=True,
+            readable=True,
+            writable=False,
+            help="list of dirs with datasets to process"
+        )
+    ],
+):
+    """Calculate per-bug and per-file count of line types in provided datasets
+
+    Each dataset is expected to be existing directory with the following
+    structure:
+
+        <dataset_directory>/<bug_directory>/annotation/<patch_file>.json
+
+    Each dataset can consist of many BUGs, each BUG should include patch
+    of annotated *diff.json file in 'annotation/' subdirectory.
+    """
+    result = {}
+    # often there is only one dataset
+    for dataset in tqdm.tqdm(datasets, desc='dataset'):
+        tqdm.tqdm.write(f"Dataset {dataset}")
+        annotated_bugs = AnnotatedBugDataset(dataset)
+        data = annotated_bugs.gather_data_dict(map_diff_to_lines_stats,
+                                               annotations_dir=ctx.obj.annotations_dir)
+
+        result[str(dataset)] = data
+
+    save_result(result, output_file)
 
 
 if __name__ == "__main__":
