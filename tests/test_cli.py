@@ -310,7 +310,9 @@ def test_generate_patches_with_fanout(tmp_path: Path):
 def test_gather_data(tmp_path: Path):
     dataset_dir_patches = Path('tests/test_dataset_structured')
 
+    ### preparation: generating annotations
     # TODO: create fixture creating annotations, split the test
+    # TODO: or create parametrized test to avoid repetition; might be not possible
     result = runner.invoke(annotate_app, [
         # select subcommand
         "dataset",
@@ -327,9 +329,10 @@ def test_gather_data(tmp_path: Path):
     #print(f"{tmp_path=}")
     #print(f"{json_files=}")
 
+    ### testing 'purpose-counter' subcommand
+
     dataset_dir_annotations = tmp_path / dataset_dir_patches
     json_path = Path(f"{dataset_dir_annotations}.purpose-counter.json")
-
     result = runner.invoke(gather_app, [
         # exercise common arguments
         f"--annotations-dir={Bug.DEFAULT_ANNOTATIONS_DIR}",  # should and must be no-op
@@ -345,7 +348,6 @@ def test_gather_data(tmp_path: Path):
 
     assert result.exit_code == 0, \
         "gather app runs 'purpose-counter' subcommand on generated annotations without errors"
-
     assert json_path.is_file(), \
         "output file app was requested to use exists (it was created)"
     assert json_path.stat().st_size > 0, \
@@ -354,8 +356,9 @@ def test_gather_data(tmp_path: Path):
     # DEBUG
     #print(json_path.read_text())
 
-    json_path = Path(f"{dataset_dir_annotations}.purpose-per-file.json")
+    ### testing 'purpose-per-file' subcommand
 
+    json_path = Path(f"{dataset_dir_annotations}.purpose-per-file.json")
     result = runner.invoke(gather_app, [
         # select subcommand
         "purpose-per-file",
@@ -365,12 +368,14 @@ def test_gather_data(tmp_path: Path):
     ])
 
     # DEBUG
-    # print(result.stdout)
+    #print(result.stdout)
 
     assert result.exit_code == 0, \
         "gather app runs 'purpose-per-file' subcommand on generated annotations without errors"
-
     assert json_path.is_file(), \
         "output file app was requested to use exists (it was created)"
     assert json_path.stat().st_size > 0, \
         "generated JSON file with results is not empty"
+
+    # DEBUG
+    #print(json_path.read_text())
