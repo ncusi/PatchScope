@@ -1,2 +1,6 @@
 # Jupyter and various related tool
 jupyterlab
+# Packages used by notebooks
+matplotlib
+numpy
+pandas
