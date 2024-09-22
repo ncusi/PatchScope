@@ -317,8 +317,26 @@ def map_diff_to_lines_stats(annotation_file_basename: str,
     return result
 
 
-def save_result(result, result_json):
+# TODO: make it common (move it to 'utils' module or '__init__.py' file)
+def save_result(result: Any, result_json: Path) -> None:
+    """Serialize `result` and save it in `result_json` JSON file
+
+    Side effects:
+
+    - prints progress information to stdout
+    - creates parent directory if it does not exist
+
+    :param result: data to serialize and save
+    :param result_json: path to JSON file to save `result` to
+    """
     print(f"Saving results to '{result_json}' JSON file")
+
+    # ensure that parent directory exists, so we can save the file
+    parent_dir = result_json.parent
+    if not parent_dir.exists():
+        print(f"- creating '{parent_dir}' directory")
+        parent_dir.mkdir(parents=True, exist_ok=True)  # exist_ok=True for race condition
+
     with result_json.open(mode='w') as result_f:
         json.dump(result, result_f, indent=4)
 
