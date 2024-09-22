@@ -4,7 +4,9 @@ import os
 from collections import Counter
 from pathlib import Path
 from types import SimpleNamespace
-from typing import List, TypeVar, Optional
+from typing import Any, List, Optional, TypeVar
+# NOTE: Callable should be imported from collections.abc for newer Python
+from typing import Callable
 
 import tqdm
 import typer
@@ -14,6 +16,7 @@ from .annotate import Bug
 
 
 PathLike = TypeVar("PathLike", str, bytes, Path, os.PathLike)
+T = TypeVar('T')  # Declare type variable "T" to use in typing
 
 app = typer.Typer(no_args_is_help=True, add_completion=False)
 
@@ -21,13 +24,14 @@ app = typer.Typer(no_args_is_help=True, add_completion=False)
 class PurposeCounterResults:
     """Override this datastructure to gather results"""
 
-    def __init__(self, processed_files, hunk_purposes, added_line_purposes, removed_line_purposes):
+    def __init__(self, processed_files: list,
+                 hunk_purposes: Counter[str], added_line_purposes: Counter[str], removed_line_purposes: Counter[str]):
         self._processed_files = processed_files
         self._hunk_purposes = hunk_purposes
         self._added_line_purposes = added_line_purposes
         self._removed_line_purposes = removed_line_purposes
 
-    def __add__(self, other):
+    def __add__(self, other: 'PurposeCounterResults') -> 'PurposeCounterResults':
         if isinstance(other, PurposeCounterResults):
             new_instance = PurposeCounterResults(
                 self._processed_files + other._processed_files,
@@ -36,7 +40,7 @@ class PurposeCounterResults:
                 self._removed_line_purposes + other._removed_line_purposes)
             return new_instance
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"PurposeCounterResults(_processed_files={self._processed_files!r}, " \
                f"_hunk_purposes={self._hunk_purposes!r}, " \
                f"_added_line_purposes={self._added_line_purposes!r}, " \
@@ -51,7 +55,7 @@ class PurposeCounterResults:
         }
 
     @staticmethod
-    def default():
+    def default() -> 'PurposeCounterResults':
         """
         Constructs empty datastructure to work as 0 for addition via "+"
 
@@ -60,7 +64,7 @@ class PurposeCounterResults:
         return PurposeCounterResults([], Counter(), Counter(), Counter())
 
     @staticmethod
-    def create(file_path, data):
+    def create(file_path: str, data: dict) -> 'PurposeCounterResults':
         """
         Override this function for single annotation handling
 
@@ -97,7 +101,7 @@ class AnnotatedFile:
         """
         self._path = Path(file_path)
 
-    def gather_data(self, bug_mapper):
+    def gather_data(self, bug_mapper: Callable[[str, dict], T]) -> T:
         """
         Retrieves data from file
 
@@ -125,7 +129,7 @@ class AnnotatedBug:
         except Exception as ex:
             print(f"Error in AnnotatedBug for '{self._path}': {ex}")
 
-    def gather_data(self, bug_mapper, datastructure_generator):
+    def gather_data(self, bug_mapper: Callable[[str, dict], T], datastructure_generator: Callable[[], T]) -> T:
         """
         Gathers dataset data via processing each file in current bug using AnnotatedFile class and provided functions
 
@@ -143,7 +147,7 @@ class AnnotatedBug:
             combined_results += file_results
         return combined_results
 
-    def gather_data_dict(self, bug_dict_mapper):
+    def gather_data_dict(self, bug_dict_mapper: Callable[[str, dict], dict]) -> dict:
         """
         Gathers dataset data via processing each file in current bug using AnnotatedFile class and provided functions
 
@@ -178,8 +182,8 @@ class AnnotatedBugDataset:
         except Exception as ex:
             print(f"Error in AnnotatedBugDataset for '{self._path}': {ex}")
 
-    def gather_data(self, bug_mapper, datastructure_generator,
-                    annotations_dir: str = Bug.DEFAULT_ANNOTATIONS_DIR):
+    def gather_data(self, bug_mapper: Callable[[str, dict], T], datastructure_generator: Callable[[], T],
+                    annotations_dir: str = Bug.DEFAULT_ANNOTATIONS_DIR) -> T:
         """
         Gathers dataset data via processing each bug using AnnotatedBug class and provided functions
 
@@ -202,8 +206,8 @@ class AnnotatedBugDataset:
 
         return combined_results
 
-    def gather_data_dict(self, bug_dict_mapper,
-                         annotations_dir: str = Bug.DEFAULT_ANNOTATIONS_DIR):
+    def gather_data_dict(self, bug_dict_mapper: Callable[[str, dict], dict],
+                         annotations_dir: str = Bug.DEFAULT_ANNOTATIONS_DIR) -> dict:
         """
         Gathers dataset data via processing each bug using AnnotatedBug class and provided function
 
@@ -222,11 +226,11 @@ class AnnotatedBugDataset:
         return combined_results
 
 
-def map_diff_to_purpose_dict(diff_file_path, data):
+def map_diff_to_purpose_dict(_diff_file_path: str, data: dict) -> dict:
     """
     Example functon mapping diff of specific commit to dictionary
 
-    :param diff_file_path: file path containing diff
+    :param _diff_file_path: file path containing diff, ignored
     :param data: dictionary loaded from file
     :return: dictionary with file purposes
     """
@@ -353,7 +357,7 @@ def common(
             help="Subdirectory to read annotations from; use '' to do without such"
         )
     ] = Bug.DEFAULT_ANNOTATIONS_DIR,
-):
+) -> None:
     # if anything is printed by this function, it needs to utilize context
     # to not break installed shell completion for the command
     # see https://typer.tiangolo.com/tutorial/options/callback-and-context/#fix-completion-using-the-context
@@ -388,7 +392,7 @@ def purpose_counter(
             help="JSON file to write gathered results to",
         )
     ] = None,
-):
+) -> None:
     """Calculate count of purposes from all bugs in provided datasets
 
     Each dataset is expected to be existing directory with the following
@@ -439,7 +443,7 @@ def purpose_per_file(
             help="list of dirs with datasets to process"
         )
     ],
-):
+) -> None:
     """Calculate per-file count of purposes from all bugs in provided datasets
 
     Each dataset is expected to be existing directory with the following
@@ -483,7 +487,7 @@ def lines_stats(
             help="list of dirs with datasets to process"
         )
     ],
-):
+) -> None:
     """Calculate per-bug and per-file count of line types in provided datasets
 
     Each dataset is expected to be existing directory with the following
