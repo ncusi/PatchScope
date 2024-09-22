@@ -2,5 +2,7 @@
 jupyterlab
 # Packages used by notebooks
 matplotlib
+seaborn
 numpy
+scipy
 pandas
