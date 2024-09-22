@@ -23,6 +23,20 @@ jupyter lab
 
 ## Development
 
-The [`.gitignore`](.gitignore) file and [`requirements.txt`](requirements.txt)
-file are local to this directory, and are about Jupyter Notebooks that are
+You can install recommended packages with
+```commandline
+python -m pip install --upgrade -r requirements-dev.txt
+```
+
+The [`.gitignore`](.gitignore) file, [`.gitattributes`](.gitattributes) file,
+and [`requirements.txt`](requirements.txt) and [`requirements-dev.txt`](requirements-dev.txt)
+files are local to this directory, and are about Jupyter Notebooks that are
 here.
+
+You can use `nbdime` for diffing and merging of Jupyter notebooks.
+The `.gitattribute` file is committed to the repository, but it needs Git config
+to work.  You can add it with the following command (after installing `nbdime`):
+```commandline
+nbdime config-git --enable
+```
+See 

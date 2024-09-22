@@ -1,0 +1,2 @@
+# for better diff and merge for *.ipynb files
+nbdime
