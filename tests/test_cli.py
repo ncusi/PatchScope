@@ -3,8 +3,9 @@ from pathlib import Path
 
 from typer.testing import CliRunner
 
-from diffannotator.annotate import app as annotate_app
+from diffannotator.annotate import app as annotate_app, Bug
 from diffannotator.generate_patches import app as generate_app
+from diffannotator.gather_data import app as gather_app
 
 
 runner = CliRunner()
@@ -304,3 +305,102 @@ def test_generate_patches_with_fanout(tmp_path: Path):
     #assert total_diffs == 5, \
     #    "generate app created 5 diff files"
     print(f"{total_diffs=}/5")
+
+
+def test_gather_data(tmp_path: Path):
+    dataset_dir_patches = Path('tests/test_dataset_structured')
+
+    ### preparation: generating annotations
+    # TODO: create fixture creating annotations, split the test
+    # TODO: or create parametrized test to avoid repetition; might be not possible
+    result = runner.invoke(annotate_app, [
+        # select subcommand
+        "dataset",
+        # pass options and arguments to subcommand
+        f"--output-prefix={tmp_path}",
+        f"{dataset_dir_patches}",
+    ])
+
+    assert result.exit_code == 0, \
+        "annotate app runs 'dataset' subcommand on structured dataset without errors"
+
+    # DEBUG
+    #json_files = sorted(tmp_path.glob('**/*.json'))
+    #print(f"{tmp_path=}")
+    #print(f"{json_files=}")
+
+    ### testing 'purpose-counter' subcommand
+
+    dataset_dir_annotations = tmp_path / dataset_dir_patches
+    json_path = Path(f"{dataset_dir_annotations}.purpose-counter.json")
+    result = runner.invoke(gather_app, [
+        # exercise common arguments
+        f"--annotations-dir={Bug.DEFAULT_ANNOTATIONS_DIR}",  # should and must be no-op
+        # select subcommand
+        "purpose-counter",
+        # pass options and arguments to subcommand
+        f"--output={json_path}",
+        f"{dataset_dir_annotations}",
+    ])
+
+    # DEBUG
+    #print(result.stdout)
+
+    assert result.exit_code == 0, \
+        "gather app runs 'purpose-counter' subcommand on generated annotations without errors"
+    assert json_path.is_file(), \
+        "output file app was requested to use exists (it was created)"
+    assert json_path.stat().st_size > 0, \
+        "generated JSON file with results is not empty"
+
+    # DEBUG
+    #print(json_path.read_text())
+
+    ### testing 'purpose-per-file' subcommand
+
+    json_path = Path(f"{dataset_dir_annotations}.purpose-per-file.json")
+    result = runner.invoke(gather_app, [
+        # select subcommand
+        "purpose-per-file",
+        # pass options and arguments to subcommand
+        f"{json_path}",
+        f"{dataset_dir_annotations}",
+    ])
+
+    # DEBUG
+    #print(result.stdout)
+
+    assert result.exit_code == 0, \
+        "gather app runs 'purpose-per-file' subcommand on generated annotations without errors"
+    assert json_path.is_file(), \
+        "output 'purpose-per-file' file app was requested to use exists (it was created)"
+    assert json_path.stat().st_size > 0, \
+        "generated 'purpose-per-file' JSON file with results is not empty"
+
+    # DEBUG
+    #print(json_path.read_text())
+
+
+    ### for 'lines-stats'
+
+    json_path = Path(f"{dataset_dir_annotations}.lines-stats.json")
+    result = runner.invoke(gather_app, [
+        # select subcommand
+        "lines-stats",
+        # pass options and arguments to subcommand
+        f"{json_path}",
+        f"{dataset_dir_annotations}",
+    ])
+
+    # DEBUG
+    #print(result.stdout)
+
+    assert result.exit_code == 0, \
+        "gather app runs 'lines-stats' subcommand on generated annotations without errors"
+    assert json_path.is_file(), \
+        "output 'lines-stats' file app was requested to use exists (it was created)"
+    assert json_path.stat().st_size > 0, \
+        "generated 'lines-stats' JSON file with results is not empty"
+
+    # DEBUG
+    #print(json_path.read_text())
