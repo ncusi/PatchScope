@@ -192,6 +192,13 @@ Web applications that demonstrate some MSR tool:
   uploading the result of running the [GitVision script](https://github.com/GaspardIV/gitvision/tree/main/tool).
   The demo [is written](https://github.com/GaspardIV/gitvision/tree/main/gitvisionwebapp)
   in JavaScript using Vue and deployed with Vite.
+- [GitBug-Java](https://github.com/gitbugactions/gitbug-java),
+  a reproducible Java benchmark of recent bugs (tool accompanying
+  the _[GitBug-Java: A Reproducible Java Benchmark of Recent Bugs](https://doi.org/10.1145/3643991.3644884)_
+  paper ([on arXiv](https://arxiv.org/abs/2402.02961))),
+  has [web app visualizing the dataset](https://nfsaavedra.github.io/gitbug-java).
+  No source code for the web app; it seems to be in JavaScript
+  using Angular, with the help of Chart.js and diff2html.
 
 ## Contributing
 
