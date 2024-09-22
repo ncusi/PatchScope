@@ -39,4 +39,5 @@ to work.  You can add it with the following command (after installing `nbdime`):
 ```commandline
 nbdime config-git --enable
 ```
-See 
+See [_Git integration_](https://nbdime.readthedocs.io/en/latest/vcs.html#git-integration)
+section in nbdime documentation.
