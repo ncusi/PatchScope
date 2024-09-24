@@ -518,7 +518,7 @@ class AnnotatedPatchedFile:
         }
 
     def hunk_tokens_for_type(self, line_type: Literal['-','+'],
-                             hunk: unidiff.Hunk) -> Optional[Dict[int, List[tuple]]]:
+                             hunk: Union[unidiff.Hunk, 'AnnotatedHunk']) -> Optional[Dict[int, List[tuple]]]:
         """Lexing results for removed ('-')/added ('+') lines in hunk, if possible
 
         The pre-image and post-image contents of patched file should / can
@@ -540,6 +540,9 @@ class AnnotatedPatchedFile:
         tokens_list = self.tokens_for_type(line_type=line_type)
         if tokens_list is None:
             return None
+
+        if isinstance(hunk, AnnotatedHunk):
+            hunk = hunk.hunk
 
         result = {}
         for line in hunk:
