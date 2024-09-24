@@ -11,7 +11,7 @@ import unidiff
 from diffannotator.annotate import (split_multiline_lex_tokens, line_ends_idx,
                                     group_tokens_by_line, front_fill_gaps, deep_update,
                                     clean_text, line_is_comment, annotate_single_diff,
-                                    Bug, BugDataset, AnnotatedPatchedFile)
+                                    Bug, BugDataset, AnnotatedPatchedFile, AnnotatedHunk)
 from diffannotator.generate_patches import GitRepo
 
 # Example code to be tokenized
@@ -180,7 +180,8 @@ def test_annotate_single_diff():
         annotate_single_diff(file_path)
 
 
-def test_AnnotatedPatchedFile():
+@pytest.mark.parametrize("line_type", [unidiff.LINE_TYPE_REMOVED, unidiff.LINE_TYPE_ADDED])
+def test_AnnotatedPatchedFile(line_type):
     # code patch
     file_path = 'tests/test_dataset_structured/keras-10/patches/c1c4afe60b1355a6c0e83577791a0423f37a3324.diff'
 
@@ -199,14 +200,51 @@ def test_AnnotatedPatchedFile():
     assert patched_file.image_for_type('-') == src_text, \
         "image_for_type returns pre-image for '-'"
     assert patched_file.image_for_type('+') == dst_text, \
-        "image_for_type returns pre-image for '-'"
+        "image_for_type returns post-image for '+'"
 
-    src_tokens = patched_file.tokens_for_type('+')
+    src_tokens = patched_file.tokens_for_type(line_type)
     #print(f"{src_tokens[:2]}")
     assert src_tokens is not None, \
-        "tokens_for_type returns something for '+'"
+        f"tokens_for_type returns something for '{line_type}'"
     assert len(list(src_tokens)) > 0, \
-        "tokens_for_type returns non-empty iterable of tokens for '+'"
+        f"tokens_for_type returns non-empty iterable of tokens for '{line_type}'"
+
+    first_hunk = patched_file.patched_file[0]
+    first_hunk = AnnotatedHunk(patched_file=patched_file, hunk=first_hunk)
+    bare_hunk_data = first_hunk.process()
+    #print(f"{bare_hunk_data=}")
+    bare_hunk_tokens = {line_data['id']: line_data['tokens'] for line_data
+                        in bare_hunk_data['keras/engine/training_utils.py'][line_type]}
+    #print(f"{bare_hunk_tokens=}")
+    bare_tokens_renumbered = {
+        i: bare_hunk_tokens[idx] for i, idx in zip(range(len(bare_hunk_tokens)), bare_hunk_tokens.keys())
+    }
+    bare_lines_renumbered = {
+        i: "".join([tok[2] for tok in tokens])
+        for i, tokens in bare_tokens_renumbered.items()
+    }
+    #print(f"{bare_tokens_renumbered=}")
+    #print(f"{bare_lines_renumbered=}")
+
+    tokens_for_hunk = patched_file.hunk_tokens_for_type(line_type, first_hunk.hunk)
+    #print(f"{tokens_for_hunk=}")
+    tokens_renumbered = {
+        i: tokens_for_hunk[idx] for i, idx in zip(range(len(tokens_for_hunk)), tokens_for_hunk.keys())
+    }
+    lines_renumbered = {
+        i: "".join([tok[2] for tok in tokens])
+        for i, tokens in tokens_renumbered.items()
+    }
+    #print(f"{tokens_renumbered=}")
+    #print(f"{lines_renumbered=}")
+    #tokens_sel = patched_file.tokens_range_for_type('-', 432-1, 7)
+    #for k, v in tokens_sel.items():
+    #    print(f"{k}: {v}")
+
+    assert bare_lines_renumbered == lines_renumbered, \
+        "AnnotatedHunk.process() and AnnotatedPatchedFile.hunk_tokens_for_type() give the same lines"
+    assert bare_tokens_renumbered != tokens_renumbered, \
+        "lexing pre-image from diff is not the same as lexing whole pre-image file, in this case"
 
 
 def test_Bug_from_dataset():

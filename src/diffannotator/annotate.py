@@ -360,8 +360,8 @@ class AnnotatedPatchedFile:
         self.source: Optional[str] = None
         self.target: Optional[str] = None
         # cache to hold the result of lexing pre-image/post-image
-        self.source_tokens: Optional[Iterable[tuple]] = None
-        self.target_tokens: Optional[Iterable[tuple]] = None
+        self.source_tokens: Optional[Dict[int, List[tuple]]] = None
+        self.target_tokens: Optional[Dict[int, List[tuple]]] = None
 
     # builder pattern
     def add_sources(self, src: str, dst: str) -> 'AnnotatedPatchedFile':
@@ -435,19 +435,20 @@ class AnnotatedPatchedFile:
         else:
             raise ValueError(f"value must be '-' or '+', got {line_type!r}")
 
-    def tokens_for_type(self, line_type: Literal['-','+']) -> Optional[Iterable[tuple]]:
+    def tokens_for_type(self, line_type: Literal['-','+']) -> Optional[Dict[int, List[tuple]]]:
         """Run lexer on a pre-image or post-image contents, if available
 
         Returns (cached) result of lexing pre-image for `line_type` '-',
         and of post-image for line type '+'.
 
-        The pre-image and post-image contents of patched file should
+        The pre-image and post-image contents of patched file should / can
         be provided with the help of `add_sources()` or `add_sources_from_files()`
         methods.
 
-        :param line_type: denotes line type, e.g. line.line_type from unidiff
-        :return: an iterable of (index, token_type, text_fragment) tuples
-            from lexing, if there is pre-/post-image file contents available
+        :param line_type: denotes line type, e.g. line.line_type from unidiff;
+            must be one of '+' or '-'.
+        :return: post-processed result of lexing, split into lines,
+            if there is pre-/post-image file contents available.
         """
         # return cached value, if available
         if line_type == unidiff.LINE_TYPE_REMOVED:  # '-'
@@ -467,17 +468,90 @@ class AnnotatedPatchedFile:
         if contents is None:
             return None
 
-        # lex selected contents
+        # lex selected contents (same as in main process() method)
         tokens_list = LEXER.lex(file_path, contents)
+        tokens_split = split_multiline_lex_tokens(tokens_list)
+        tokens_group = group_tokens_by_line(contents, tokens_split)
+        # just in case, it should not be needed
+        tokens_group = front_fill_gaps(tokens_group)
 
         # save/cache computed data
         if line_type == unidiff.LINE_TYPE_REMOVED:  # '-'
-            self.source_tokens = tokens_list
+            self.source_tokens = tokens_group
         elif line_type == unidiff.LINE_TYPE_ADDED:  # '+'
-            self.target_tokens = tokens_list
+            self.target_tokens = tokens_group
 
         # return computed result
-        return tokens_list
+        return tokens_group
+
+    def tokens_range_for_type(self, line_type: Literal['-','+'],
+                              start_line: int, length: int) -> Optional[Dict[int, List[tuple]]]:
+        """Lexing results for given range of lines, or None if no pre-/post-image
+
+        The pre-image and post-image contents of patched file should / can
+        be provided with the help of `add_sources()` or `add_sources_from_files()`
+        methods.
+
+        The result is mapping from line number of the pre- or post-image
+        contents, counting from 1 (the same as diff and unidiff), to the list
+        of tokens corresponding to the line in question.
+
+        :param line_type: denotes line type, e.g. line.line_type from unidiff;
+            must be one of '-' (unidiff.LINE_TYPE_REMOVED) or '+' (unidiff.LINE_TYPE_ADDED).
+        :param start_line: starting line number in file, counting from 1
+        :param length: number of lines to return results for,
+            starting from `start_line`
+        :return: post-processed result of lexing, split into lines,
+            if there is pre-/post-image file contents available;
+            None if there is no pre-/post-image contents attached.
+        """
+        tokens_list = self.tokens_for_type(line_type=line_type)
+        if tokens_list is None:
+            return None
+
+        # Iterable might be not subscriptable, that's why there is list() here
+        # TODO: check if it is correct (0-based vs 1-based subscripting)
+        return {
+            line_no+1: line_tokens
+            for line_no, line_tokens in tokens_list.items()
+            if line_no+1 in range(start_line, (start_line + length))
+        }
+
+    def hunk_tokens_for_type(self, line_type: Literal['-','+'],
+                             hunk: unidiff.Hunk) -> Optional[Dict[int, List[tuple]]]:
+        """Lexing results for removed ('-')/added ('+') lines in hunk, if possible
+
+        The pre-image and post-image contents of patched file should / can
+        be provided with the help of `add_sources()` or `add_sources_from_files()`
+        methods.  If this contents is not provided, this method returns None.
+
+        The result is mapping from line number of the pre- or post-image
+        contents, counting from 1 (the same as diff and unidiff), to the list
+        of tokens corresponding to the line in question.
+
+        :param line_type: denotes line type, e.g. line.line_type from unidiff;
+            must be one of '-' (unidiff.LINE_TYPE_REMOVED) or '+' (unidiff.LINE_TYPE_ADDED).
+        :param hunk: block of changes in fragment of diff corresponding
+            to changed file
+        :return: post-processed result of lexing, split into lines,
+            if there is pre-/post-image file contents available;
+            None if there is no pre-/post-image contents attached.
+        """
+        tokens_list = self.tokens_for_type(line_type=line_type)
+        if tokens_list is None:
+            return None
+
+        result = {}
+        for line in hunk:
+            if line.line_type != line_type:
+                continue
+            # NOTE: first line of file is line number 1, not 0, according to (uni)diff
+            # but self.tokens_for_type(line_type) returns 0-based indexing
+            line_no = line.source_line_no if line_type == unidiff.LINE_TYPE_REMOVED else line.target_line_no
+            # first line is 1; first element has index 0
+            result[line_no] = tokens_list[line_no - 1]
+
+        return result
 
     def process(self):
         for hunk in self.patched_file:
