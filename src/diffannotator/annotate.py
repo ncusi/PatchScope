@@ -13,7 +13,7 @@ import sys
 import time
 import traceback
 from textwrap import dedent
-from typing import List, Dict, Tuple, TypeVar, Optional, Union, Iterator
+from typing import List, Dict, Tuple, TypeVar, Optional, Union, Iterator, Literal
 from typing import Iterable, Generator, Callable  # should be imported from collections.abc
 
 from pygments.token import Token
@@ -355,6 +355,129 @@ class AnnotatedPatchedFile:
         if self.source_file != self.target_file:
             target_meta_dict = LANGUAGES.annotate(self.target_file)
             self.patch_data[self.target_file].update(target_meta_dict)
+
+        # place to hold pre-image and post-image, if available
+        self.source: Optional[str] = None
+        self.target: Optional[str] = None
+        # cache to hold the result of lexing pre-image/post-image
+        self.source_tokens: Optional[Iterable[tuple]] = None
+        self.target_tokens: Optional[Iterable[tuple]] = None
+
+    # builder pattern
+    def add_sources(self, src: str, dst: str) -> 'AnnotatedPatchedFile':
+        """Add pre-image and post-image of a file at given diff
+
+        **NOTE:** Modifies self, and returns modified object.
+
+        Example:
+
+        >>> from diffannotator.annotate import AnnotatedPatchedFile
+        >>> import unidiff
+        >>> patch_path = 'tests/test_dataset_structured/keras-10/patches/c1c4afe60b1355a6c0e83577791a0423f37a3324.diff'
+        >>> patch_set = unidiff.PatchSet.from_filename(patch_path, encoding="utf-8")
+        >>> patched_file = AnnotatedPatchedFile(patch_set[0]).add_sources("a", "b")
+        >>> patched_file.source
+        'a'
+        >>> patched_file.target
+        'b'
+
+        :param src: pre-image contents of patched file
+        :param dst: post-image contents of patched file
+        :return: changed object, to enable flow/builder pattern
+        """
+        self.source = src
+        self.target = dst
+
+        return self
+
+    def add_sources_from_files(self,
+                               src_file: Path,
+                               dst_file: Path) -> 'AnnotatedPatchedFile':
+        """Read pre-image and post-image for patched file at given diff
+
+        **NOTE:** Modifies self, adding contents of files, and returns modified
+        object.
+
+        Example:
+
+        >>> from diffannotator.annotate import AnnotatedPatchedFile
+        >>> import unidiff
+        >>> from pathlib import Path
+        >>> patch_path = 'tests/test_dataset_structured/keras-10/patches/c1c4afe60b1355a6c0e83577791a0423f37a3324.diff'
+        >>> patch_set = unidiff.PatchSet.from_filename(patch_path, encoding="utf-8")
+        >>> patched_file = AnnotatedPatchedFile(patch_set[0])
+        >>> files_path = Path('tests/test_dataset_structured/keras-10/files')
+        >>> src_path = files_path / 'a' / Path(patched_file.source_file).name
+        >>> dst_path = files_path / 'b' / Path(patched_file.target_file).name
+        >>> patched_file_with_sources = patched_file.add_sources_from_files(src_file=src_path, dst_file=dst_path)
+        >>> patched_file_with_sources.source.splitlines()[2]
+        'from __future__ import absolute_import'
+
+        :param src_file: path to pre-image contents of patched file
+        :param dst_file: path to post-image contents of patched file
+        :return: changed object
+        """
+        return self.add_sources(
+            src_file.read_text(encoding="utf-8"),
+            dst_file.read_text(encoding="utf-8")
+        )
+
+    def image_for_type(self, line_type: Literal['-','+']) -> Optional[str]:
+        """Return pre-image for '-', post-image for '+', if available
+
+        :param line_type: denotes line type, e.g. line.line_type from unidiff
+        :return: pre-image or post-image, or None if pre/post-images are not set
+        """
+        if line_type == unidiff.LINE_TYPE_REMOVED:  # '-'
+            return self.source
+        elif line_type == unidiff.LINE_TYPE_ADDED:  # '+'
+            return self.target
+        else:
+            raise ValueError(f"value must be '-' or '+', got {line_type!r}")
+
+    def tokens_for_type(self, line_type: Literal['-','+']) -> Optional[Iterable[tuple]]:
+        """Run lexer on a pre-image or post-image contents, if available
+
+        Returns (cached) result of lexing pre-image for `line_type` '-',
+        and of post-image for line type '+'.
+
+        The pre-image and post-image contents of patched file should
+        be provided with the help of `add_sources()` or `add_sources_from_files()`
+        methods.
+
+        :param line_type: denotes line type, e.g. line.line_type from unidiff
+        :return: an iterable of (index, token_type, text_fragment) tuples
+            from lexing, if there is pre-/post-image file contents available
+        """
+        # return cached value, if available
+        if line_type == unidiff.LINE_TYPE_REMOVED:  # '-'
+            if self.source_tokens is not None:
+                return self.source_tokens
+            contents = self.source
+            file_path = self.source_file
+        elif line_type == unidiff.LINE_TYPE_ADDED:  # '+'
+            if self.target_tokens is not None:
+                return self.target_tokens
+            contents = self.target
+            file_path = self.target_file
+        else:
+            raise ValueError(f"value must be '-' or '+', got {line_type!r}")
+
+        # return None if source code is not available for lexing
+        if contents is None:
+            return None
+
+        # lex selected contents
+        tokens_list = LEXER.lex(file_path, contents)
+
+        # save/cache computed data
+        if line_type == unidiff.LINE_TYPE_REMOVED:  # '-'
+            self.source_tokens = tokens_list
+        elif line_type == unidiff.LINE_TYPE_ADDED:  # '+'
+            self.target_tokens = tokens_list
+
+        # return computed result
+        return tokens_list
 
     def process(self):
         for hunk in self.patched_file:

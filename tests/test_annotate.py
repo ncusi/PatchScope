@@ -180,6 +180,35 @@ def test_annotate_single_diff():
         annotate_single_diff(file_path)
 
 
+def test_AnnotatedPatchedFile():
+    # code patch
+    file_path = 'tests/test_dataset_structured/keras-10/patches/c1c4afe60b1355a6c0e83577791a0423f37a3324.diff'
+
+    # create AnnotatedPatchedFile object
+    patch_set = unidiff.PatchSet.from_filename(file_path, encoding="utf-8")
+    patched_file = AnnotatedPatchedFile(patch_set[0])
+
+    # add contents of pre-image and post-image
+    files_path = Path('tests/test_dataset_structured/keras-10/files')  # must agree with `file_path`
+    src_path = files_path / 'a' / Path(patched_file.source_file).name
+    dst_path = files_path / 'b' / Path(patched_file.source_file).name
+    patched_file = patched_file.add_sources_from_files(src_path, dst_path)
+
+    src_text = src_path.read_text(encoding="utf-8")
+    dst_text = dst_path.read_text(encoding="utf-8")
+    assert patched_file.image_for_type('-') == src_text, \
+        "image_for_type returns pre-image for '-'"
+    assert patched_file.image_for_type('+') == dst_text, \
+        "image_for_type returns pre-image for '-'"
+
+    src_tokens = patched_file.tokens_for_type('+')
+    #print(f"{src_tokens[:2]}")
+    assert src_tokens is not None, \
+        "tokens_for_type returns something for '+'"
+    assert len(list(src_tokens)) > 0, \
+        "tokens_for_type returns non-empty iterable of tokens for '+'"
+
+
 def test_Bug_from_dataset():
     # code patch
     file_path = Path('tests/test_dataset/tqdm-1/c0dcf39b046d1b4ff6de14ac99ad9a1b10487512.diff')
