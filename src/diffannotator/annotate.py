@@ -24,10 +24,10 @@ import typer
 from typing_extensions import Annotated  # in typing since Python 3.9
 import yaml
 
-from .generate_patches import GitRepo
 from . import languages
 from .languages import Languages
 from .lexer import Lexer
+from .utils.git import GitRepo
 
 # optional dependencies
 try:

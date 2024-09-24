@@ -12,7 +12,7 @@ from diffannotator.annotate import (split_multiline_lex_tokens, line_ends_idx,
                                     group_tokens_by_line, front_fill_gaps, deep_update,
                                     clean_text, line_is_comment, annotate_single_diff,
                                     Bug, BugDataset, AnnotatedPatchedFile, AnnotatedHunk)
-from diffannotator.generate_patches import GitRepo
+from diffannotator.utils.git import GitRepo
 
 # Example code to be tokenized
 example_C_code = r'''

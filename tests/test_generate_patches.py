@@ -11,7 +11,7 @@ import pytest
 import unidiff
 
 from diffannotator.annotate import annotate_single_diff
-from diffannotator.generate_patches import GitRepo
+from diffannotator.utils.git import GitRepo
 
 
 def test_clone_repository(tmp_path: Path):
