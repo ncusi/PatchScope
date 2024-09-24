@@ -227,6 +227,9 @@ def test_AnnotatedPatchedFile(line_type):
     #print(f"{bare_lines_renumbered=}")
 
     tokens_for_hunk = patched_file.hunk_tokens_for_type(line_type, first_hunk.hunk)
+    hunk_tokens = first_hunk.tokens_for_type(line_type)
+    assert tokens_for_hunk == hunk_tokens, \
+        f"Both ways of getting tokens for {'removed' if line_type == '-' else 'added'} lines return same result"
     #print(f"{tokens_for_hunk=}")
     tokens_renumbered = {
         i: tokens_for_hunk[idx] for i, idx in zip(range(len(tokens_for_hunk)), tokens_for_hunk.keys())

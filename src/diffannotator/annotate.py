@@ -590,6 +590,20 @@ class AnnotatedHunk:
 
         self.patch_data = defaultdict(lambda: defaultdict(list))
 
+    def tokens_for_type(self, line_type: Literal['-','+']) -> Optional[Dict[int, List[tuple]]]:
+        """Lexing results for removed ('-')/added ('+') lines in hunk, if possible
+
+        Passes work to `AnnotatedPatchedFile.hunk_tokens_for_type` method
+        for a patched file this hunk belongs to.
+
+        :param line_type: line_type: denotes line type, e.g. line.line_type from unidiff;
+            must be one of '-' (unidiff.LINE_TYPE_REMOVED) or '+' (unidiff.LINE_TYPE_ADDED).
+        :return: post-processed result of lexing, split into lines,
+            if there is pre-/post-image file contents available;
+            None if there is no pre-/post-image contents attached.
+        """
+        return self.patched_file.hunk_tokens_for_type(line_type, self.hunk)
+
     def process(self):
         """Process associated patch hunk, annotating changes
 
