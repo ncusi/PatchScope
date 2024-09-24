@@ -557,6 +557,21 @@ class AnnotatedPatchedFile:
         return result
 
     def process(self):
+        """Process hunks in patched file, annotating changes
+
+        Returns single-element mapping from filename to pre- and post-image
+        line annotations.  The pre-image line annotations use "-" as key,
+        while post-image use "+".
+
+        The format of returned values is described in more detail
+        in `AnnotatedHunk.process()` documentation.
+
+        Updates and returns the `self.patch_data` field.
+
+        :return: annotated patch data, mapping from changed file name
+            to '+'/'-', to annotated line info (from post-image or pre-image)
+        :rtype: dict[str, dict[str, dict]]
+        """
         for hunk in self.patched_file:
             hunk_data = AnnotatedHunk(self, hunk).process()
             deep_update(self.patch_data, hunk_data)
@@ -633,7 +648,7 @@ class AnnotatedHunk:
 
         :return: annotated patch data, mapping from changed file name
             to '+'/'-', to annotated line info (from post-image or pre-image)
-        :rtype: dict[str, dict[str, dict]
+        :rtype: dict[str, dict[str, dict]]
         """
         # choose file name to be used to select file type and lexer
         if self.patched_file.source_file == "/dev/null":
@@ -667,13 +682,16 @@ class AnnotatedHunk:
                 # unexpectedly, there is no need to check for unidiff.LINE_TYPE_EMPTY
                 if line.line_type in {line_type, unidiff.LINE_TYPE_CONTEXT}]
 
-            source = ''.join([line['value'] for line in line_data])
+            tokens_group = self.tokens_for_type(line_type)
+            if tokens_group is None:
+                # pre-/post-image contents is not available, use whats in diff
+                source = ''.join([line['value'] for line in line_data])
 
-            tokens_list = LEXER.lex(file_path, source)
-            tokens_split = split_multiline_lex_tokens(tokens_list)
-            tokens_group = group_tokens_by_line(source, tokens_split)
-            # just in case, it should not be needed
-            tokens_group = front_fill_gaps(tokens_group)
+                tokens_list = LEXER.lex(file_path, source)
+                tokens_split = split_multiline_lex_tokens(tokens_list)
+                tokens_group = group_tokens_by_line(source, tokens_split)
+                # just in case, it should not be needed
+                tokens_group = front_fill_gaps(tokens_group)
 
             for i, line_tokens in tokens_group.items():
                 line_info = line_data[i]
