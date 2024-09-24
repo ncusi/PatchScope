@@ -21,15 +21,299 @@ error (like incorrect repository path, or incorrect commit)!!!
 import os
 import re
 import subprocess
+from enum import Enum
 from io import StringIO
 from pathlib import Path
-from typing import Optional, Union, TypeVar, Literal, overload
+from typing import Optional, Union, TypeVar, Literal, overload, NamedTuple
 from typing import Iterable, Iterator  # should be imported from collections.abc
 
 from unidiff import PatchSet
 
 # TODO: move to __init__.py (it is common to all scripts)
 PathLike = TypeVar("PathLike", str, bytes, Path, os.PathLike)
+
+
+class DiffSide(Enum):
+    """Enum to be used for `side` parameter of `GitRepo.list_changed_files`"""
+    PRE = 'pre'
+    POST = 'post'
+    A = 'pre'
+    B = 'post'
+
+
+class StartLogFrom(Enum):
+    """Enum to be used for special cases for starting point of 'git log'"""
+    CURRENT = 'HEAD'
+    HEAD = 'HEAD'  # alias
+    ALL = '--all'
+
+
+class AuthorStat(NamedTuple):
+    """Parsed result of 'git shortlog -c -s'"""
+    author: str  #: author name (commit authorship info)
+    count: int = 0  #: number of commits per author
+
+
+def _parse_authorship_info(authorship_line, field_name='author'):
+    """Parse author/committer info, and extract individual parts
+
+    Extract author or committer 'name', 'email', creation time of changes
+    or commit as 'timestamp', and timezone information ('tz_info') from
+    authorship line, for example:
+
+        Jakub Narębski <jnareb@mat.umk.pl> 1702424295 +0100
+
+    Requires raw format; it does not parse any other datetime format
+    than UNIX timestamp.
+
+    :param str authorship_line: string with authorship info to parse
+    :param str field_name: name of field to store 'name'+'email'
+        (for example "Jakub Narębski <jnareb@mat.umk.pl>"), should be
+        either 'author' or 'committer'.
+    :return: dict with parsed authorship information
+    :rtype: dict[str, str | int]
+    """
+    # trick from https://stackoverflow.com/a/279597/
+    if not hasattr(_parse_authorship_info, 'regexp'):
+        # runs only once
+        _parse_authorship_info.regexp = re.compile(r'^((.*) <(.*)>) ([0-9]+) ([-+][0-9]{4})$')
+
+    m = _parse_authorship_info.regexp.match(authorship_line)
+    authorship_info = {
+        field_name: m.group(1),
+        'name': m.group(2),
+        'email': m.group(3),
+        'timestamp': int(m.group(4)),
+        'tz_info': m.group(5),
+    }
+
+    return authorship_info
+
+
+def _parse_commit_text(commit_text, with_parents_line=True, indented_body=True):
+    """Helper function for GitRepo.get_commit_metadata()
+
+    The default values of `with_parents_line` and `indented_body` parameters
+    are selected for parsing output of 'git rev-list --parents --header'
+    (that is used by GitRepo.get_commit_metadata()).
+
+    :param str commit_text: text to parse
+    :param bool with_parents_line: whether first line of `commit_text`
+        is '<commit id> [<parent id>...]' line
+    :param bool indented_body: whether commit message text is prefixed
+        (indented) with 4 spaces: '    '
+    :return: commit metadata extracted from parsed `commit_text`
+    :rtype: dict[str, str | list[str] | dict] or None
+    """
+    # based on `parse_commit_text` from gitweb/gitweb.perl in git project
+    # NOTE: cannot use .splitlines() here
+    commit_lines = commit_text.split('\n')[:-1]  # remove trailing '' after last '\n'
+
+    if not commit_lines:
+        return None
+
+    commit_data = {'parents': []}  # each commit has 0 or more parents
+
+    if with_parents_line:
+        parents_data = commit_lines.pop(0).split(' ')
+        commit_data['id'] = parents_data[0]
+        commit_data['parents'] = parents_data[1:]
+
+    # commit metadata
+    line_no = 0
+    for (idx, line) in enumerate(commit_lines):
+        if line == '':
+            line_no = idx
+            break
+
+        if line.startswith('tree '):
+            commit_data['tree'] = line[len('tree '):]
+        if not with_parents_line and line.startswith('parent'):
+            commit_data['parents'].append(line[len('parent '):])
+        for field in ('author', 'committer'):
+            if line.startswith(f'{field} '):
+                commit_data[field] = _parse_authorship_info(line[len(f'{field} '):], field)
+
+    # commit message
+    commit_data['message'] = ''
+    for line in commit_lines[line_no+1:]:
+        if indented_body:
+            line = line[4:]  # strip starting 4 spaces: 's/^    //'
+
+        commit_data['message'] += line + '\n'
+
+    return commit_data
+
+
+def _parse_blame_porcelain(blame_text):
+    """Parse 'git blame --porcelain' output and extract information
+
+    In the porcelain format, each line is output after a header; the header
+    at the minimum has the first line which has:
+     - 40-byte SHA-1 of the commit the line is attributed to;
+     - the line number of the line in the original file;
+     - the line number of the line in the final file;
+     - on a line that starts a group of lines from a different commit
+       than the previous one, the number of lines in this group.
+       On subsequent lines this field is absent.
+
+    This header line is followed by the following information at least once
+    for each commit:
+     - the author name ("author"), email ("author-mail"), time ("author-time"),
+       and time zone ("author-tz"); similarly for committer.
+     - the filename ("filename") in the commit that the line is attributed to.
+     - the first line of the commit log message ("summary").
+
+    Additionally, the following information may be present:
+     - "previous" line with 40-byte SHA-1 of commit previous to the one that
+       the line is attributed to, if there is any (this is parent commit for
+       normal blame, and child commit for reverse blame), and the filename
+       in this 'previous' commit
+
+    Note that without '--line-porcelain' information about specific commit
+    is provided only once.
+
+    :param str blame_text: standard output from running the
+        'git blame --porcelain [--reverse]' command
+    :return: information about commits (dict) and information about lines (list)
+    :rtype: (dict, list)
+    """
+    # trick from https://stackoverflow.com/a/279597/
+    if not hasattr(_parse_blame_porcelain, 'regexp'):
+        # runs only once
+        _parse_blame_porcelain.regexp = re.compile(r'^(?P<sha1>[0-9a-f]{40}) (?P<orig>[0-9]+) (?P<final>[0-9]+)')
+
+    # https://git-scm.com/docs/git-blame#_the_porcelain_format
+    blame_lines = blame_text.splitlines()
+    if not blame_lines:
+        # TODO: return NamedTuple
+        return {}, []
+
+    curr_commit = None
+    curr_line = {}
+    commits_data = {}
+    line_data = []
+
+    for line in blame_lines:
+        if not line:  # empty line, shouldn't happen
+            continue
+
+        if match := _parse_blame_porcelain.regexp.match(line):
+            curr_commit = match.group('sha1')
+            curr_line = {
+                'commit': curr_commit,
+                'original': match.group('orig'),
+                'final': match.group('final')
+            }
+            if curr_commit in commits_data:
+                curr_line['original_filename'] = decode_c_quoted_str(commits_data[curr_commit]['filename'])
+
+                # TODO: move extracting 'previous_filename' here, unquote if needed
+
+        elif line.startswith('\t'):  # TAB
+            # the contents of the actual line
+            curr_line['line'] = line[1:]  # remove leading TAB
+            line_data.append(curr_line)
+
+        else:
+            # other header
+            if curr_commit not in commits_data:
+                commits_data[curr_commit] = {}
+            try:
+                # e.g. 'author A U Thor'
+                key, value = line.split(' ', maxsplit=1)
+            except ValueError:
+                # e.g. 'boundary'
+                key, value = (line, True)
+            commits_data[curr_commit][key] = value
+            # add 'filename' as 'original_filename' to line info
+            if key == 'filename':
+                curr_line['original_filename'] = decode_c_quoted_str(value)
+
+    return commits_data, line_data
+
+
+def parse_shortlog_count(shortlog_lines: list[str | bytes]) -> list[AuthorStat]:
+    """Parse the result of GitRepo.list_authors_shortlog() method
+
+    :param shortlog_lines: result of list_authors_shortlog()
+    :type shortlog_lines: str or bytes
+    :return: list of parsed statistics, number of commits per author
+    :rtype: list[AuthorStat]
+    """
+    result = []
+    for line in shortlog_lines:
+        count, author = line.split('\t' if isinstance(line, str) else b'\t', maxsplit=1)
+        count = int(count.strip())
+        result.append(AuthorStat(author, count))
+
+    return result
+
+
+def decode_c_quoted_str(text):
+    """C-style name unquoting
+
+    See unquote_c_style() function in 'quote.c' file in git/git source code
+    https://github.com/git/git/blob/master/quote.c#L401
+
+    This is subset of escape sequences supported by C and C++
+    https://learn.microsoft.com/en-us/cpp/c-language/escape-sequences
+
+    :param str text: string which may be c-quoted
+    :return: decoded string
+    :rtype: str
+    """
+    # TODO?: Make it a global variable
+    escape_dict = {
+        'a': '\a',  # Bell (alert)
+        'b': '\b',  # Backspace
+        'f': '\f',  # Form feed
+        'n': '\n',  # New line
+        'r': '\r',  # Carriage return
+        't': '\t',  # Horizontal tab
+        'v': '\v',  # Vertical tab
+    }
+
+    quoted = text.startswith('"') and text.endswith('"')
+    if quoted:
+        text = text[1:-1]  # remove quotes
+
+        buf = bytearray()
+        escaped = False  # TODO?: switch to state = 'NORMAL', 'ESCAPE', 'ESCAPE_OCTAL'
+        oct_str = ''
+
+        for ch in text:
+            if not escaped:
+                if ch != '\\':
+                    buf.append(ord(ch))
+                else:
+                    escaped = True
+                    oct_str = ''
+            else:
+                if ch in ('"', '\\'):
+                    buf.append(ord(ch))
+                    escaped = False
+                elif ch in escape_dict:
+                    buf.append(ord(escape_dict[ch]))
+                    escaped = False
+                elif '0' <= ch <= '7':  # octal values with first digit over 4 overflow
+                    oct_str += ch
+                    if len(oct_str) == 3:
+                        byte = int(oct_str, base=8)  # byte in octal notation
+                        if byte > 256:
+                            raise ValueError(f'Invalid octal escape sequence \\{oct_str} in "{text}"')
+                        buf.append(byte)
+                        escaped = False
+                        oct_str = ''
+                else:
+                    raise ValueError(f'Unexpected character \'{ch}\' in escape sequence when parsing "{text}"')
+
+        if escaped:
+            raise ValueError(f'Unfinished escape sequence when parsing "{text}"')
+
+        text = buf.decode()
+
+    return text
 
 
 class GitRepo:
