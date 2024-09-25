@@ -388,6 +388,10 @@ def test_BugDataset_from_repo(tmp_path: Path):
         working_dir=tmp_path,
         make_path_absolute=True,
     )
+    if repo is None:
+        pytest.skip(f"Could not clone Git repo from {test_repo_url}")
+    if repo.count_commits() < 3:
+        pytest.skip(f"Less than 3 commits starting from 'HEAD' in {repo.repo}")
 
     bugs = BugDataset.from_repo(repo, revision_range=('-3', 'HEAD'))
 
