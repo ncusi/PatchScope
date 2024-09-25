@@ -323,6 +323,18 @@ def test_Bug_from_patchset():
     assert "tqdm/contrib/__init__.py" in bug.patches[commit_id], \
         "there is expected changed file in a bug patch"
 
+    bug_with_wrong_repo = Bug.from_patchset(patch_id=commit_id, patch_set=patch,
+                                            repo=GitRepo('.'))
+    assert commit_id in bug_with_wrong_repo.patches, \
+        "retrieved annotations for the single patchset (with wrong repo)"
+    assert bug.patches == bug_with_wrong_repo.patches, \
+        "passing incorrect repo should not change annotations at all"
+
+    bug_with_invalid_repo = Bug.from_patchset(patch_id=commit_id, patch_set=patch,
+                                              repo=GitRepo('a/b/c'))
+    assert commit_id in bug_with_invalid_repo.patches, \
+        "retrieved annotations for the single patchset (with invalid repo)"
+
 
 def test_Bug_save(tmp_path: Path):
     bug = Bug.from_dataset('tests/test_dataset_structured', 'keras-10')  # the one with the expected directory structure

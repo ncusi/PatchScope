@@ -895,7 +895,8 @@ class Bug:
         return obj
 
     @classmethod
-    def from_patchset(cls, patch_id: Union[str, None], patch_set: unidiff.PatchSet) -> 'Bug':
+    def from_patchset(cls, patch_id: Union[str, None], patch_set: unidiff.PatchSet,
+                      repo: Optional[GitRepo] = None) -> 'Bug':
         """Create Bug object from unidiff.PatchSet
 
         If `patch_id` is None, then it tries to use the 'commit_id' attribute
@@ -904,14 +905,36 @@ class Bug:
 
         :param patch_id: identifies source of the `patch_set`
         :param patch_set: changes to annotate
+        :param repo: the git repository patch comes from; to be able to use
+            it, `patch_set` should be changes in repo for commit `patch_id`
         :return: Bug object instance
         """
         patch_annotations = {}
         i = 0
+
+        src_commit: Optional[str] = None
+        dst_commit: Optional[str] = None
+        if repo is not None and patch_id is not None:
+            if repo.is_valid_commit(patch_id):
+                dst_commit = patch_id
+            if repo.is_valid_commit(f"{patch_id}^"):
+                src_commit = f"{patch_id}^"
+
         try:
             # based on annotate_single_diff() function code
             for i, patched_file in enumerate(patch_set, start=1):
+                # create AnnotatedPatchedFile object from i-th changed file in patchset
                 annotated_patch_file = AnnotatedPatchedFile(patched_file)
+                # add sources, if available from repo
+                src: Optional[str] = None
+                dst: Optional[str] = None
+                if repo is not None:
+                    if src_commit is not None:
+                        src = repo.file_contents(src_commit, patched_file.source_file)
+                    if dst_commit is not None:
+                        dst = repo.file_contents(dst_commit, patched_file.target_file)
+                annotated_patch_file.add_sources(src=src, dst=dst)
+                # add annotations from i-th changed file
                 patch_annotations.update(annotated_patch_file.process())
 
         except Exception as ex:
