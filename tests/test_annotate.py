@@ -187,35 +187,46 @@ def test_AnnotatedPatchedFile(line_type):
 
     # create AnnotatedPatchedFile object
     patch_set = unidiff.PatchSet.from_filename(file_path, encoding="utf-8")
-    patched_file = AnnotatedPatchedFile(patch_set[0])
+    patched_file_no_source = AnnotatedPatchedFile(patch_set[0])    # .add_sources*() modify object
+    patched_file_with_source = AnnotatedPatchedFile(patch_set[0])
 
     # add contents of pre-image and post-image
     files_path = Path('tests/test_dataset_structured/keras-10/files')  # must agree with `file_path`
-    src_path = files_path / 'a' / Path(patched_file.source_file).name
-    dst_path = files_path / 'b' / Path(patched_file.source_file).name
-    patched_file = patched_file.add_sources_from_files(src_path, dst_path)
+    src_path = files_path / 'a' / Path(patched_file_with_source.source_file).name
+    dst_path = files_path / 'b' / Path(patched_file_with_source.target_file).name
+    patched_file_with_source = patched_file_with_source.add_sources_from_files(src_path, dst_path)
 
     src_text = src_path.read_text(encoding="utf-8")
     dst_text = dst_path.read_text(encoding="utf-8")
-    assert patched_file.image_for_type('-') == src_text, \
+    assert patched_file_with_source.image_for_type('-') == src_text, \
         "image_for_type returns pre-image for '-'"
-    assert patched_file.image_for_type('+') == dst_text, \
+    assert patched_file_with_source.image_for_type('+') == dst_text, \
         "image_for_type returns post-image for '+'"
 
-    src_tokens = patched_file.tokens_for_type(line_type)
+    src_tokens = patched_file_with_source.tokens_for_type(line_type)
     #print(f"{src_tokens[:2]}")
     assert src_tokens is not None, \
         f"tokens_for_type returns something for '{line_type}'"
     assert len(list(src_tokens)) > 0, \
         f"tokens_for_type returns non-empty iterable of tokens for '{line_type}'"
 
-    first_hunk = patched_file.patched_file[0]
-    first_hunk = AnnotatedHunk(patched_file=patched_file, hunk=first_hunk)
+    first_hunk = AnnotatedHunk(patched_file=patched_file_no_source,
+                               hunk=patched_file_no_source.patched_file[0])
+    first_hunk_from_sourced = AnnotatedHunk(patched_file=patched_file_with_source,
+                                            hunk=patched_file_with_source.patched_file[0])
+
     bare_hunk_data = first_hunk.process()
+    srcd_hunk_data = first_hunk_from_sourced.process()  # should use sources
+    # DEBUG
     #print(f"{bare_hunk_data=}")
+    #print(f"{srcd_hunk_data=}")
     bare_hunk_tokens = {line_data['id']: line_data['tokens'] for line_data
                         in bare_hunk_data['keras/engine/training_utils.py'][line_type]}
+    srcd_hunk_tokens = {line_data['id']: line_data['tokens'] for line_data
+                        in srcd_hunk_data['keras/engine/training_utils.py'][line_type]}
+    # DEBUG
     #print(f"{bare_hunk_tokens=}")
+    #print(f"{srcd_hunk_tokens=}")
     bare_tokens_renumbered = {
         i: bare_hunk_tokens[idx] for i, idx in zip(range(len(bare_hunk_tokens)), bare_hunk_tokens.keys())
     }
@@ -223,13 +234,25 @@ def test_AnnotatedPatchedFile(line_type):
         i: "".join([tok[2] for tok in tokens])
         for i, tokens in bare_tokens_renumbered.items()
     }
+    # DEBUG
     #print(f"{bare_tokens_renumbered=}")
     #print(f"{bare_lines_renumbered=}")
+    srcd_tokens_renumbered = {
+        i: val for i, val in enumerate(srcd_hunk_tokens.values())
+    }
+    srcd_lines_renumbered = {
+        i: "".join([tok[2] for tok in tokens])
+        for i, tokens in enumerate(srcd_hunk_tokens.values())
+    }
+    # DEBUG
+    #print(f"{srcd_tokens_renumbered=}")
+    #print(f"{srcd_lines_renumbered=}")
 
-    tokens_for_hunk = patched_file.hunk_tokens_for_type(line_type, first_hunk.hunk)
-    hunk_tokens = first_hunk.tokens_for_type(line_type)
+    tokens_for_hunk = patched_file_with_source.hunk_tokens_for_type(line_type, first_hunk_from_sourced.hunk)
+    hunk_tokens = first_hunk_from_sourced.tokens_for_type(line_type)
     assert tokens_for_hunk == hunk_tokens, \
         f"Both ways of getting tokens for {'removed' if line_type == '-' else 'added'} lines return same result"
+    # DEBUG
     #print(f"{tokens_for_hunk=}")
     tokens_renumbered = {
         i: tokens_for_hunk[idx] for i, idx in zip(range(len(tokens_for_hunk)), tokens_for_hunk.keys())
@@ -238,9 +261,11 @@ def test_AnnotatedPatchedFile(line_type):
         i: "".join([tok[2] for tok in tokens])
         for i, tokens in tokens_renumbered.items()
     }
+    # DEBUG
     #print(f"{tokens_renumbered=}")
     #print(f"{lines_renumbered=}")
-    #tokens_sel = patched_file.tokens_range_for_type('-', 432-1, 7)
+    # DEBUG
+    #tokens_sel = patched_file_with_source.tokens_range_for_type('-', 432-1, 7)
     #for k, v in tokens_sel.items():
     #    print(f"{k}: {v}")
 
@@ -248,6 +273,11 @@ def test_AnnotatedPatchedFile(line_type):
         "AnnotatedHunk.process() and AnnotatedPatchedFile.hunk_tokens_for_type() give the same lines"
     assert bare_tokens_renumbered != tokens_renumbered, \
         "lexing pre-image from diff is not the same as lexing whole pre-image file, in this case"
+
+    assert srcd_lines_renumbered == lines_renumbered, \
+        "AnnotatedHunk.process() with source and AnnotatedPatchedFile.hunk_tokens_for_type() give the same lines"
+    assert srcd_tokens_renumbered == tokens_renumbered, \
+        "AnnotatedHunk.process() with source and AnnotatedPatchedFile.hunk_tokens_for_type() give the same tokens"
 
 
 def test_Bug_from_dataset():

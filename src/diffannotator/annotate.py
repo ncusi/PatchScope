@@ -545,14 +545,14 @@ class AnnotatedPatchedFile:
             hunk = hunk.hunk
 
         result = {}
-        for line in hunk:
+        for hunk_line_no, line in enumerate(hunk):
             if line.line_type != line_type:
                 continue
             # NOTE: first line of file is line number 1, not 0, according to (uni)diff
             # but self.tokens_for_type(line_type) returns 0-based indexing
             line_no = line.source_line_no if line_type == unidiff.LINE_TYPE_REMOVED else line.target_line_no
             # first line is 1; first element has index 0
-            result[line_no] = tokens_list[line_no - 1]
+            result[hunk_line_no] = tokens_list[line_no - 1]
 
         return result
 
@@ -674,24 +674,33 @@ class AnnotatedHunk:
         # lex pre-image and post-image, separately
         for line_type in {unidiff.LINE_TYPE_ADDED, unidiff.LINE_TYPE_REMOVED}:
             # TODO: use NamedTuple, or TypedDict, or dataclass
-            line_data = [{
-                'value': line.value,
-                'hunk_line_no': i,
-                'line_type': line.line_type,
-            } for i, line in enumerate(self.hunk)
+            line_data = {
+                i: {
+                    'value': line.value,
+                    'hunk_line_no': i,
+                    'line_type': line.line_type,
+                } for i, line in enumerate(self.hunk)
                 # unexpectedly, there is no need to check for unidiff.LINE_TYPE_EMPTY
-                if line.line_type in {line_type, unidiff.LINE_TYPE_CONTEXT}]
+                if line.line_type in {line_type, unidiff.LINE_TYPE_CONTEXT}
+            }
 
             tokens_group = self.tokens_for_type(line_type)
             if tokens_group is None:
-                # pre-/post-image contents is not available, use whats in diff
-                source = ''.join([line['value'] for line in line_data])
+                # pre-/post-image contents is not available, use what is in diff
+                # dict are sorted, line_data elements are entered ascending
+                source = ''.join([line['value'] for line in line_data.values()])
 
                 tokens_list = LEXER.lex(file_path, source)
                 tokens_split = split_multiline_lex_tokens(tokens_list)
                 tokens_group = group_tokens_by_line(source, tokens_split)
                 # just in case, it should not be needed
                 tokens_group = front_fill_gaps(tokens_group)
+                # index tokens_group with hunk line no, not line index of pre-/post-image fragment
+                tokens_group = {
+                    list(line_data.values())[source_line_no]['hunk_line_no']: source_tokens_list
+                    for source_line_no, source_tokens_list
+                    in tokens_group.items()
+                }
 
             for i, line_tokens in tokens_group.items():
                 line_info = line_data[i]
