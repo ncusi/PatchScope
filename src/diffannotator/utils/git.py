@@ -8,7 +8,7 @@ Usage:
 ------
 Example usage:
   >>> from diffannotator.utils.git import GitRepo
-  >>> patch = GitRepo('path/to/git/repo').unidiff('HEAD')  # 'HEAD' is the default
+  >>> files = GitRepo('path/to/git/repo').list_files('HEAD')  # 'HEAD' is the default
   ...     ...
 
 This implementation / backend retrieves data by calling `git` via
@@ -24,12 +24,14 @@ import subprocess
 from collections import defaultdict
 from contextlib import contextmanager
 from enum import Enum
-from io import StringIO
+from io import StringIO, BufferedReader
 from pathlib import Path
-from typing import Optional, Union, TypeVar, Literal, overload, NamedTuple
+from typing import Optional, Union, TypeVar, Literal, overload, NamedTuple, Dict, List, Tuple
 from typing import Iterable, Iterator  # should be imported from collections.abc
 
 from unidiff import PatchSet
+from unidiff.patch import Line as PatchLine
+
 
 # TODO: move to __init__.py (it is common to all scripts)
 PathLike = TypeVar("PathLike", str, bytes, Path, os.PathLike)
@@ -56,7 +58,8 @@ class AuthorStat(NamedTuple):
     count: int = 0  #: number of commits per author
 
 
-def _parse_authorship_info(authorship_line, field_name='author'):
+def _parse_authorship_info(authorship_line: str,
+                           field_name: str = 'author') -> Dict[str, Union[str, int]]:
     """Parse author/committer info, and extract individual parts
 
     Extract author or committer 'name', 'email', creation time of changes
@@ -92,7 +95,8 @@ def _parse_authorship_info(authorship_line, field_name='author'):
     return authorship_info
 
 
-def _parse_commit_text(commit_text, with_parents_line=True, indented_body=True):
+def _parse_commit_text(commit_text: str, with_parents_line: bool = True,
+                       indented_body: bool = True) -> Optional[Dict[str, Union[str, dict, List[str]]]]:
     """Helper function for GitRepo.get_commit_metadata()
 
     The default values of `with_parents_line` and `indented_body` parameters
@@ -147,7 +151,7 @@ def _parse_commit_text(commit_text, with_parents_line=True, indented_body=True):
     return commit_data
 
 
-def _parse_blame_porcelain(blame_text):
+def _parse_blame_porcelain(blame_text: str) -> Tuple[dict, list]:
     """Parse 'git blame --porcelain' output and extract information
 
     In the porcelain format, each line is output after a header; the header
@@ -235,7 +239,7 @@ def _parse_blame_porcelain(blame_text):
     return commits_data, line_data
 
 
-def parse_shortlog_count(shortlog_lines: list[str | bytes]) -> list[AuthorStat]:
+def parse_shortlog_count(shortlog_lines: List[Union[str, bytes]]) -> List[AuthorStat]:
     """Parse the result of GitRepo.list_authors_shortlog() method
 
     :param shortlog_lines: result of list_authors_shortlog()
@@ -252,7 +256,7 @@ def parse_shortlog_count(shortlog_lines: list[str | bytes]) -> list[AuthorStat]:
     return result
 
 
-def decode_c_quoted_str(text):
+def decode_c_quoted_str(text: str) -> str:
     """C-style name unquoting
 
     See unquote_c_style() function in 'quote.c' file in git/git source code
@@ -377,7 +381,7 @@ class GitRepo:
             otherwise `None`.
         """
         # TODO: make it @classmethod (to be able to use in constructor)
-        def _to_repo_path(a_path: str):
+        def _to_repo_path(a_path: str) -> PathLike:
             if make_path_absolute:
                 if Path(a_path).is_absolute():
                     return a_path
@@ -480,7 +484,7 @@ class GitRepo:
         else:
             return process.stderr
 
-    def list_files(self, commit='HEAD'):
+    def list_files(self, commit: str = 'HEAD') -> List[str]:
         """Retrieve list of files at given revision in a repository
 
         :param str commit:
@@ -504,7 +508,8 @@ class GitRepo:
         # TODO: add error checking
         return result
 
-    def list_changed_files(self, commit='HEAD', side=DiffSide.POST):
+    def list_changed_files(self, commit: str = 'HEAD',
+                           side: DiffSide = DiffSide.POST) -> List[str]:
         """Retrieve list of files changed at given revision in repo
 
         NOTE: not tested for merge commits, especially "evil merges"
@@ -549,7 +554,8 @@ class GitRepo:
 
         return result
 
-    def diff_file_status(self, commit='HEAD', prev=None):
+    def diff_file_status(self, commit: str = 'HEAD',
+                         prev: Optional[str] = None) -> Dict[Tuple[str, str], str]:
         """Retrieve status of file changes at given revision in repo
 
         It returns in a structured way information equivalent to the one
@@ -622,7 +628,10 @@ class GitRepo:
 
         return result
 
-    def changed_lines_extents(self, commit='HEAD', prev=None, side=DiffSide.POST):
+    def changed_lines_extents(self, commit: str = 'HEAD',
+                              prev: Optional[str] = None,
+                              side: DiffSide = DiffSide.POST) -> Tuple[Dict[str, List[Tuple[int, int]]],
+                                                                       Dict[str, List[PatchLine]]]:
         """List target line numbers of changed files as extents, for each changed file
 
         For each changed file that appears in `side` side of the diff between
@@ -854,7 +863,7 @@ class GitRepo:
             print(f"Error running 'git log' for {self.repo.name} repo, error code = {return_code}")
             print(f"- repository path: '{self.repo}'")
 
-    def _file_contents_process(self, commit, path):
+    def _file_contents_process(self, commit: str, path: str) -> subprocess.Popen[bytes]:
         cmd = [
             'git', '-C', self.repo, 'show',  # or 'git', '-C', self.repo, 'cat-file', 'blob',
             # assumed that 'commit' is sane
@@ -864,7 +873,7 @@ class GitRepo:
 
         return process
 
-    def file_contents(self, commit, path, encoding=None):
+    def file_contents(self, commit: str, path: str, encoding: Optional[str] = None) -> str:
         """Retrieve contents of given file at given revision / tree
 
         :param str commit: The commit for which to return file contents.
@@ -886,7 +895,7 @@ class GitRepo:
         return result
 
     @contextmanager
-    def open_file(self, commit, path):
+    def open_file(self, commit: str, path: str) -> BufferedReader:
         """Open given file at given revision / tree as binary file
 
         Works as a context manager, like `pathlib.Path.open()`:
@@ -907,7 +916,7 @@ class GitRepo:
             process.stdout.close()  # to avoid ResourceWarning: unclosed file <_io.BufferedReader name=3>
             process.wait()  # to avoid ResourceWarning: subprocess NNN is still running
 
-    def list_tags(self):
+    def list_tags(self) -> List[str]:
         """Retrieve list of all tags in the repository
 
         :return: List of all tags in the repository.
@@ -924,7 +933,7 @@ class GitRepo:
 
         return tags
 
-    def create_tag(self, tag_name, commit='HEAD'):
+    def create_tag(self, tag_name: str, commit: str = 'HEAD') -> None:
         """Create lightweight tag (refs/tags/* ref) to the given commit
 
         NOTE: does not support annotated tags for now; among others it
@@ -945,7 +954,7 @@ class GitRepo:
         # we are interested in effects of the command, not its output
         subprocess.run(cmd, stdout=subprocess.DEVNULL, check=True)
 
-    def get_commit_metadata(self, commit='HEAD'):
+    def get_commit_metadata(self, commit: str = 'HEAD') -> Dict[str, Union[str, dict, list]]:
         """Retrieve metadata about given commit
 
         :param str commit: The commit to examine.
@@ -993,7 +1002,7 @@ class GitRepo:
             with_parents_line=True, indented_body=True
         )
 
-    def find_commit_by_timestamp(self, timestamp, start_commit='HEAD'):
+    def find_commit_by_timestamp(self, timestamp: Union[str, int], start_commit: str = 'HEAD') -> str:
         """Find first commit in repository older than given date
 
         :param timestamp: Date in UNIX epoch format, also known as timestamp format.
@@ -1024,7 +1033,7 @@ class GitRepo:
 
         return result
 
-    def to_oid(self, obj):
+    def to_oid(self, obj: str) -> Union[str, None]:
         """Convert object reference to object identifier
 
         Returns None if object `obj` is not present in the repository
@@ -1047,7 +1056,7 @@ class GitRepo:
         # SHA-1 is ASCII only
         return process.stdout.decode('latin1').strip()
 
-    def is_valid_commit(self, commit):
+    def is_valid_commit(self, commit: str) -> bool:
         """Check if `commit` is present in the repository as a commit
 
         :param str commit: reference to a commit, for example "HEAD" or "main",
@@ -1057,7 +1066,7 @@ class GitRepo:
         """
         return self.to_oid(str(commit) + '^{commit}') is not None
 
-    def get_current_branch(self):
+    def get_current_branch(self) -> Union[str, None]:
         """Return short name of the current branch
 
         It returns name of the branch, e.g. "main", rather than fully
@@ -1082,7 +1091,7 @@ class GitRepo:
 
         return process.stdout.strip()
 
-    def resolve_symbolic_ref(self, ref='HEAD'):
+    def resolve_symbolic_ref(self, ref: str = 'HEAD') -> Union[str, None]:
         """Return full name of reference `ref` symbolic ref points to
 
         If `ref` is not symbolic reference (e.g. ref='HEAD' and detached
@@ -1105,7 +1114,7 @@ class GitRepo:
 
         return process.stdout.strip()
 
-    def _to_refs_list(self, ref_pattern='HEAD'):
+    def _to_refs_list(self, ref_pattern: str = 'HEAD') -> filter:
         # support single patter or list of patterns
         # TODO: use variable number of parameters instead (?)
         if not isinstance(ref_pattern, list):
@@ -1121,7 +1130,8 @@ class GitRepo:
             )
         )
 
-    def check_merged_into(self, commit, ref_pattern='HEAD'):
+    # TODO?: change name to `list_merged_into`
+    def check_merged_into(self, commit: str, ref_pattern: str = 'HEAD') -> List[str]:
         """List those refs among `ref_pattern` that contain given `commit`
 
         This method can be used to check if a given `commit` is merged into
@@ -1154,8 +1164,10 @@ class GitRepo:
         process = subprocess.run(cmd, capture_output=True, check=True, text=True)
         return process.stdout.splitlines()
 
-    def count_commits(self, start_from=StartLogFrom.CURRENT, until_commit=None,
-                      first_parent=False):
+    def count_commits(self,
+                      start_from: str = StartLogFrom.CURRENT,
+                      until_commit: str = None,
+                      first_parent: bool = False) -> int:
         """Count number of commits in the repository
 
         Starting from `start_from`, count number of commits, stopping
@@ -1188,7 +1200,7 @@ class GitRepo:
 
         return int(process.stdout)
 
-    def list_authors_shortlog(self, start_from=StartLogFrom.ALL):
+    def list_authors_shortlog(self, start_from: str = StartLogFrom.ALL) -> List[Union[str, bytes]]:
         """List all authors using git-shortlog
 
         Summarizes the history of the project by providing list of authors
@@ -1220,7 +1232,7 @@ class GitRepo:
             # if not possible, return bytes
             return process.stdout.splitlines()
 
-    def find_roots(self, start_from=StartLogFrom.CURRENT):
+    def find_roots(self, start_from: str = StartLogFrom.CURRENT) -> List[str]:
         """Find root commits (commits without parents), starting from `start_from`
 
         :param start_from: where to start from to follow 'parent' links
@@ -1241,7 +1253,7 @@ class GitRepo:
         process = subprocess.run(cmd, capture_output=True, check=True, text=True)
         return process.stdout.splitlines()
 
-    def get_config(self, name, value_type=None):
+    def get_config(self, name: str, value_type: Optional[str] = None) -> Union[str, None]:
         """Query specific git config option
 
         If there is no Git configuration variable named `name`,
