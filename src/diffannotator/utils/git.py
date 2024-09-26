@@ -1114,7 +1114,7 @@ class GitRepo:
 
         return process.stdout.strip()
 
-    def _to_refs_list(self, ref_pattern: str = 'HEAD') -> filter:
+    def _to_refs_list(self, ref_pattern: Union[str, List[str]] = 'HEAD') -> List[str]:
         # support single patter or list of patterns
         # TODO: use variable number of parameters instead (?)
         if not isinstance(ref_pattern, list):
@@ -1131,7 +1131,7 @@ class GitRepo:
         )
 
     # TODO?: change name to `list_merged_into`
-    def check_merged_into(self, commit: str, ref_pattern: str = 'HEAD') -> List[str]:
+    def check_merged_into(self, commit: str, ref_pattern: Union[str, List[str]] = 'HEAD') -> List[str]:
         """List those refs among `ref_pattern` that contain given `commit`
 
         This method can be used to check if a given `commit` is merged into
