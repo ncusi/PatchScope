@@ -6,9 +6,13 @@ from typer.testing import CliRunner
 from diffannotator.annotate import app as annotate_app, Bug
 from diffannotator.generate_patches import app as generate_app
 from diffannotator.gather_data import app as gather_app
-
+from diffannotator.utils.git import GitRepo
 
 runner = CliRunner()
+
+
+#-----------------------------------------------------------------------------
+# testing annotate_app
 
 
 def test_annotate_patch(tmp_path: Path):
@@ -93,6 +97,25 @@ def test_annotate_from_repo(tmp_path: Path):
         print(result.stdout)
     assert result.exit_code == 0, \
         "app runs 'from-repo --with-fanout' subcommand without errors"
+
+
+# faster way of providing Git repository than cloning it from GitHub
+def test_annotate_from_repo_parallel(tmp_path: Path, example_repo: GitRepo):
+    repo_dir = example_repo.repo
+    output_dir = tmp_path / 'annotation'
+
+    result = runner.invoke(annotate_app, [
+        "from-repo",
+        f"--output-dir={output_dir}",
+        "--n_jobs=2",
+        str(repo_dir),
+        '-2', 'HEAD'  # 5 latest commit on the current branch
+    ])
+
+    if result.exit_code != 0:
+        print(result.stdout)
+    assert result.exit_code == 0, \
+        "app runs 'from-repo --n_jobs=2' subcommand without errors"
 
 
 def test_annotate_patch_with_line_callback(tmp_path: Path):
@@ -238,6 +261,10 @@ def test_annotate_patch_with_filename_to_language(tmp_path: Path):
         "app mentions that it cleared mapping because of empty value of --filename-to-language"
 
 
+#-----------------------------------------------------------------------------
+# testing generate_app
+
+
 def test_generate_patches(tmp_path: Path):
     test_repo_url = 'https://github.com/githubtraining/hellogitworld.git'
     repo_dir = tmp_path / 'hellogitworld'
@@ -305,6 +332,10 @@ def test_generate_patches_with_fanout(tmp_path: Path):
     #assert total_diffs == 5, \
     #    "generate app created 5 diff files"
     print(f"{total_diffs=}/5")
+
+
+#-----------------------------------------------------------------------------
+# testing gather_app
 
 
 def test_gather_data(tmp_path: Path):

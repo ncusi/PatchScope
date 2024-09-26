@@ -16,6 +16,7 @@ from textwrap import dedent
 from typing import List, Dict, Tuple, TypeVar, Optional, Union, Iterator, Literal
 from typing import Iterable, Generator, Callable  # should be imported from collections.abc
 
+from joblib import Parallel, delayed
 from pygments.token import Token
 import unidiff
 import tqdm
@@ -1445,6 +1446,18 @@ def parse_line_callback(code_str: Optional[str]) -> Optional[LineCallback]:
     return line_callback
 
 
+def process_single_bug(bugs: BugDataset, bug_id: str, output_dir: Path,
+                       annotations_dir: str,
+                       bugsinpy_layout: bool, use_fanout: bool, use_repo: bool):
+    if bugsinpy_layout:
+        bugs.get_bug(bug_id, use_repo=use_repo) \
+            .save(annotate_dir=output_dir.joinpath(bug_id,
+                                                   annotations_dir))
+    else:
+        bugs.get_bug(bug_id, use_repo=use_repo) \
+            .save(annotate_dir=output_dir, fan_out=use_fanout)
+
+
 # implementing options common to all subcommands
 @app.callback()
 def common(
@@ -1771,6 +1784,14 @@ def from_repo(
             help="Retrieve pre-/post-image contents from repo, and use it for lexing"
         )
     ] = False,
+    n_jobs: Annotated[
+        int,
+        typer.Option(
+            "--n_jobs",  # like in joblib
+            "-j",    # like in ripgrep, make,...
+            help="Number of processes to use (joblib); 0 turns feature off"
+        )
+    ] = 0,
 ) -> None:
     """Create annotation data for commits from local Git repository
 
@@ -1806,21 +1827,27 @@ def from_repo(
 
     print(f"Generating patches from local Git repo '{repo_path}'\n"
           f"  using `git log -p {' '.join([repr(arg) for arg in log_args.args])}`")
+    # getting data out of git is limited by git performance
+    # parsing data retrieved from git could be maybe done in parallel
     beg_time = time.perf_counter()
     bugs = BugDataset.from_repo(repo, revision_range=log_args.args)
     end_time = time.perf_counter()
     print(f"  took {end_time - beg_time:0.4f} seconds")
 
     print(f"Annotating commits and saving annotated data, for {len(bugs)} commits")
-    with logging_redirect_tqdm():
-        for bug_id in tqdm.tqdm(bugs, desc='commits'):
-            if bugsinpy_layout:
-                bugs.get_bug(bug_id, use_repo=use_repo)\
-                    .save(annotate_dir=output_dir.joinpath(bug_id,
-                                                           annotations_dir))
-            else:
-                bugs.get_bug(bug_id, use_repo=use_repo)\
-                    .save(annotate_dir=output_dir, fan_out=use_fanout)
+    if n_jobs == 0:
+        with logging_redirect_tqdm():
+            for bug_id in tqdm.tqdm(bugs, desc='commits'):
+                process_single_bug(bugs, bug_id, output_dir,
+                                   annotations_dir, bugsinpy_layout, use_fanout, use_repo)
+    else:
+        # NOTE: alternative would be to use tqdm.contrib.concurrent.process_map
+        print(f"  using joblib with n_jobs={n_jobs}")
+        Parallel(n_jobs=n_jobs)(
+            delayed(process_single_bug)(bugs, bug_id, output_dir,
+                                        annotations_dir, bugsinpy_layout, use_fanout, use_repo)
+            for bug_id in bugs
+        )
 
 
 if __name__ == "__main__":
