@@ -12,7 +12,7 @@ from diffannotator.annotate import (split_multiline_lex_tokens, line_ends_idx,
                                     group_tokens_by_line, front_fill_gaps, deep_update,
                                     clean_text, line_is_comment, annotate_single_diff,
                                     Bug, BugDataset, AnnotatedPatchedFile, AnnotatedHunk)
-from diffannotator.utils.git import GitRepo
+from diffannotator.utils.git import GitRepo, DiffSide
 
 # Example code to be tokenized
 example_C_code = r'''
@@ -334,6 +334,55 @@ def test_Bug_from_patchset():
                                               repo=GitRepo('a/b/c'))
     assert commit_id in bug_with_invalid_repo.patches, \
         "retrieved annotations for the single patchset (with invalid repo)"
+
+
+def test_Bug_from_patchset_from_example_repo(example_repo: GitRepo):
+    patch = example_repo.unidiff('v2')
+    commit_id = example_repo.to_oid('v2')
+    if commit_id is None:
+        pytest.skip(f"Could not retrieve oid for 'v2' tag from the example repo: {example_repo!r}")
+
+    # DEBUG
+    #print(f"{patch=}")
+    #file: unidiff.PatchedFile
+    #for file in patch:
+    #    print(f"- {file=}: {file.source_file} -> {file.target_file}")
+
+    bug = Bug.from_patchset(patch_id=commit_id, patch_set=patch, repo=example_repo)
+    # DEBUG
+    #print(patch)
+    #from pprint import pprint
+    #pprint(bug.patches[commit_id])
+    # TODO: check that the only warnings are 'No lexer found'/'Unknown file type' in std{out,err}/log
+
+    assert commit_id in bug.patches, \
+        "retrieved annotations for the single commit from example repo"
+    assert len(bug.patches) == 1, \
+        "created Bug object has only 1 patchset (for a single commit)"
+
+    dst_files = example_repo.list_changed_files(commit=commit_id, side=DiffSide.POST)
+    assert set(dst_files) <= set(bug.patches[commit_id].keys()), \
+        "info about every changed file (from post-image side) is in a bug patch from commit"
+
+    diff_stat = example_repo.diff_file_status(commit=commit_id)
+    added_files = [ dst_name for (src_name, dst_name), stat in diff_stat.items() if stat == 'A' ]
+    #renamed_files = [ f for files, stat in diff_stat.items() if stat == 'R'
+    #                  for f in files ]
+    renames_list = [ files for files, stat in diff_stat.items() if stat == 'R' ]
+    # DEBUG
+    #print(f"{added_files=}")
+    #print(f"{renames_list=}")
+    for f in added_files:
+        assert '-' not in bug.patches[commit_id][f], \
+            f"added file '{f}' has no '-' lines"
+    for (s, d) in renames_list:
+        assert '+' not in bug.patches[commit_id][s], \
+            f"the '{s}' pre-commit of renamed file has no '+' lines"
+        assert '-' not in bug.patches[commit_id][d], \
+            f"the '{d}' post-commit of renamed file has no '-' lines"
+
+    # NOTE: there is no way to check if sources were retrieved, except for mocking,
+    # because AnnotatedPatchedFile is created only locally, and Bug stores just annotations
 
 
 def test_Bug_save(tmp_path: Path):
