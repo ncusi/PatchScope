@@ -1770,7 +1770,7 @@ def from_repo(
         typer.Option(
             help="Retrieve pre-/post-image contents from repo, and use it for lexing"
         )
-    ] = True,
+    ] = False,
 ) -> None:
     """Create annotation data for commits from local Git repository
 
