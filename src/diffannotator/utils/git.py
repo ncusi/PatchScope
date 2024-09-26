@@ -756,7 +756,9 @@ class GitRepo:
             diff_output = process.stdout.decode(self.fallback_encoding)
 
         if wrap:
-            return PatchSet(diff_output)
+            patch_set = PatchSet(diff_output)
+            patch_set.commit_id = self.to_oid(commit)  # remember the commit id in an attribute
+            return patch_set
         else:
             return diff_output
 
