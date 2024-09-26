@@ -4,7 +4,7 @@
 import pytest
 from unidiff import PatchSet
 
-from diffannotator.utils.git import decode_c_quoted_str, GitRepo, DiffSide, AuthorStat, parse_shortlog_count
+from diffannotator.utils.git import decode_c_quoted_str, GitRepo, DiffSide, AuthorStat, parse_shortlog_count, ChangeSet
 from tests.conftest import default_branch, example_repo
 
 
@@ -136,7 +136,9 @@ def test_unidiff_wrap(example_repo):
     assert isinstance(example_repo.unidiff(), PatchSet), \
         "return PatchSet by default"
     assert isinstance(example_repo.unidiff(wrap=True), PatchSet), \
-        "with wrap=True return PatchSet"
+        "with wrap=True return unidiff.PatchSet"
+    assert isinstance(example_repo.unidiff(wrap=True), ChangeSet), \
+        "with wrap=True return utils.git.ChangeSet"
     assert isinstance(example_repo.unidiff(wrap=False), str), \
         "with wrap=False return str"
 

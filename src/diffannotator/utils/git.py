@@ -58,6 +58,14 @@ class AuthorStat(NamedTuple):
     count: int = 0  #: number of commits per author
 
 
+class ChangeSet(PatchSet):
+    """Commit changes, together with commit data"""
+    def __init__(self, patch_source: Union[StringIO, str], commit_id: str,
+                 *args, **kwargs):
+        super().__init__(patch_source, *args, **kwargs)
+        self.commit_id = commit_id
+
+
 def _parse_authorship_info(authorship_line: str,
                            field_name: str = 'author') -> Dict[str, Union[str, int]]:
     """Parse author/committer info, and extract individual parts
@@ -702,7 +710,7 @@ class GitRepo:
         return file_ranges, file_diff_lines_added
 
     @overload
-    def unidiff(self, commit: str = ..., prev: Optional[str] = ..., wrap: Literal[True] = ...) -> PatchSet:
+    def unidiff(self, commit: str = ..., prev: Optional[str] = ..., wrap: Literal[True] = ...) -> ChangeSet:
         ...
 
     @overload
@@ -710,7 +718,7 @@ class GitRepo:
         ...
 
     @overload
-    def unidiff(self, commit: str = ..., prev: Optional[str] = ..., wrap: bool = ...) -> Union[str, bytes, PatchSet]:
+    def unidiff(self, commit: str = ..., prev: Optional[str] = ..., wrap: bool = ...) -> Union[str, bytes, ChangeSet]:
         ...
 
     def unidiff(self, commit='HEAD', prev=None, wrap=True):
@@ -732,7 +740,7 @@ class GitRepo:
         :param bool wrap: whether to wrap the result in PatchSet
         :return: the changes between two arbitrary commits,
             `prev` and `commit`
-        :rtype: str or bytes or PatchSet
+        :rtype: str or bytes or ChangeSet
         """
         if prev is None:
             try:
@@ -756,15 +764,13 @@ class GitRepo:
             diff_output = process.stdout.decode(self.fallback_encoding)
 
         if wrap:
-            patch_set = PatchSet(diff_output)
-            patch_set.commit_id = self.to_oid(commit)  # remember the commit id in an attribute
-            return patch_set
+            return ChangeSet(diff_output, self.to_oid(commit))
         else:
             return diff_output
 
     @overload
     def log_p(self, revision_range: Union[str, Iterable[str]] = ..., wrap: Literal[True] = ...) \
-            -> Iterator[PatchSet]:
+            -> Iterator[ChangeSet]:
         ...
 
     @overload
@@ -774,7 +780,7 @@ class GitRepo:
 
     @overload
     def log_p(self, revision_range: Union[str, Iterable[str]] = ..., wrap: bool = ...) \
-            -> Union[Iterator[str], Iterator[PatchSet]]:
+            -> Union[Iterator[str], Iterator[ChangeSet]]:
         ...
 
     def log_p(self, revision_range=('-1', 'HEAD'), wrap=True):
@@ -794,12 +800,10 @@ class GitRepo:
         :param wrap: whether to wrap the result in PatchSet
         :return: the changes for given `revision_range`
         """
-        def commit_with_patch(_commit_id: str, _commit_data: StringIO) -> PatchSet:
-            """Helper to create PatchSet with `_commit_id` as commit_id attribute"""
+        def commit_with_patch(_commit_id: str, _commit_data: StringIO) -> ChangeSet:
+            """Helper to create ChangeSet with from _commit_data stream"""
             _commit_data.seek(0)  # rewind to beginning for reading by the PatchSet constructor
-            patch_set = PatchSet(_commit_data)  # parse commit with patch to PatchSet
-            patch_set.commit_id = _commit_id  # remember the commit id in an attribute
-            return patch_set
+            return ChangeSet(_commit_data, _commit_id)
 
         cmd = [
             'git', '-C', str(self.repo),

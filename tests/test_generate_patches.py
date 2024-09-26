@@ -11,7 +11,7 @@ import pytest
 import unidiff
 
 from diffannotator.annotate import annotate_single_diff
-from diffannotator.utils.git import GitRepo
+from diffannotator.utils.git import GitRepo, ChangeSet
 
 
 def test_clone_repository(tmp_path: Path):
@@ -112,6 +112,8 @@ def test_log_p(tmp_path: Path):
         "we got 3 patches we expected from `git log -3 HEAD` (with wrap)"
     assert all([isinstance(patch, unidiff.PatchSet) for patch in result]), \
         "all patches are wrapped in unidiff.PatchSet"
+    assert all([isinstance(patch, ChangeSet) for patch in result]), \
+        "all patches are wrapped in utils.git.ChangeSet"
     sha1_re = re.compile(r"^[0-9a-fA-F]{40}$")  # SHA-1 identifier is 40 hex digits long
     assert all([hasattr(patch, 'commit_id') and
                 re.fullmatch(sha1_re, getattr(patch, 'commit_id') or '')
