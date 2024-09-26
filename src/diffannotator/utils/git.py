@@ -59,11 +59,31 @@ class AuthorStat(NamedTuple):
 
 
 class ChangeSet(PatchSet):
-    """Commit changes, together with commit data"""
+    """Commit changes, together with commit data
+
+    Note that changeset can come from a commit, or from a diff
+    between two different commits (tree-ish)
+    """
     def __init__(self, patch_source: Union[StringIO, str], commit_id: str,
+                 prev: Optional[str] = None,
                  *args, **kwargs):
+        """ChangeSet class constructor
+
+        :param patch_source: patch source to be parsed by PatchSet (parent class)
+        :param commit_id: oid of the "after" commit (tree-ish) for the change
+        :param prev: previous state, when ChangeSet is generated with .unidiff(),
+            or `None` it the change corresponds to a commit (assumed first-parent)
+        :param args: passed to PatchSet constructor
+        :param kwargs: passed to PatchSet constructor (recommended);
+            PatchSet uses `encoding` (str) and `metadata_only` (bool): :raw-html:`<br />`
+            if `encoding` is `None`, assume we are reading Unicode data,
+            when `metadata_only` is `True`, only perform a minimal metadata parsing
+            (i.e. hunks without content) which is around 2.5-6 times faster;
+            it will still validate the diff metadata consistency and get counts
+        """
         super().__init__(patch_source, *args, **kwargs)
         self.commit_id = commit_id
+        self.prev = prev
 
 
 def _parse_authorship_info(authorship_line: str,
@@ -764,7 +784,8 @@ class GitRepo:
             diff_output = process.stdout.decode(self.fallback_encoding)
 
         if wrap:
-            return ChangeSet(diff_output, self.to_oid(commit))
+            return ChangeSet(diff_output, self.to_oid(commit),
+                             prev=prev)
         else:
             return diff_output
 
