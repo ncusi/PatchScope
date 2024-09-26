@@ -1072,6 +1072,7 @@ class BugDataset:
                  patches_dict: Optional[Dict[str, unidiff.PatchSet]] = None,
                  patches_dir: str = Bug.DEFAULT_PATCHES_DIR,
                  annotations_dir: str = Bug.DEFAULT_ANNOTATIONS_DIR,
+                 repo: Optional[GitRepo] = None,
                  fan_out: bool = False):
         """Constructor of bug dataset.
 
@@ -1110,6 +1111,8 @@ class BugDataset:
         self._patches_dir = patches_dir
         self._annotations_dir = annotations_dir
         self._fan_out = fan_out
+        # TODO: warn if repo is used with not None dataset_path
+        self._git_repo = repo
 
     @classmethod
     def from_directory(cls, dataset_dir: PathLike,
@@ -1171,15 +1174,20 @@ class BugDataset:
 
         commit_patches = {getattr(patch_set, "commit_id", f"idx-{i}"): patch_set
                           for i, patch_set in enumerate(patches)}
-        obj = BugDataset(bug_ids=list(commit_patches), patches_dict=commit_patches)
-        obj._git_repo = repo  # for debug and info
+        obj = BugDataset(bug_ids=list(commit_patches), patches_dict=commit_patches,
+                         repo=repo)
 
         return obj
 
-    def get_bug(self, bug_id: str) -> Bug:
+    def get_bug(self, bug_id: str,
+                use_repo: bool = True) -> Bug:
         """Return specified bug
 
         :param bug_id: identifier of a bug in this dataset
+        :param use_repo: whether to retrieve pre-/post-image contents
+            from self._git_repo, if available (makes difference only
+            for datasets created from repository, for example with
+            BugDataset.from_repo())
         :returns: Bug instance
         """
         if self._dataset_path is not None:
@@ -1190,7 +1198,8 @@ class BugDataset:
 
         elif self._patches is not None:
             patch_set = self._patches[bug_id]
-            return Bug.from_patchset(bug_id, patch_set)
+            return Bug.from_patchset(bug_id, patch_set,
+                                     repo=self._git_repo if use_repo else None)
 
         # TODO: log an error
         print(f"{self!r}: could not get bug with {bug_id=}")
