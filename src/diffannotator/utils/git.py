@@ -160,6 +160,8 @@ def _parse_commit_text(commit_text: str, with_parents_line: bool = True,
             line_no = idx
             break
 
+        if 'id' not in commit_data and line.startswith('commit '):
+            commit_data['id'] = line[len('commit '):]
         if line.startswith('tree '):
             commit_data['tree'] = line[len('tree '):]
         if not with_parents_line and line.startswith('parent'):
