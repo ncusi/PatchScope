@@ -846,6 +846,7 @@ class Bug:
         self.save_dir: Optional[Path] = Path(save_dir) \
             if save_dir is not None else None
 
+        # TODO: rename to self.patches_annotations, to better reflect its contents
         self.patches: dict[str, dict] = patches_data
 
     @classmethod
@@ -922,6 +923,7 @@ class Bug:
 
         try:
             # based on annotate_single_diff() function code
+            patched_file: unidiff.PatchedFile
             for i, patched_file in enumerate(patch_set, start=1):
                 # create AnnotatedPatchedFile object from i-th changed file in patchset
                 annotated_patch_file = AnnotatedPatchedFile(patched_file)
@@ -929,10 +931,11 @@ class Bug:
                 src: Optional[str] = None
                 dst: Optional[str] = None
                 if repo is not None:
-                    if src_commit is not None:
-                        src = repo.file_contents(src_commit, patched_file.source_file)
-                    if dst_commit is not None:
-                        dst = repo.file_contents(dst_commit, patched_file.target_file)
+                    # we need real name, not prefixed with "a/" or "b/" name in unidiff.PatchedFile
+                    if src_commit is not None and annotated_patch_file.source_file != "/dev/null":
+                        src = repo.file_contents(src_commit, annotated_patch_file.source_file)
+                    if dst_commit is not None and annotated_patch_file.target_file != "/dev/null":
+                        dst = repo.file_contents(dst_commit, annotated_patch_file.target_file)
                 annotated_patch_file.add_sources(src=src, dst=dst)
                 # add annotations from i-th changed file
                 patch_annotations.update(annotated_patch_file.process())
