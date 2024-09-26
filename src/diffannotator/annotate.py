@@ -27,7 +27,7 @@ import yaml
 from . import languages
 from .languages import Languages
 from .lexer import Lexer
-from .utils.git import GitRepo
+from .utils.git import GitRepo, ChangeSet
 
 # optional dependencies
 try:
@@ -920,6 +920,13 @@ class Bug:
                 dst_commit = patch_id
             if repo.is_valid_commit(f"{patch_id}^"):
                 src_commit = f"{patch_id}^"
+
+        # add commit metadata to annotations, if available
+        if isinstance(patch_set, ChangeSet):
+            commit_metadata = {'id': patch_set.commit_id}
+            if patch_set.commit_metadata is not None:
+                commit_metadata.update(patch_set.commit_metadata)
+            patch_annotations['commit_metadata'] = commit_metadata
 
         try:
             # based on annotate_single_diff() function code
