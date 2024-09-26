@@ -38,8 +38,8 @@
         - [x] `patch` - annotate a given single patch file
         - [x] `dataset` - annotate all patches in a given dataset (directory with directories with patches)
         - [x] `from-repo` - annotate changesets of given selected revisions in a given Git repository
-    - [ ] parse whole pre-image and post-image files
-          (via Git, or via GitHub / GitLab / ...)
+    - [x] parse whole pre-image and post-image files
+          (only via Git currently; ~~or via GitHub / GitLab / ...~~)
     - [ ] configurable file type
         - [x] global option `--ext-to-language` (the API it uses already existed)
         - [x] global option `--filename-to-language` (using new API)

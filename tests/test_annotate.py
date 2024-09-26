@@ -11,8 +11,8 @@ import unidiff
 from diffannotator.annotate import (split_multiline_lex_tokens, line_ends_idx,
                                     group_tokens_by_line, front_fill_gaps, deep_update,
                                     clean_text, line_is_comment, annotate_single_diff,
-                                    Bug, BugDataset, AnnotatedPatchedFile)
-from diffannotator.generate_patches import GitRepo
+                                    Bug, BugDataset, AnnotatedPatchedFile, AnnotatedHunk)
+from diffannotator.utils.git import GitRepo, DiffSide
 
 # Example code to be tokenized
 example_C_code = r'''
@@ -180,6 +180,106 @@ def test_annotate_single_diff():
         annotate_single_diff(file_path)
 
 
+@pytest.mark.parametrize("line_type", [unidiff.LINE_TYPE_REMOVED, unidiff.LINE_TYPE_ADDED])
+def test_AnnotatedPatchedFile(line_type):
+    # code patch
+    file_path = 'tests/test_dataset_structured/keras-10/patches/c1c4afe60b1355a6c0e83577791a0423f37a3324.diff'
+
+    # create AnnotatedPatchedFile object
+    patch_set = unidiff.PatchSet.from_filename(file_path, encoding="utf-8")
+    patched_file_no_source = AnnotatedPatchedFile(patch_set[0])    # .add_sources*() modify object
+    patched_file_with_source = AnnotatedPatchedFile(patch_set[0])
+
+    # add contents of pre-image and post-image
+    files_path = Path('tests/test_dataset_structured/keras-10/files')  # must agree with `file_path`
+    src_path = files_path / 'a' / Path(patched_file_with_source.source_file).name
+    dst_path = files_path / 'b' / Path(patched_file_with_source.target_file).name
+    patched_file_with_source = patched_file_with_source.add_sources_from_files(src_path, dst_path)
+
+    src_text = src_path.read_text(encoding="utf-8")
+    dst_text = dst_path.read_text(encoding="utf-8")
+    assert patched_file_with_source.image_for_type('-') == src_text, \
+        "image_for_type returns pre-image for '-'"
+    assert patched_file_with_source.image_for_type('+') == dst_text, \
+        "image_for_type returns post-image for '+'"
+
+    src_tokens = patched_file_with_source.tokens_for_type(line_type)
+    #print(f"{src_tokens[:2]}")
+    assert src_tokens is not None, \
+        f"tokens_for_type returns something for '{line_type}'"
+    assert len(list(src_tokens)) > 0, \
+        f"tokens_for_type returns non-empty iterable of tokens for '{line_type}'"
+
+    first_hunk = AnnotatedHunk(patched_file=patched_file_no_source,
+                               hunk=patched_file_no_source.patched_file[0])
+    first_hunk_from_sourced = AnnotatedHunk(patched_file=patched_file_with_source,
+                                            hunk=patched_file_with_source.patched_file[0])
+
+    bare_hunk_data = first_hunk.process()
+    srcd_hunk_data = first_hunk_from_sourced.process()  # should use sources
+    # DEBUG
+    #print(f"{bare_hunk_data=}")
+    #print(f"{srcd_hunk_data=}")
+    bare_hunk_tokens = {line_data['id']: line_data['tokens'] for line_data
+                        in bare_hunk_data['keras/engine/training_utils.py'][line_type]}
+    srcd_hunk_tokens = {line_data['id']: line_data['tokens'] for line_data
+                        in srcd_hunk_data['keras/engine/training_utils.py'][line_type]}
+    # DEBUG
+    #print(f"{bare_hunk_tokens=}")
+    #print(f"{srcd_hunk_tokens=}")
+    bare_tokens_renumbered = {
+        i: bare_hunk_tokens[idx] for i, idx in zip(range(len(bare_hunk_tokens)), bare_hunk_tokens.keys())
+    }
+    bare_lines_renumbered = {
+        i: "".join([tok[2] for tok in tokens])
+        for i, tokens in bare_tokens_renumbered.items()
+    }
+    # DEBUG
+    #print(f"{bare_tokens_renumbered=}")
+    #print(f"{bare_lines_renumbered=}")
+    srcd_tokens_renumbered = {
+        i: val for i, val in enumerate(srcd_hunk_tokens.values())
+    }
+    srcd_lines_renumbered = {
+        i: "".join([tok[2] for tok in tokens])
+        for i, tokens in enumerate(srcd_hunk_tokens.values())
+    }
+    # DEBUG
+    #print(f"{srcd_tokens_renumbered=}")
+    #print(f"{srcd_lines_renumbered=}")
+
+    tokens_for_hunk = patched_file_with_source.hunk_tokens_for_type(line_type, first_hunk_from_sourced.hunk)
+    hunk_tokens = first_hunk_from_sourced.tokens_for_type(line_type)
+    assert tokens_for_hunk == hunk_tokens, \
+        f"Both ways of getting tokens for {'removed' if line_type == '-' else 'added'} lines return same result"
+    # DEBUG
+    #print(f"{tokens_for_hunk=}")
+    tokens_renumbered = {
+        i: tokens_for_hunk[idx] for i, idx in zip(range(len(tokens_for_hunk)), tokens_for_hunk.keys())
+    }
+    lines_renumbered = {
+        i: "".join([tok[2] for tok in tokens])
+        for i, tokens in tokens_renumbered.items()
+    }
+    # DEBUG
+    #print(f"{tokens_renumbered=}")
+    #print(f"{lines_renumbered=}")
+    # DEBUG
+    #tokens_sel = patched_file_with_source.tokens_range_for_type('-', 432-1, 7)
+    #for k, v in tokens_sel.items():
+    #    print(f"{k}: {v}")
+
+    assert bare_lines_renumbered == lines_renumbered, \
+        "AnnotatedHunk.process() and AnnotatedPatchedFile.hunk_tokens_for_type() give the same lines"
+    assert bare_tokens_renumbered != tokens_renumbered, \
+        "lexing pre-image from diff is not the same as lexing whole pre-image file, in this case"
+
+    assert srcd_lines_renumbered == lines_renumbered, \
+        "AnnotatedHunk.process() with source and AnnotatedPatchedFile.hunk_tokens_for_type() give the same lines"
+    assert srcd_tokens_renumbered == tokens_renumbered, \
+        "AnnotatedHunk.process() with source and AnnotatedPatchedFile.hunk_tokens_for_type() give the same tokens"
+
+
 def test_Bug_from_dataset():
     # code patch
     file_path = Path('tests/test_dataset/tqdm-1/c0dcf39b046d1b4ff6de14ac99ad9a1b10487512.diff')
@@ -222,6 +322,67 @@ def test_Bug_from_patchset():
         "there was only 1 patchset for a bug"
     assert "tqdm/contrib/__init__.py" in bug.patches[commit_id], \
         "there is expected changed file in a bug patch"
+
+    bug_with_wrong_repo = Bug.from_patchset(patch_id=commit_id, patch_set=patch,
+                                            repo=GitRepo('.'))
+    assert commit_id in bug_with_wrong_repo.patches, \
+        "retrieved annotations for the single patchset (with wrong repo)"
+    assert bug.patches == bug_with_wrong_repo.patches, \
+        "passing incorrect repo should not change annotations at all"
+
+    bug_with_invalid_repo = Bug.from_patchset(patch_id=commit_id, patch_set=patch,
+                                              repo=GitRepo('a/b/c'))
+    assert commit_id in bug_with_invalid_repo.patches, \
+        "retrieved annotations for the single patchset (with invalid repo)"
+
+
+def test_Bug_from_patchset_from_example_repo(example_repo: GitRepo):
+    patch = example_repo.unidiff('v2')
+    commit_id = example_repo.to_oid('v2')
+    if commit_id is None:
+        pytest.skip(f"Could not retrieve oid for 'v2' tag from the example repo: {example_repo!r}")
+
+    # DEBUG
+    #print(f"{patch=}")
+    #file: unidiff.PatchedFile
+    #for file in patch:
+    #    print(f"- {file=}: {file.source_file} -> {file.target_file}")
+
+    bug = Bug.from_patchset(patch_id=commit_id, patch_set=patch, repo=example_repo)
+    # DEBUG
+    #print(patch)
+    #from pprint import pprint
+    #pprint(bug.patches[commit_id])
+    # TODO: check that the only warnings are 'No lexer found'/'Unknown file type' in std{out,err}/log
+
+    assert commit_id in bug.patches, \
+        "retrieved annotations for the single commit from example repo"
+    assert len(bug.patches) == 1, \
+        "created Bug object has only 1 patchset (for a single commit)"
+
+    dst_files = example_repo.list_changed_files(commit=commit_id, side=DiffSide.POST)
+    assert set(dst_files) <= set(bug.patches[commit_id].keys()), \
+        "info about every changed file (from post-image side) is in a bug patch from commit"
+
+    diff_stat = example_repo.diff_file_status(commit=commit_id)
+    added_files = [ dst_name for (src_name, dst_name), stat in diff_stat.items() if stat == 'A' ]
+    #renamed_files = [ f for files, stat in diff_stat.items() if stat == 'R'
+    #                  for f in files ]
+    renames_list = [ files for files, stat in diff_stat.items() if stat == 'R' ]
+    # DEBUG
+    #print(f"{added_files=}")
+    #print(f"{renames_list=}")
+    for f in added_files:
+        assert '-' not in bug.patches[commit_id][f], \
+            f"added file '{f}' has no '-' lines"
+    for (s, d) in renames_list:
+        assert '+' not in bug.patches[commit_id][s], \
+            f"the '{s}' pre-commit of renamed file has no '+' lines"
+        assert '-' not in bug.patches[commit_id][d], \
+            f"the '{d}' post-commit of renamed file has no '-' lines"
+
+    # NOTE: there is no way to check if sources were retrieved, except for mocking,
+    # because AnnotatedPatchedFile is created only locally, and Bug stores just annotations
 
 
 def test_Bug_save(tmp_path: Path):
@@ -288,6 +449,10 @@ def test_BugDataset_from_repo(tmp_path: Path):
         working_dir=tmp_path,
         make_path_absolute=True,
     )
+    if repo is None:
+        pytest.skip(f"Could not clone Git repo from {test_repo_url}")
+    if repo.count_commits() < 3:
+        pytest.skip(f"Less than 3 commits starting from 'HEAD' in {repo.repo}")
 
     bugs = BugDataset.from_repo(repo, revision_range=('-3', 'HEAD'))
 

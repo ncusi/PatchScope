@@ -13,7 +13,7 @@ import sys
 import time
 import traceback
 from textwrap import dedent
-from typing import List, Dict, Tuple, TypeVar, Optional, Union, Iterator
+from typing import List, Dict, Tuple, TypeVar, Optional, Union, Iterator, Literal
 from typing import Iterable, Generator, Callable  # should be imported from collections.abc
 
 from pygments.token import Token
@@ -24,10 +24,10 @@ import typer
 from typing_extensions import Annotated  # in typing since Python 3.9
 import yaml
 
-from .generate_patches import GitRepo
 from . import languages
 from .languages import Languages
 from .lexer import Lexer
+from .utils.git import GitRepo
 
 # optional dependencies
 try:
@@ -356,7 +356,222 @@ class AnnotatedPatchedFile:
             target_meta_dict = LANGUAGES.annotate(self.target_file)
             self.patch_data[self.target_file].update(target_meta_dict)
 
+        # place to hold pre-image and post-image, if available
+        self.source: Optional[str] = None
+        self.target: Optional[str] = None
+        # cache to hold the result of lexing pre-image/post-image
+        self.source_tokens: Optional[Dict[int, List[tuple]]] = None
+        self.target_tokens: Optional[Dict[int, List[tuple]]] = None
+
+    # builder pattern
+    def add_sources(self, src: str, dst: str) -> 'AnnotatedPatchedFile':
+        """Add pre-image and post-image of a file at given diff
+
+        **NOTE:** Modifies self, and returns modified object.
+
+        Example:
+
+        >>> from diffannotator.annotate import AnnotatedPatchedFile
+        >>> import unidiff
+        >>> patch_path = 'tests/test_dataset_structured/keras-10/patches/c1c4afe60b1355a6c0e83577791a0423f37a3324.diff'
+        >>> patch_set = unidiff.PatchSet.from_filename(patch_path, encoding="utf-8")
+        >>> patched_file = AnnotatedPatchedFile(patch_set[0]).add_sources("a", "b")
+        >>> patched_file.source
+        'a'
+        >>> patched_file.target
+        'b'
+
+        :param src: pre-image contents of patched file
+        :param dst: post-image contents of patched file
+        :return: changed object, to enable flow/builder pattern
+        """
+        self.source = src
+        self.target = dst
+
+        return self
+
+    def add_sources_from_files(self,
+                               src_file: Path,
+                               dst_file: Path) -> 'AnnotatedPatchedFile':
+        """Read pre-image and post-image for patched file at given diff
+
+        **NOTE:** Modifies self, adding contents of files, and returns modified
+        object.
+
+        Example:
+
+        >>> from diffannotator.annotate import AnnotatedPatchedFile
+        >>> import unidiff
+        >>> from pathlib import Path
+        >>> patch_path = 'tests/test_dataset_structured/keras-10/patches/c1c4afe60b1355a6c0e83577791a0423f37a3324.diff'
+        >>> patch_set = unidiff.PatchSet.from_filename(patch_path, encoding="utf-8")
+        >>> patched_file = AnnotatedPatchedFile(patch_set[0])
+        >>> files_path = Path('tests/test_dataset_structured/keras-10/files')
+        >>> src_path = files_path / 'a' / Path(patched_file.source_file).name
+        >>> dst_path = files_path / 'b' / Path(patched_file.target_file).name
+        >>> patched_file_with_sources = patched_file.add_sources_from_files(src_file=src_path, dst_file=dst_path)
+        >>> patched_file_with_sources.source.splitlines()[2]
+        'from __future__ import absolute_import'
+
+        :param src_file: path to pre-image contents of patched file
+        :param dst_file: path to post-image contents of patched file
+        :return: changed object
+        """
+        return self.add_sources(
+            src_file.read_text(encoding="utf-8"),
+            dst_file.read_text(encoding="utf-8")
+        )
+
+    def image_for_type(self, line_type: Literal['-','+']) -> Optional[str]:
+        """Return pre-image for '-', post-image for '+', if available
+
+        :param line_type: denotes line type, e.g. line.line_type from unidiff
+        :return: pre-image or post-image, or None if pre/post-images are not set
+        """
+        if line_type == unidiff.LINE_TYPE_REMOVED:  # '-'
+            return self.source
+        elif line_type == unidiff.LINE_TYPE_ADDED:  # '+'
+            return self.target
+        else:
+            raise ValueError(f"value must be '-' or '+', got {line_type!r}")
+
+    def tokens_for_type(self, line_type: Literal['-','+']) -> Optional[Dict[int, List[tuple]]]:
+        """Run lexer on a pre-image or post-image contents, if available
+
+        Returns (cached) result of lexing pre-image for `line_type` '-',
+        and of post-image for line type '+'.
+
+        The pre-image and post-image contents of patched file should / can
+        be provided with the help of `add_sources()` or `add_sources_from_files()`
+        methods.
+
+        :param line_type: denotes line type, e.g. line.line_type from unidiff;
+            must be one of '+' or '-'.
+        :return: post-processed result of lexing, split into lines,
+            if there is pre-/post-image file contents available.
+        """
+        # return cached value, if available
+        if line_type == unidiff.LINE_TYPE_REMOVED:  # '-'
+            if self.source_tokens is not None:
+                return self.source_tokens
+            contents = self.source
+            file_path = self.source_file
+        elif line_type == unidiff.LINE_TYPE_ADDED:  # '+'
+            if self.target_tokens is not None:
+                return self.target_tokens
+            contents = self.target
+            file_path = self.target_file
+        else:
+            raise ValueError(f"value must be '-' or '+', got {line_type!r}")
+
+        # return None if source code is not available for lexing
+        if contents is None:
+            return None
+
+        # lex selected contents (same as in main process() method)
+        tokens_list = LEXER.lex(file_path, contents)
+        tokens_split = split_multiline_lex_tokens(tokens_list)
+        tokens_group = group_tokens_by_line(contents, tokens_split)
+        # just in case, it should not be needed
+        tokens_group = front_fill_gaps(tokens_group)
+
+        # save/cache computed data
+        if line_type == unidiff.LINE_TYPE_REMOVED:  # '-'
+            self.source_tokens = tokens_group
+        elif line_type == unidiff.LINE_TYPE_ADDED:  # '+'
+            self.target_tokens = tokens_group
+
+        # return computed result
+        return tokens_group
+
+    def tokens_range_for_type(self, line_type: Literal['-','+'],
+                              start_line: int, length: int) -> Optional[Dict[int, List[tuple]]]:
+        """Lexing results for given range of lines, or None if no pre-/post-image
+
+        The pre-image and post-image contents of patched file should / can
+        be provided with the help of `add_sources()` or `add_sources_from_files()`
+        methods.
+
+        The result is mapping from line number of the pre- or post-image
+        contents, counting from 1 (the same as diff and unidiff), to the list
+        of tokens corresponding to the line in question.
+
+        :param line_type: denotes line type, e.g. line.line_type from unidiff;
+            must be one of '-' (unidiff.LINE_TYPE_REMOVED) or '+' (unidiff.LINE_TYPE_ADDED).
+        :param start_line: starting line number in file, counting from 1
+        :param length: number of lines to return results for,
+            starting from `start_line`
+        :return: post-processed result of lexing, split into lines,
+            if there is pre-/post-image file contents available;
+            None if there is no pre-/post-image contents attached.
+        """
+        tokens_list = self.tokens_for_type(line_type=line_type)
+        if tokens_list is None:
+            return None
+
+        # Iterable might be not subscriptable, that's why there is list() here
+        # TODO: check if it is correct (0-based vs 1-based subscripting)
+        return {
+            line_no+1: line_tokens
+            for line_no, line_tokens in tokens_list.items()
+            if line_no+1 in range(start_line, (start_line + length))
+        }
+
+    def hunk_tokens_for_type(self, line_type: Literal['-','+'],
+                             hunk: Union[unidiff.Hunk, 'AnnotatedHunk']) -> Optional[Dict[int, List[tuple]]]:
+        """Lexing results for removed ('-')/added ('+') lines in hunk, if possible
+
+        The pre-image and post-image contents of patched file should / can
+        be provided with the help of `add_sources()` or `add_sources_from_files()`
+        methods.  If this contents is not provided, this method returns None.
+
+        The result is mapping from line number of the pre- or post-image
+        contents, counting from 1 (the same as diff and unidiff), to the list
+        of tokens corresponding to the line in question.
+
+        :param line_type: denotes line type, e.g. line.line_type from unidiff;
+            must be one of '-' (unidiff.LINE_TYPE_REMOVED) or '+' (unidiff.LINE_TYPE_ADDED).
+        :param hunk: block of changes in fragment of diff corresponding
+            to changed file
+        :return: post-processed result of lexing, split into lines,
+            if there is pre-/post-image file contents available;
+            None if there is no pre-/post-image contents attached.
+        """
+        tokens_list = self.tokens_for_type(line_type=line_type)
+        if tokens_list is None:
+            return None
+
+        if isinstance(hunk, AnnotatedHunk):
+            hunk = hunk.hunk
+
+        result = {}
+        for hunk_line_no, line in enumerate(hunk):
+            if line.line_type != line_type:
+                continue
+            # NOTE: first line of file is line number 1, not 0, according to (uni)diff
+            # but self.tokens_for_type(line_type) returns 0-based indexing
+            line_no = line.source_line_no if line_type == unidiff.LINE_TYPE_REMOVED else line.target_line_no
+            # first line is 1; first element has index 0
+            result[hunk_line_no] = tokens_list[line_no - 1]
+
+        return result
+
     def process(self):
+        """Process hunks in patched file, annotating changes
+
+        Returns single-element mapping from filename to pre- and post-image
+        line annotations.  The pre-image line annotations use "-" as key,
+        while post-image use "+".
+
+        The format of returned values is described in more detail
+        in `AnnotatedHunk.process()` documentation.
+
+        Updates and returns the `self.patch_data` field.
+
+        :return: annotated patch data, mapping from changed file name
+            to '+'/'-', to annotated line info (from post-image or pre-image)
+        :rtype: dict[str, dict[str, dict]]
+        """
         for hunk in self.patched_file:
             hunk_data = AnnotatedHunk(self, hunk).process()
             deep_update(self.patch_data, hunk_data)
@@ -393,6 +608,20 @@ class AnnotatedHunk:
 
         self.patch_data = defaultdict(lambda: defaultdict(list))
 
+    def tokens_for_type(self, line_type: Literal['-','+']) -> Optional[Dict[int, List[tuple]]]:
+        """Lexing results for removed ('-')/added ('+') lines in hunk, if possible
+
+        Passes work to `AnnotatedPatchedFile.hunk_tokens_for_type` method
+        for a patched file this hunk belongs to.
+
+        :param line_type: line_type: denotes line type, e.g. line.line_type from unidiff;
+            must be one of '-' (unidiff.LINE_TYPE_REMOVED) or '+' (unidiff.LINE_TYPE_ADDED).
+        :return: post-processed result of lexing, split into lines,
+            if there is pre-/post-image file contents available;
+            None if there is no pre-/post-image contents attached.
+        """
+        return self.patched_file.hunk_tokens_for_type(line_type, self.hunk)
+
     def process(self):
         """Process associated patch hunk, annotating changes
 
@@ -419,7 +648,7 @@ class AnnotatedHunk:
 
         :return: annotated patch data, mapping from changed file name
             to '+'/'-', to annotated line info (from post-image or pre-image)
-        :rtype: dict[str, dict[str, dict]
+        :rtype: dict[str, dict[str, dict]]
         """
         # choose file name to be used to select file type and lexer
         if self.patched_file.source_file == "/dev/null":
@@ -445,21 +674,33 @@ class AnnotatedHunk:
         # lex pre-image and post-image, separately
         for line_type in {unidiff.LINE_TYPE_ADDED, unidiff.LINE_TYPE_REMOVED}:
             # TODO: use NamedTuple, or TypedDict, or dataclass
-            line_data = [{
-                'value': line.value,
-                'hunk_line_no': i,
-                'line_type': line.line_type,
-            } for i, line in enumerate(self.hunk)
+            line_data = {
+                i: {
+                    'value': line.value,
+                    'hunk_line_no': i,
+                    'line_type': line.line_type,
+                } for i, line in enumerate(self.hunk)
                 # unexpectedly, there is no need to check for unidiff.LINE_TYPE_EMPTY
-                if line.line_type in {line_type, unidiff.LINE_TYPE_CONTEXT}]
+                if line.line_type in {line_type, unidiff.LINE_TYPE_CONTEXT}
+            }
 
-            source = ''.join([line['value'] for line in line_data])
+            tokens_group = self.tokens_for_type(line_type)
+            if tokens_group is None:
+                # pre-/post-image contents is not available, use what is in diff
+                # dict are sorted, line_data elements are entered ascending
+                source = ''.join([line['value'] for line in line_data.values()])
 
-            tokens_list = LEXER.lex(file_path, source)
-            tokens_split = split_multiline_lex_tokens(tokens_list)
-            tokens_group = group_tokens_by_line(source, tokens_split)
-            # just in case, it should not be needed
-            tokens_group = front_fill_gaps(tokens_group)
+                tokens_list = LEXER.lex(file_path, source)
+                tokens_split = split_multiline_lex_tokens(tokens_list)
+                tokens_group = group_tokens_by_line(source, tokens_split)
+                # just in case, it should not be needed
+                tokens_group = front_fill_gaps(tokens_group)
+                # index tokens_group with hunk line no, not line index of pre-/post-image fragment
+                tokens_group = {
+                    list(line_data.values())[source_line_no]['hunk_line_no']: source_tokens_list
+                    for source_line_no, source_tokens_list
+                    in tokens_group.items()
+                }
 
             for i, line_tokens in tokens_group.items():
                 line_info = line_data[i]
@@ -605,6 +846,7 @@ class Bug:
         self.save_dir: Optional[Path] = Path(save_dir) \
             if save_dir is not None else None
 
+        # TODO: rename to self.patches_annotations, to better reflect its contents
         self.patches: dict[str, dict] = patches_data
 
     @classmethod
@@ -654,7 +896,8 @@ class Bug:
         return obj
 
     @classmethod
-    def from_patchset(cls, patch_id: Union[str, None], patch_set: unidiff.PatchSet) -> 'Bug':
+    def from_patchset(cls, patch_id: Union[str, None], patch_set: unidiff.PatchSet,
+                      repo: Optional[GitRepo] = None) -> 'Bug':
         """Create Bug object from unidiff.PatchSet
 
         If `patch_id` is None, then it tries to use the 'commit_id' attribute
@@ -663,14 +906,38 @@ class Bug:
 
         :param patch_id: identifies source of the `patch_set`
         :param patch_set: changes to annotate
+        :param repo: the git repository patch comes from; to be able to use
+            it, `patch_set` should be changes in repo for commit `patch_id`
         :return: Bug object instance
         """
         patch_annotations = {}
         i = 0
+
+        src_commit: Optional[str] = None
+        dst_commit: Optional[str] = None
+        if repo is not None and patch_id is not None:
+            if repo.is_valid_commit(patch_id):
+                dst_commit = patch_id
+            if repo.is_valid_commit(f"{patch_id}^"):
+                src_commit = f"{patch_id}^"
+
         try:
             # based on annotate_single_diff() function code
+            patched_file: unidiff.PatchedFile
             for i, patched_file in enumerate(patch_set, start=1):
+                # create AnnotatedPatchedFile object from i-th changed file in patchset
                 annotated_patch_file = AnnotatedPatchedFile(patched_file)
+                # add sources, if available from repo
+                src: Optional[str] = None
+                dst: Optional[str] = None
+                if repo is not None:
+                    # we need real name, not prefixed with "a/" or "b/" name in unidiff.PatchedFile
+                    if src_commit is not None and annotated_patch_file.source_file != "/dev/null":
+                        src = repo.file_contents(src_commit, annotated_patch_file.source_file)
+                    if dst_commit is not None and annotated_patch_file.target_file != "/dev/null":
+                        dst = repo.file_contents(dst_commit, annotated_patch_file.target_file)
+                annotated_patch_file.add_sources(src=src, dst=dst)
+                # add annotations from i-th changed file
                 patch_annotations.update(annotated_patch_file.process())
 
         except Exception as ex:
@@ -805,6 +1072,7 @@ class BugDataset:
                  patches_dict: Optional[Dict[str, unidiff.PatchSet]] = None,
                  patches_dir: str = Bug.DEFAULT_PATCHES_DIR,
                  annotations_dir: str = Bug.DEFAULT_ANNOTATIONS_DIR,
+                 repo: Optional[GitRepo] = None,
                  fan_out: bool = False):
         """Constructor of bug dataset.
 
@@ -843,6 +1111,8 @@ class BugDataset:
         self._patches_dir = patches_dir
         self._annotations_dir = annotations_dir
         self._fan_out = fan_out
+        # TODO: warn if repo is used with not None dataset_path
+        self._git_repo = repo
 
     @classmethod
     def from_directory(cls, dataset_dir: PathLike,
@@ -904,15 +1174,20 @@ class BugDataset:
 
         commit_patches = {getattr(patch_set, "commit_id", f"idx-{i}"): patch_set
                           for i, patch_set in enumerate(patches)}
-        obj = BugDataset(bug_ids=list(commit_patches), patches_dict=commit_patches)
-        obj._git_repo = repo  # for debug and info
+        obj = BugDataset(bug_ids=list(commit_patches), patches_dict=commit_patches,
+                         repo=repo)
 
         return obj
 
-    def get_bug(self, bug_id: str) -> Bug:
+    def get_bug(self, bug_id: str,
+                use_repo: bool = True) -> Bug:
         """Return specified bug
 
         :param bug_id: identifier of a bug in this dataset
+        :param use_repo: whether to retrieve pre-/post-image contents
+            from self._git_repo, if available (makes difference only
+            for datasets created from repository, for example with
+            BugDataset.from_repo())
         :returns: Bug instance
         """
         if self._dataset_path is not None:
@@ -923,7 +1198,8 @@ class BugDataset:
 
         elif self._patches is not None:
             patch_set = self._patches[bug_id]
-            return Bug.from_patchset(bug_id, patch_set)
+            return Bug.from_patchset(bug_id, patch_set,
+                                     repo=self._git_repo if use_repo else None)
 
         # TODO: log an error
         print(f"{self!r}: could not get bug with {bug_id=}")

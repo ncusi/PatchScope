@@ -11,7 +11,7 @@ import pytest
 import unidiff
 
 from diffannotator.annotate import annotate_single_diff
-from diffannotator.generate_patches import GitRepo
+from diffannotator.utils.git import GitRepo
 
 
 def test_clone_repository(tmp_path: Path):
@@ -45,7 +45,7 @@ def test_clone_repository(tmp_path: Path):
 
 
 def test_format_patch(tmp_path: Path):
-    """Test format_patch() method in GitRepo class"""
+    """Test format_patch() method in GitRepo class, and annotate_single_diff() function"""
     # MAYBE: create fixture
     test_repo_url = 'https://github.com/githubtraining/hellogitworld.git'
     repo = GitRepo.clone_repository(
