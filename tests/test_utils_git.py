@@ -4,7 +4,7 @@
 import pytest
 from unidiff import PatchSet
 
-from diffannotator.utils.git import decode_c_quoted_str, GitRepo, DiffSide, AuthorStat, parse_shortlog_count
+from diffannotator.utils.git import decode_c_quoted_str, GitRepo, DiffSide, AuthorStat, parse_shortlog_count, ChangeSet
 from tests.conftest import default_branch, example_repo
 
 
@@ -37,9 +37,6 @@ def test_decode_c_quoted_str():
 
     with pytest.raises(ValueError):
         decode_c_quoted_str(r'"\305\477"')
-
-
-# global variable, common for all tests
 
 
 def test_list_files(example_repo: GitRepo):
@@ -136,7 +133,9 @@ def test_unidiff_wrap(example_repo):
     assert isinstance(example_repo.unidiff(), PatchSet), \
         "return PatchSet by default"
     assert isinstance(example_repo.unidiff(wrap=True), PatchSet), \
-        "with wrap=True return PatchSet"
+        "with wrap=True return unidiff.PatchSet"
+    assert isinstance(example_repo.unidiff(wrap=True), ChangeSet), \
+        "with wrap=True return utils.git.ChangeSet"
     assert isinstance(example_repo.unidiff(wrap=False), str), \
         "with wrap=False return str"
 
@@ -178,6 +177,7 @@ def test_list_tags(example_repo):
         actual = example_repo.list_tags()
 
         assert expected == actual, "list of tags matches"
+
 
 def test_get_commit_metadata(example_repo):
     commit_info = example_repo.get_commit_metadata('v2')
@@ -304,3 +304,29 @@ def test_get_config(example_repo):
 
     actual = example_repo.get_config('not-exists')
     assert actual is None, "returns `None` for invalid variable name"
+
+
+def test_metadata_extraction_in_ChangeSet(example_repo):
+    """Test that ChangeSet constructor can extract commit metadata"""
+    revision = "v2"
+    revision_id = example_repo.to_oid(revision)
+
+    patch_bare = example_repo.unidiff(revision)
+
+    assert patch_bare.prev == f"{revision}^", \
+        ".unidiff() sets .prev field to expected value"
+    assert patch_bare.commit_metadata is None, \
+        ".unidiff() does not provide commit info to extract metadata"
+
+    # single commit changeset, i.e. the first element from a single element generator
+    patch_log = next(example_repo.log_p(revision_range=('-1', revision), wrap=True))
+    revision_metadata = example_repo.get_commit_metadata(revision)
+
+    assert patch_log.prev is None, \
+        ".log_p() does not set .prev field"
+    assert patch_log.commit_id == revision_id, \
+        ".log_p() returns expected commit, and sets .commit_id to its oid"
+    assert patch_log.commit_metadata is not None, \
+        "extracted commit metadata from .log_p() result"
+    assert patch_log.commit_metadata == revision_metadata, \
+        "correctly extracted expected metadata from .log_p() result"

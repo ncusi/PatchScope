@@ -58,6 +58,56 @@ class AuthorStat(NamedTuple):
     count: int = 0  #: number of commits per author
 
 
+class ChangeSet(PatchSet):
+    """Commit changes, together with commit data
+
+    Note that changeset can come from a commit, or from a diff
+    between two different commits (tree-ish)
+    """
+    RE_DIFF_GIT_HEADER_GENERIC = re.compile(
+        pattern=r'^diff --git [^\t\n]+ [^\t\n]+',
+        flags=re.MULTILINE
+    )
+
+    def __init__(self, patch_source: Union[StringIO, str], commit_id: str,
+                 prev: Optional[str] = None,
+                 *args, **kwargs):
+        """ChangeSet class constructor
+
+        :param patch_source: patch source to be parsed by PatchSet (parent class)
+        :param commit_id: oid of the "after" commit (tree-ish) for the change
+        :param prev: previous state, when ChangeSet is generated with .unidiff(),
+            or `None` it the change corresponds to a commit (assumed first-parent)
+        :param args: passed to PatchSet constructor
+        :param kwargs: passed to PatchSet constructor (recommended);
+            PatchSet uses `encoding` (str) and `metadata_only` (bool): :raw-html:`<br />`
+            if `encoding` is `None`, assume we are reading Unicode data,
+            when `metadata_only` is `True`, only perform a minimal metadata parsing
+            (i.e. hunks without content) which is around 2.5-6 times faster;
+            it will still validate the diff metadata consistency and get counts
+        """
+        super().__init__(patch_source, *args, **kwargs)
+        self.commit_id = commit_id
+        self.prev = prev
+
+        # retrieve commit metadata from patch, if possible
+        self.commit_metadata: Optional[dict] = None
+        if prev is None or prev.endswith("^"):
+            if isinstance(patch_source, StringIO):
+                patch_source.seek(0)
+                patch_text = patch_source.getvalue()
+            else:
+                patch_text = patch_source
+            match = re.search(self.RE_DIFF_GIT_HEADER_GENERIC,
+                              patch_text)
+            if match:
+                pos = match.start()
+                commit_text = patch_text[:pos]
+                # -1 is to remove newline from empty line separating commit text from diff
+                self.commit_metadata = _parse_commit_text(commit_text[:-1],
+                                                          with_parents_line=False)
+
+
 def _parse_authorship_info(authorship_line: str,
                            field_name: str = 'author') -> Dict[str, Union[str, int]]:
     """Parse author/committer info, and extract individual parts
@@ -132,6 +182,8 @@ def _parse_commit_text(commit_text: str, with_parents_line: bool = True,
             line_no = idx
             break
 
+        if 'id' not in commit_data and line.startswith('commit '):
+            commit_data['id'] = line[len('commit '):]
         if line.startswith('tree '):
             commit_data['tree'] = line[len('tree '):]
         if not with_parents_line and line.startswith('parent'):
@@ -702,7 +754,7 @@ class GitRepo:
         return file_ranges, file_diff_lines_added
 
     @overload
-    def unidiff(self, commit: str = ..., prev: Optional[str] = ..., wrap: Literal[True] = ...) -> PatchSet:
+    def unidiff(self, commit: str = ..., prev: Optional[str] = ..., wrap: Literal[True] = ...) -> ChangeSet:
         ...
 
     @overload
@@ -710,7 +762,7 @@ class GitRepo:
         ...
 
     @overload
-    def unidiff(self, commit: str = ..., prev: Optional[str] = ..., wrap: bool = ...) -> Union[str, bytes, PatchSet]:
+    def unidiff(self, commit: str = ..., prev: Optional[str] = ..., wrap: bool = ...) -> Union[str, bytes, ChangeSet]:
         ...
 
     def unidiff(self, commit='HEAD', prev=None, wrap=True):
@@ -732,7 +784,7 @@ class GitRepo:
         :param bool wrap: whether to wrap the result in PatchSet
         :return: the changes between two arbitrary commits,
             `prev` and `commit`
-        :rtype: str or bytes or PatchSet
+        :rtype: str or bytes or ChangeSet
         """
         if prev is None:
             try:
@@ -756,15 +808,14 @@ class GitRepo:
             diff_output = process.stdout.decode(self.fallback_encoding)
 
         if wrap:
-            patch_set = PatchSet(diff_output)
-            patch_set.commit_id = self.to_oid(commit)  # remember the commit id in an attribute
-            return patch_set
+            return ChangeSet(diff_output, self.to_oid(commit),
+                             prev=prev)
         else:
             return diff_output
 
     @overload
     def log_p(self, revision_range: Union[str, Iterable[str]] = ..., wrap: Literal[True] = ...) \
-            -> Iterator[PatchSet]:
+            -> Iterator[ChangeSet]:
         ...
 
     @overload
@@ -774,7 +825,7 @@ class GitRepo:
 
     @overload
     def log_p(self, revision_range: Union[str, Iterable[str]] = ..., wrap: bool = ...) \
-            -> Union[Iterator[str], Iterator[PatchSet]]:
+            -> Union[Iterator[str], Iterator[ChangeSet]]:
         ...
 
     def log_p(self, revision_range=('-1', 'HEAD'), wrap=True):
@@ -794,12 +845,10 @@ class GitRepo:
         :param wrap: whether to wrap the result in PatchSet
         :return: the changes for given `revision_range`
         """
-        def commit_with_patch(_commit_id: str, _commit_data: StringIO) -> PatchSet:
-            """Helper to create PatchSet with `_commit_id` as commit_id attribute"""
+        def commit_with_patch(_commit_id: str, _commit_data: StringIO) -> ChangeSet:
+            """Helper to create ChangeSet with from _commit_data stream"""
             _commit_data.seek(0)  # rewind to beginning for reading by the PatchSet constructor
-            patch_set = PatchSet(_commit_data)  # parse commit with patch to PatchSet
-            patch_set.commit_id = _commit_id  # remember the commit id in an attribute
-            return patch_set
+            return ChangeSet(_commit_data, _commit_id)
 
         cmd = [
             'git', '-C', str(self.repo),

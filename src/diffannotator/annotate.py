@@ -27,7 +27,7 @@ import yaml
 from . import languages
 from .languages import Languages
 from .lexer import Lexer
-from .utils.git import GitRepo
+from .utils.git import GitRepo, ChangeSet
 
 # optional dependencies
 try:
@@ -921,6 +921,13 @@ class Bug:
             if repo.is_valid_commit(f"{patch_id}^"):
                 src_commit = f"{patch_id}^"
 
+        # add commit metadata to annotations, if available
+        if isinstance(patch_set, ChangeSet):
+            commit_metadata = {'id': patch_set.commit_id}
+            if patch_set.commit_metadata is not None:
+                commit_metadata.update(patch_set.commit_metadata)
+            patch_annotations['commit_metadata'] = commit_metadata
+
         try:
             # based on annotate_single_diff() function code
             patched_file: unidiff.PatchedFile
@@ -1758,6 +1765,12 @@ def from_repo(
             help="Subdirectory to write annotations to; use '' to do without such"
         )
     ] = Bug.DEFAULT_ANNOTATIONS_DIR,
+    use_repo: Annotated[
+        bool,
+        typer.Option(
+            help="Retrieve pre-/post-image contents from repo, and use it for lexing"
+        )
+    ] = True,
 ) -> None:
     """Create annotation data for commits from local Git repository
 
@@ -1802,10 +1815,12 @@ def from_repo(
     with logging_redirect_tqdm():
         for bug_id in tqdm.tqdm(bugs, desc='commits'):
             if bugsinpy_layout:
-                bugs.get_bug(bug_id).save(annotate_dir=output_dir.joinpath(bug_id,
-                                                                           annotations_dir))
+                bugs.get_bug(bug_id, use_repo=use_repo)\
+                    .save(annotate_dir=output_dir.joinpath(bug_id,
+                                                           annotations_dir))
             else:
-                bugs.get_bug(bug_id).save(annotate_dir=output_dir, fan_out=use_fanout)
+                bugs.get_bug(bug_id, use_repo=use_repo)\
+                    .save(annotate_dir=output_dir, fan_out=use_fanout)
 
 
 if __name__ == "__main__":
