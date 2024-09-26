@@ -39,9 +39,6 @@ def test_decode_c_quoted_str():
         decode_c_quoted_str(r'"\305\477"')
 
 
-# global variable, common for all tests
-
-
 def test_list_files(example_repo: GitRepo):
     """Test that GitRepo.list_files() returns correct list of files"""
     expected = [

@@ -6,6 +6,7 @@ import pytest
 
 from diffannotator.utils.git import GitRepo
 
+# global variable, common for all tests
 default_branch = 'main'
 
 
