@@ -1758,6 +1758,12 @@ def from_repo(
             help="Subdirectory to write annotations to; use '' to do without such"
         )
     ] = Bug.DEFAULT_ANNOTATIONS_DIR,
+    use_repo: Annotated[
+        bool,
+        typer.Option(
+            help="Retrieve pre-/post-image contents from repo, and use it for lexing"
+        )
+    ] = True,
 ) -> None:
     """Create annotation data for commits from local Git repository
 
@@ -1802,10 +1808,12 @@ def from_repo(
     with logging_redirect_tqdm():
         for bug_id in tqdm.tqdm(bugs, desc='commits'):
             if bugsinpy_layout:
-                bugs.get_bug(bug_id).save(annotate_dir=output_dir.joinpath(bug_id,
-                                                                           annotations_dir))
+                bugs.get_bug(bug_id, use_repo=use_repo)\
+                    .save(annotate_dir=output_dir.joinpath(bug_id,
+                                                           annotations_dir))
             else:
-                bugs.get_bug(bug_id).save(annotate_dir=output_dir, fan_out=use_fanout)
+                bugs.get_bug(bug_id, use_repo=use_repo)\
+                    .save(annotate_dir=output_dir, fan_out=use_fanout)
 
 
 if __name__ == "__main__":
