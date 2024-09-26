@@ -64,6 +64,11 @@ class ChangeSet(PatchSet):
     Note that changeset can come from a commit, or from a diff
     between two different commits (tree-ish)
     """
+    RE_DIFF_GIT_HEADER_GENERIC = re.compile(
+        pattern=r'^diff --git [^\t\n]+ [^\t\n]+',
+        flags=re.MULTILINE
+    )
+
     def __init__(self, patch_source: Union[StringIO, str], commit_id: str,
                  prev: Optional[str] = None,
                  *args, **kwargs):
@@ -84,6 +89,23 @@ class ChangeSet(PatchSet):
         super().__init__(patch_source, *args, **kwargs)
         self.commit_id = commit_id
         self.prev = prev
+
+        # retrieve commit metadata from patch, if possible
+        self.commit_metadata: Optional[dict] = None
+        if prev is None or prev.endswith("^"):
+            if isinstance(patch_source, StringIO):
+                patch_source.seek(0)
+                patch_text = patch_source.getvalue()
+            else:
+                patch_text = patch_source
+            match = re.search(self.RE_DIFF_GIT_HEADER_GENERIC,
+                              patch_text)
+            if match:
+                pos = match.start()
+                commit_text = patch_text[:pos]
+                # -1 is to remove newline from empty line separating commit text from diff
+                self.commit_metadata = _parse_commit_text(commit_text[:-1],
+                                                          with_parents_line=False)
 
 
 def _parse_authorship_info(authorship_line: str,
