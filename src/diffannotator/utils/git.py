@@ -211,7 +211,13 @@ def _parse_commit_text(commit_text: str, with_parents_line: bool = True,
 
     # commit metadata
     line_no = 0
+    in_gpgsig = False
     for (idx, line) in enumerate(commit_lines):
+        if in_gpgsig:
+            if line == ' -----END PGP SIGNATURE-----':
+                in_gpgsig = False
+            continue
+
         if line == '':
             line_no = idx
             break
@@ -225,6 +231,8 @@ def _parse_commit_text(commit_text: str, with_parents_line: bool = True,
         for field in ('author', 'committer'):
             if line.startswith(f'{field} '):
                 commit_data[field] = _parse_authorship_info(line[len(f'{field} '):], field)
+        if line.startswith('gpgsig '):
+            in_gpgsig = True
 
     # commit message
     commit_data['message'] = ''

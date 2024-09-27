@@ -3,6 +3,23 @@ tree 5727d4dfd371eb79dae8d0d8acc936e7bffe25ed
 parent 8cc777fe8401a05d07f2c97e65d15e4460feab88
 author Casper da Costa-Luis <tqdm@caspersci.uk.to> 1579465136 +0000
 committer Casper da Costa-Luis <tqdm@caspersci.uk.to> 1579900688 +0000
+gpgsig -----BEGIN PGP SIGNATURE-----
+ Version: GnuPG v2
+
+ iQIcBAABCAAGBQJeK18UAAoJEJhrQIBDrgkNALkP/R1iKakxSwTye/cUo/BrwYBu
+ pFiMd5yNgKJ5n8Sj2szJWxViQXwXGfTD84ePRCO9Ey4QKsavlcTP4Rh3qjGPGkxA
+ eJ6eGEefqBZyVgbffWF2c83tPh6Pe3vbT8PS0uPptKNuQZYjU+pR6pYV+2zev2MP
+ Y2B6mg5/g285I4jRWiVkqqMeZ3eT8Mp7hWEk6qLOyTb8JEUewSdWwHI6QtbPYycI
+ AkeIX3ArEc4P+JwyBvjMv37Ea6dNgsUMC7kPxpSkbSLIXEWDDIC4r6F38Ag41886
+ 8t/hG+l53YbiEOn3AahXY3cG6PuprEleQ3SsotGmR1aEVwIRIRXND/amFdI6r7HL
+ EoPjBFvspbWQRHM6Cr88sN3We9QCXyY2DNrTDJ8F/Z+093L1zb+E58XCvdBv2LJl
+ PgT3dIkW+qQ+ddZ5+XBMkJqoBkP0NfM1Xedja/dCXFMNoeZl6KLPqiegS9jLDhfh
+ kCQiegk9x1VD1vBRdDp8Ye3aC2cEeTic7xskxkUSe8U5P/mImg+HbQgmTvWYE3xX
+ da78joIh6OIURu49ZxdOwJvAJDMf/H1suoqxDJM/InlerMBOolsfvUY4tfSIdjq5
+ tiifXZmxV0Iyp6GvWgNsfLc0STfqokEE9Lh1hBZpme5smLw8oIlepwkxUQLJQdwP
+ ldxjXD3u8zKnbYLIfT8d
+ =x4lC
+ -----END PGP SIGNATURE-----
 
     fix `tenumerate(start)`
 

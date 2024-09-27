@@ -353,3 +353,6 @@ def test_ChangeSet_from_filename():
         "Successful extraction of commit metadata from raw with patch format"
     assert changeset_diff_full.commit_metadata['id'] == commit_id, \
         "Commit id from metadata matches expectations"
+    # NOTE: this depends on the test file used!
+    assert changeset_diff_full.commit_metadata['message'].count('\n') == 1, \
+        "The commit message has exactly one line, ending in '\\n'"
