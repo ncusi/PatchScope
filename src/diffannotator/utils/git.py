@@ -418,7 +418,7 @@ class GitRepo:
         :param repository: The (possibly remote) repository to clone from,
             usually a URL (ssh, git, http, or https) or a local path.
         :param directory: The name of a new directory to clone into, optional.
-            The "humanish" part of the source repository is used if `directory`
+            The "human-ish" part of the source repository is used if `directory`
             is not provided (if it is `None`).
         :param working_dir: The directory where to run the
             `git-clone https://git-scm.com/docs/git-clone` operation;
@@ -1064,7 +1064,7 @@ class GitRepo:
         :return: Full SHA-1 identifier of found commit.
 
             WARNING: there is currently no support for error handling,
-            among others for not finding any commit that fullfills
+            among others for not finding any commit that fulfills
             the condition.  At least it is not tested.
 
         :rtype: str

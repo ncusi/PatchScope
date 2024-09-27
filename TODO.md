@@ -96,7 +96,7 @@
       - [uniplot](https://github.com/olavolav/uniplot) - XY plots using Unicode, fast, uses NumPy
       - [termplot](https://github.com/justnoise/termplot) - XY plots and histograms, somewhat flexible
       - [termplotlib](https://github.com/nschloe/termplotlib) - XY plots (using gnuplot), horizontal and vertical histograms
-      - [termgraph](https://github.com/sgeisler/termgraph) - candle stick graphs drawn using unicode box drawing characters, with [Colorama][] used for colors
+      - [termgraph](https://github.com/sgeisler/termgraph) - candle stick graphs drawn using Unicode box drawing characters, with [Colorama][] used for colors
       - [plotille](https://github.com/tammoippen/plotille) - XY plots, scatter plots, histograms and heatmaps in the terminal using braille dots
       - [termcharts](https://github.com/Abdur-RahmaanJ/termcharts/) - bar, pie, and doughnut charts, with [Rich][] compatibility
       - [plotext](https://github.com/piccolomo/plotext) - scatter, line, bar, histogram and date-time plots (including candlestick), with support for error bars and confusion matrices

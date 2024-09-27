@@ -59,8 +59,8 @@ class LanguagesFromLinguist:
         :param path: file path in the repository
         :return: metadata about language, file type, and purpose of file
         """
-        languages = LinguistLanguage.find_by_filename(path)
-        language = languages[0]
+        langs = LinguistLanguage.find_by_filename(path)
+        language = langs[0]
 
         language_name = language.name
         file_type = language.type
@@ -1490,9 +1490,6 @@ def common(
         typer.Option(
             help="Mapping from file purpose to line annotation. Empty value resets mapping.",
             metavar="PURPOSE:ANNOTATION",
-            # uses callback instead of parser because of
-            # AssertionError: List types with complex sub-types are not currently supported
-            # see https://github.com/tiangolo/typer/issues/387
             callback=purpose_to_annotation_callback,
         )
     ] = None,
@@ -1795,7 +1792,7 @@ def from_repo(
 
     if annotations_dir != Bug.DEFAULT_ANNOTATIONS_DIR and not bugsinpy_layout:
         print(f"ignoring the value of --annotations-dir={annotations_dir}")
-        print(f"no --bugsinpy-layout option present")
+        print("no --bugsinpy-layout option present")
 
     # create GitRepo 'helper' object
     repo = GitRepo(repo_path)

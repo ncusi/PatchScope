@@ -156,7 +156,7 @@ Tools to generate HTML dashboard, or providing an interactive web application:
 - [Assayo](https://github.com/bakhirev/assayo) is a dashboard
   providing visualization and analysis of git commit statistics.
   Requires exporting data from Git.  Has a [homepage with demo](https://assayo.online/).
-  Its use is described in _[The visualization and analysis of git commit statistics for IT team leaders.](https://dev.to/responsivecrocodile/the-visualization-and-analysis-of-git-commit-statistics-for-it-team-leaders-2pof)_.
+  Its use is described in _[The visualization and analysis of git commit statistics for IT team leaders](https://dev.to/responsivecrocodile/the-visualization-and-analysis-of-git-commit-statistics-for-it-team-leaders-2pof)_.
 
 Visualizations for a specific repository:
 
