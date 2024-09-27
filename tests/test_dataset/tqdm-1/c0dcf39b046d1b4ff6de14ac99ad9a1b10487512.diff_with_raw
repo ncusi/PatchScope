@@ -1,0 +1,33 @@
+commit c0dcf39b046d1b4ff6de14ac99ad9a1b10487512
+tree 5727d4dfd371eb79dae8d0d8acc936e7bffe25ed
+parent 8cc777fe8401a05d07f2c97e65d15e4460feab88
+author Casper da Costa-Luis <tqdm@caspersci.uk.to> 1579465136 +0000
+committer Casper da Costa-Luis <tqdm@caspersci.uk.to> 1579900688 +0000
+
+    fix `tenumerate(start)`
+
+diff --git a/tqdm/contrib/__init__.py b/tqdm/contrib/__init__.py
+index 1dddacf..935ab63 100644
+--- a/tqdm/contrib/__init__.py
++++ b/tqdm/contrib/__init__.py
+@@ -38,7 +38,7 @@ def tenumerate(iterable, start=0, total=None, tqdm_class=tqdm_auto,
+         if isinstance(iterable, np.ndarray):
+             return tqdm_class(np.ndenumerate(iterable),
+                               total=total or len(iterable), **tqdm_kwargs)
+-    return enumerate(tqdm_class(iterable, start, **tqdm_kwargs))
++    return enumerate(tqdm_class(iterable, **tqdm_kwargs), start)
+
+
+ def _tzip(iter1, *iter2plus, **tqdm_kwargs):
+diff --git a/tqdm/tests/tests_contrib.py b/tqdm/tests/tests_contrib.py
+index f84e26a..fea4675 100644
+--- a/tqdm/tests/tests_contrib.py
++++ b/tqdm/tests/tests_contrib.py
+@@ -18,6 +18,7 @@ def test_enumerate():
+     with closing(StringIO()) as our_file:
+         a = range(9)
+         assert list(tenumerate(a, file=our_file)) == list(enumerate(a))
++        assert list(tenumerate(a, 42, file=our_file)) == list(enumerate(a, 42))
+
+
+ @with_setup(pretest, posttest)
