@@ -72,23 +72,26 @@ class PurposeCounterResults:
         :param data: dictionary with annotations (file content)
         :return: datastructure instance
         """
-        hunk_purposes = Counter()
+        file_purposes = Counter()
         added_line_purposes = Counter()
         removed_line_purposes = Counter()
-        for hunk in data:
+        for change_file in data:
+            if 'purpose' not in data[change_file] and change_file == 'commit_metadata':
+                # this is not changed file information, but commit metadata
+                continue
             # TODO: log info / debug
-            #print(hunk)
-            #print(data[hunk]['purpose'])
-            hunk_purposes[data[hunk]['purpose']] += 1
-            if '+' in data[hunk]:
-                added_lines = data[hunk]['+']
+            #print(change_file)
+            #print(data[change_file]['purpose'])
+            file_purposes[data[change_file]['purpose']] += 1
+            if '+' in data[change_file]:
+                added_lines = data[change_file]['+']
                 for added_line in added_lines:
                     added_line_purposes[added_line['purpose']] += 1
-            if '-' in data[hunk]:
-                removed_lines = data[hunk]['-']
+            if '-' in data[change_file]:
+                removed_lines = data[change_file]['-']
                 for removed_line in removed_lines:
                     removed_line_purposes[removed_line['purpose']] += 1
-        return PurposeCounterResults([file_path], hunk_purposes, added_line_purposes, removed_line_purposes)
+        return PurposeCounterResults([file_path], file_purposes, added_line_purposes, removed_line_purposes)
 
 
 class AnnotatedFile:
@@ -235,12 +238,16 @@ def map_diff_to_purpose_dict(_diff_file_path: str, data: dict) -> dict:
     :return: dictionary with file purposes
     """
     result = {}
-    for hunk in data:
-        print(hunk)
-        print(data[hunk]['purpose'])
-        if hunk not in result:
-            result[hunk] = []
-        result[hunk].append(data[hunk]['purpose'])
+    for change_file in data:
+        if 'purpose' not in data[change_file] and change_file == 'commit_metadata':
+            # this is not changed file information, but commit metadata
+            continue
+
+        print(change_file)
+        print(data[change_file]['purpose'])
+        if change_file not in result:
+            result[change_file] = []
+        result[change_file].append(data[change_file]['purpose'])
     return result
 
 
