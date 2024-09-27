@@ -154,6 +154,11 @@ def group_tokens_by_line(code: str, tokens: Iterable[T]) -> Dict[int, List[T]]:
     """
     tokens_deque = deque(tokens)
     idx_code = line_ends_idx(code)
+    # handle special case where `code` does not end in '\n' (newline)
+    # otherwise the last (and incomplete) line would be dropped
+    len_code = len(code)
+    if len_code not in idx_code:
+        idx_code.append(len_code)
 
     line_tokens = defaultdict(list)
     for no, idx in enumerate(idx_code):
@@ -1783,7 +1788,7 @@ def from_repo(
         typer.Option(
             help="Retrieve pre-/post-image contents from repo, and use it for lexing"
         )
-    ] = False,
+    ] = True,
     n_jobs: Annotated[
         int,
         typer.Option(
