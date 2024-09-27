@@ -21,6 +21,9 @@ def test_annotate_patch(tmp_path: Path):
 
     result = runner.invoke(annotate_app, ["patch", f"{file_path}", f"{save_path}"])
 
+    if result.exit_code != 0:
+        print(result.stdout)
+
     assert result.exit_code == 0, \
         "app runs 'patch' subcommand without errors"
     assert save_path.is_file(), \
@@ -33,6 +36,9 @@ def test_annotate_dataset(tmp_path: Path):
     dataset_dir = Path('tests/test_dataset_structured')
 
     result = runner.invoke(annotate_app, ["dataset", f"--output-prefix={tmp_path}", f"{dataset_dir}"])
+
+    if result.exit_code != 0:
+        print(result.stdout)
 
     assert result.exit_code == 0, \
         "app runs 'dataset' subcommand without errors"
@@ -47,8 +53,9 @@ def test_annotate_dataset_with_fanout(tmp_path: Path):
         "dataset", f"--output-prefix={tmp_path}", f"{dataset_dir}",
         "--patches-dir=", "--annotations-dir=",
     ])
-    # DEBUG
-    #print(result.stdout)
+
+    if result.exit_code != 0:
+        print(result.stdout)
 
     assert result.exit_code == 0, \
         "app runs 'dataset' subcommand without errors"
@@ -75,6 +82,9 @@ def test_annotate_from_repo(tmp_path: Path):
         '-5', 'HEAD'  # 5 latest commit on the current branch
     ])
 
+    if result.exit_code != 0:
+        print(result.stdout)
+
     assert result.exit_code == 0, \
         "app runs 'from-repo' subcommand without errors"
     assert f"{output_dir}" in result.stdout, \
@@ -95,6 +105,7 @@ def test_annotate_from_repo(tmp_path: Path):
 
     if result.exit_code != 0:
         print(result.stdout)
+
     assert result.exit_code == 0, \
         "app runs 'from-repo --with-fanout' subcommand without errors"
 
@@ -114,6 +125,7 @@ def test_annotate_from_repo_parallel(tmp_path: Path, example_repo: GitRepo):
 
     if result.exit_code != 0:
         print(result.stdout)
+
     assert result.exit_code == 0, \
         "app runs 'from-repo --n_jobs=2' subcommand without errors"
 
@@ -128,6 +140,9 @@ def test_annotate_patch_with_line_callback(tmp_path: Path):
         "patch", f"{file_path}", f"{save_path}"
     ])
 
+    if result.exit_code != 0:
+        print(result.stdout)
+
     assert result.exit_code == 0, \
         "app runs 'patch' subcommand with a no-op line str callback without errors"
     # NOTE: this check is performed only once
@@ -141,6 +156,9 @@ def test_annotate_patch_with_line_callback(tmp_path: Path):
         "patch", f"{file_path}", f"{save_path}"
     ])
 
+    if result.exit_code != 0:
+        print(result.stdout)
+
     assert result.exit_code == 0, \
         "app runs 'patch' subcommand with line callback from file defining body without errors"
 
@@ -150,6 +168,9 @@ def test_annotate_patch_with_line_callback(tmp_path: Path):
         f"--line-callback", f"{callback_path}",  # file with line callback
         "patch", f"{file_path}", f"{save_path}"
     ])
+
+    if result.exit_code != 0:
+        print(result.stdout)
 
     assert result.exit_code == 0, \
         "app runs 'patch' subcommand with line callback from file defining function without errors"
@@ -165,6 +186,9 @@ def test_annotate_patch_with_purpose_to_annotation(tmp_path: Path):
         "--purpose-to-annotation=test",  # implicit mapping
         "patch", f"{file_path}", f"{save_path}"
     ])
+
+    if result.exit_code != 0:
+        print(result.stdout)
 
     assert result.exit_code == 0, \
         "app runs 'patch' subcommand with a --purpose-to-annotation without errors"
@@ -187,9 +211,8 @@ def test_annotate_patch_with_pattern_to_purpose(tmp_path: Path):
         "patch", f"{file_path}", f"{save_path}"
     ])
 
-    # print("----- (result.stdout)")
-    # print(result.stdout)
-    # print("-----")
+    if result.exit_code != 0:
+        print(result.stdout)
 
     separator = " has purpose "
     assert result.exit_code == 0, \
@@ -213,6 +236,9 @@ def test_annotate_patch_with_ext_to_language(tmp_path: Path):
         "patch", f"{file_path}", f"{save_path}"
     ])
 
+    if result.exit_code != 0:
+        print(result.stdout)
+
     assert result.exit_code == 0, \
         "app runs 'patch' subcommand with a --ext-to-language without errors"
     assert ".lock" in result.stdout and "YAML" in result.stdout, \
@@ -223,6 +249,9 @@ def test_annotate_patch_with_ext_to_language(tmp_path: Path):
         "--ext-to-language=.extension",  # extension without language name
         "patch", f"{file_path}", f"{save_path}"
     ])
+
+    if result.exit_code != 0:
+        print(result.stdout)
 
     assert result.exit_code == 0, \
         "app runs 'patch' subcommand with special cases of --ext-to-language without errors"
@@ -242,6 +271,9 @@ def test_annotate_patch_with_filename_to_language(tmp_path: Path):
         "patch", f"{file_path}", f"{save_path}"
     ])
 
+    if result.exit_code != 0:
+        print(result.stdout)
+
     assert result.exit_code == 0, \
         "app runs 'patch' subcommand with a --filename-to-language without errors"
     assert "LICENSE" in result.stdout and "txt" in result.stdout, \
@@ -252,6 +284,9 @@ def test_annotate_patch_with_filename_to_language(tmp_path: Path):
         "--filename-to-language=COPYING",  # extension without language name
         "patch", f"{file_path}", f"{save_path}"
     ])
+
+    if result.exit_code != 0:
+        print(result.stdout)
 
     assert result.exit_code == 0, \
         "app runs 'patch' subcommand with special cases of --filename-to-language without errors"
@@ -281,6 +316,9 @@ def test_generate_patches(tmp_path: Path):
         '-5', 'HEAD'  # 5 latest commit on the current branch
     ])
 
+    if result.exit_code != 0:
+        print(result.stdout)
+
     assert result.exit_code == 0, \
         "generate app runs without errors"
     assert output_dir.is_dir(), \
@@ -308,6 +346,9 @@ def test_generate_patches_with_fanout(tmp_path: Path):
         str(repo_dir),
         '-5', 'HEAD'  # 5 latest commit on the current branch
     ])
+
+    if result.exit_code != 0:
+        print(result.stdout)
 
     assert result.exit_code == 0, \
         "generate app runs without errors"
@@ -352,6 +393,9 @@ def test_gather_data(tmp_path: Path):
         f"{dataset_dir_patches}",
     ])
 
+    if result.exit_code != 0:
+        print(result.stdout)
+
     assert result.exit_code == 0, \
         "annotate app runs 'dataset' subcommand on structured dataset without errors"
 
@@ -374,8 +418,8 @@ def test_gather_data(tmp_path: Path):
         f"{dataset_dir_annotations}",
     ])
 
-    # DEBUG
-    #print(result.stdout)
+    if result.exit_code != 0:
+        print(result.stdout)
 
     assert result.exit_code == 0, \
         "gather app runs 'purpose-counter' subcommand on generated annotations without errors"
@@ -398,8 +442,8 @@ def test_gather_data(tmp_path: Path):
         f"{dataset_dir_annotations}",
     ])
 
-    # DEBUG
-    #print(result.stdout)
+    if result.exit_code != 0:
+        print(result.stdout)
 
     assert result.exit_code == 0, \
         "gather app runs 'purpose-per-file' subcommand on generated annotations without errors"
@@ -423,8 +467,8 @@ def test_gather_data(tmp_path: Path):
         f"{dataset_dir_annotations}",
     ])
 
-    # DEBUG
-    #print(result.stdout)
+    if result.exit_code != 0:
+        print(result.stdout)
 
     assert result.exit_code == 0, \
         "gather app runs 'lines-stats' subcommand on generated annotations without errors"
