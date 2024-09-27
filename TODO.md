@@ -21,11 +21,12 @@
     - [ ] add `docs/` directory (for man pages, and maybe API documentation)
     - [ ] _maybe_ use build tool like Poetry, Hatch, PDM, Rye, uv, Flit,...
     - [ ] _maybe_ use in HaPy-Bug (python_bug_dataset) [via a GitHub URL][1]
-- [x] 3 scripts _(their names may change in the future)_ - see `[project.scripts]` section
+- [x] ~~3~~ 4 scripts _(their names may change in the future)_ - see `[project.scripts]` section
   in [`pyproject.toml`](pyproject.toml)
     - [x] `diff-generate` (from [`generate_patches.py`](src/diffannotator/generate_patches.py))
     - [x] `diff-annotate` (from [`annotate.py`](src/diffannotator/annotate.py))
     - [x] `diff-gather-stats` (from [`gather_data.py`](src/diffannotator/gather_data.py))
+    - [ ] `diff-augment` - augment JSON files with data from Git or from GitHub
 - [ ] improvements and new features for `generate_patches.py`
     - [ ] configure what and where to output
         - [x] `--use-fanout` 
@@ -59,6 +60,12 @@
         - [x] `PURPOSE_TO_ANNOTATION` global variable
         - [x] global option `--purpose-to-annotation` in [`annotate.py`](src/diffannotator/annotate.py) script
     - [ ] configurable line annotation based on tokens
+    - [ ] retrieving and adding commit metadata
+        - [x] from Git repository - for 'from-repo'
+        - [ ] from *.message files - for 'dataset' (see BugsInPy, HaPy-Bugs)
+        - [ ] from `git log -p` generated *.diff files - for 'dataset'
+        - [ ] from `git format-patch` generated *.patch/*.diff files - for 'dataset'
+        - [ ] from Git (or GitHub) repository provided via CLI option - for 'dataset'
     - [ ] configuration file (*.toml, *.yaml, *.json, *.ini, *.cfg, or *.py);<br>
       maybe using [Hydra][] (see [_Using Typer and Hydra together_][3]),
       maybe using [Dynaconf][],
