@@ -777,7 +777,7 @@ def annotate_single_diff(diff_path: PathLike,
     patch_annotations = {}
 
     try:
-        patch_set = unidiff.PatchSet.from_filename(diff_path, encoding="utf-8")
+        patch_set = ChangeSet.from_filename(diff_path, encoding="utf-8")
 
     except FileNotFoundError as ex:
         # TODO?: use logger, log either warning or error
@@ -805,6 +805,16 @@ def annotate_single_diff(diff_path: PathLike,
         return {}  # explicitly return empty dict on parse error
 
     try:
+        # once per changeset
+        # TODO: extract common code
+        # TODO: make '' into a constant, like UNKNOWN_ID, reducing duplication
+        if isinstance(patch_set, ChangeSet) and patch_set.commit_id != '':
+            commit_metadata = {'id': patch_set.commit_id}
+            if patch_set.commit_metadata is not None:
+                commit_metadata.update(patch_set.commit_metadata)
+            patch_annotations['commit_metadata'] = commit_metadata
+
+        # for each changed file
         for i, patched_file in enumerate(patch_set, start=1):
             annotated_patch_file = AnnotatedPatchedFile(patched_file)
             patch_annotations.update(annotated_patch_file.process())
