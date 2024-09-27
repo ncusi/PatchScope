@@ -110,7 +110,9 @@ def test_post_image_from_diff():
 def test_annotate_single_diff():
     # code patch
     file_path = 'tests/test_dataset/tqdm-1/c0dcf39b046d1b4ff6de14ac99ad9a1b10487512.diff'
-    patch = annotate_single_diff(file_path)
+    patch = annotate_single_diff(file_path, missing_ok=False,
+                                 ignore_diff_parse_errors=False,
+                                 ignore_annotation_errors=False)
     # check file data
     expected_language_data = {
         'language': 'Python',
@@ -155,7 +157,9 @@ def test_annotate_single_diff():
 
     # documentation patch
     file_path = 'tests/test_dataset/unidiff-1/3353080f357a36c53d21c2464ece041b100075a1.diff'
-    patch = annotate_single_diff(file_path)
+    patch = annotate_single_diff(file_path, missing_ok=False,
+                                 ignore_diff_parse_errors=False,
+                                 ignore_annotation_errors=False)
     # check file data
     assert 'README.rst' in patch, \
         "correct file name is used in patch data"
@@ -172,12 +176,14 @@ def test_annotate_single_diff():
         "all post-image lines of 'README.rst' are marked as documentation"
 
     file_path = 'tests/test_dataset/empty.diff'
-    patch = annotate_single_diff(file_path)
+    patch = annotate_single_diff(file_path, missing_ok=False,
+                                 ignore_diff_parse_errors=False,
+                                 ignore_annotation_errors=False)
     assert patch == {}, "empty patch on empty diff"
 
     file_path = 'tests/test_dataset/this_patch_does_not_exist.diff'
     with pytest.raises(FileNotFoundError):
-        annotate_single_diff(file_path)
+        annotate_single_diff(file_path, missing_ok=False)
 
 
 @pytest.mark.parametrize("line_type", [unidiff.LINE_TYPE_REMOVED, unidiff.LINE_TYPE_ADDED])
@@ -487,7 +493,9 @@ def test_line_callback_trivial():
     # trivial callback
     line_type = "any"
     AnnotatedPatchedFile.line_callback = lambda tokens: line_type
-    patch = annotate_single_diff(file_path)
+    patch = annotate_single_diff(file_path, missing_ok=False,
+                                 ignore_diff_parse_errors=False,
+                                 ignore_annotation_errors=False)
 
     # - check file
     changed_file_name = 'tqdm/contrib/__init__.py'
@@ -507,7 +515,9 @@ def test_line_callback_trivial():
     AnnotatedPatchedFile.line_callback = \
         locals().get('callback_x',
                      globals().get('callback_x', None))
-    patch = annotate_single_diff(file_path)
+    patch = annotate_single_diff(file_path, missing_ok=False,
+                                 ignore_diff_parse_errors=False,
+                                 ignore_annotation_errors=False)
 
     assert patch[changed_file_name]['-'][0]['type'] == line_type, \
         f"removed line is marked as '{line_type}' by self-contained exec callback"
@@ -531,7 +541,9 @@ def test_line_callback_whitespace():
             return None
 
     AnnotatedPatchedFile.line_callback = detect_all_whitespace_line
-    patch = annotate_single_diff(file_path)
+    patch = annotate_single_diff(file_path, missing_ok=False,
+                                 ignore_diff_parse_errors=False,
+                                 ignore_annotation_errors=False)
 
     changed_file_name = 'keras/engine/training_utils.py'
     assert changed_file_name in patch, \
@@ -558,7 +570,9 @@ def test_line_callback_whitespace():
         "successfully created the callback code from callback string"
 
     # annotate with the new callback
-    patch = annotate_single_diff(file_path)
+    patch = annotate_single_diff(file_path, missing_ok=False,
+                                 ignore_diff_parse_errors=False,
+                                 ignore_annotation_errors=False)
 
     assert any([elem['type'] == 'empty'
                 for elem in patch[changed_file_name]['-']]), \

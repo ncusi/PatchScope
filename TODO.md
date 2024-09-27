@@ -63,8 +63,8 @@
     - [ ] retrieving and adding commit metadata
         - [x] from Git repository - for 'from-repo'
         - [ ] from *.message files - for 'dataset' (see BugsInPy, HaPy-Bugs)
-        - [ ] from `git log -p` generated *.diff files - for 'dataset'
-        - [ ] from `git format-patch` generated *.patch/*.diff files - for 'dataset'
+        - [x] from `git log -p` generated *.diff files - for 'dataset'
+        - [ ] from `git format-patch` generated \*.patch/\*.diff files - for 'dataset'
         - [ ] from Git (or GitHub) repository provided via CLI option - for 'dataset'
     - [ ] configuration file (*.toml, *.yaml, *.json, *.ini, *.cfg, or *.py);<br>
       maybe using [Hydra][] (see [_Using Typer and Hydra together_][3]),

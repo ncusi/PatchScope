@@ -759,18 +759,25 @@ class AnnotatedHunk:
             self.patch_data[source_file]["-"].append(data)
 
 
-def annotate_single_diff(diff_path: PathLike, missing_ok: bool = False) -> dict:
+def annotate_single_diff(diff_path: PathLike,
+                         missing_ok: bool = False,
+                         ignore_diff_parse_errors: bool = True,
+                         ignore_annotation_errors: bool = True) -> dict:
     """Annotate single unified diff patch file at given path
 
     :param diff_path: patch filename
     :param missing_ok: if false (the default), raise exception if `diff_path`
         does not exist, or cannot be read.
+    :param ignore_diff_parse_errors: if true (the default), ignore parse errors
+        (malformed patches), otherwise re-raise the exception
+    :param ignore_annotation_errors: if true (the default), ignore errors during
+        patch annotation process
     :return: annotation data
     """
     patch_annotations = {}
 
     try:
-        patch_set = unidiff.PatchSet.from_filename(diff_path, encoding="utf-8")
+        patch_set = ChangeSet.from_filename(diff_path, encoding="utf-8")
 
     except FileNotFoundError as ex:
         # TODO?: use logger, log either warning or error
@@ -790,12 +797,24 @@ def annotate_single_diff(diff_path: PathLike, missing_ok: bool = False) -> dict:
             raise ex
         return {}
 
-    except Exception as ex:
+    except unidiff.UnidiffParseError as ex:
         print(f"Error parsing patch file '{diff_path}': {ex!r}")
-        # raise ex
+
+        if not ignore_diff_parse_errors:
+            raise ex
         return {}  # explicitly return empty dict on parse error
 
     try:
+        # once per changeset
+        # TODO: extract common code
+        # TODO: make '' into a constant, like UNKNOWN_ID, reducing duplication
+        if isinstance(patch_set, ChangeSet) and patch_set.commit_id != '':
+            commit_metadata = {'id': patch_set.commit_id}
+            if patch_set.commit_metadata is not None:
+                commit_metadata.update(patch_set.commit_metadata)
+            patch_annotations['commit_metadata'] = commit_metadata
+
+        # for each changed file
         for i, patched_file in enumerate(patch_set, start=1):
             annotated_patch_file = AnnotatedPatchedFile(patched_file)
             patch_annotations.update(annotated_patch_file.process())
@@ -803,7 +822,9 @@ def annotate_single_diff(diff_path: PathLike, missing_ok: bool = False) -> dict:
     except Exception as ex:
         print(f"Error processing patch file '{diff_path}': {ex!r}")
         traceback.print_tb(ex.__traceback__)
-        # raise ex
+
+        if not ignore_annotation_errors:
+            raise ex
 
     return patch_annotations
 

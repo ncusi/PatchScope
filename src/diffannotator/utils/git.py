@@ -24,12 +24,12 @@ import subprocess
 from collections import defaultdict
 from contextlib import contextmanager
 from enum import Enum
-from io import StringIO, BufferedReader
+from io import StringIO, BufferedReader, TextIOWrapper
 from pathlib import Path
-from typing import Optional, Union, TypeVar, Literal, overload, NamedTuple, Dict, List, Tuple
+from typing import Optional, Union, TypeVar, Literal, overload, NamedTuple, Dict, List, Tuple, TextIO
 from typing import Iterable, Iterator  # should be imported from collections.abc
 
-from unidiff import PatchSet
+from unidiff import PatchSet, DEFAULT_ENCODING
 from unidiff.patch import Line as PatchLine
 
 
@@ -68,8 +68,11 @@ class ChangeSet(PatchSet):
         pattern=r'^diff --git [^\t\n]+ [^\t\n]+',
         flags=re.MULTILINE
     )
+    RE_ALL_SHA1_FULL = re.compile(r'^[0-9a-f]{40}$')
+    # TODO: support SHA-256 object names
+    # https://git-scm.com/docs/hash-function-transition
 
-    def __init__(self, patch_source: Union[StringIO, str], commit_id: str,
+    def __init__(self, patch_source: Union[StringIO, TextIO, str], commit_id: str,
                  prev: Optional[str] = None,
                  *args, **kwargs):
         """ChangeSet class constructor
@@ -96,6 +99,9 @@ class ChangeSet(PatchSet):
             if isinstance(patch_source, StringIO):
                 patch_source.seek(0)
                 patch_text = patch_source.getvalue()
+            elif isinstance(patch_source, TextIOWrapper):
+                patch_source.seek(0)
+                patch_text = patch_source.read()
             else:
                 patch_text = patch_source
             match = re.search(self.RE_DIFF_GIT_HEADER_GENERIC,
@@ -106,6 +112,34 @@ class ChangeSet(PatchSet):
                 # -1 is to remove newline from empty line separating commit text from diff
                 self.commit_metadata = _parse_commit_text(commit_text[:-1],
                                                           with_parents_line=False)
+
+    # override
+    @classmethod
+    def from_filename(cls, filename: Union[str, Path], encoding: str = DEFAULT_ENCODING,
+                      errors: Optional[str] = None, newline: Optional[str] = None) -> 'ChangeSet':
+        """Return a PatchSet instance given a diff filename."""
+        # NOTE: unconditional `file_path = Path(filename)` would also work
+        if isinstance(filename, Path):
+            file_path = filename
+        else:
+            file_path = Path(filename)
+
+        # try to extract commit_id from basename of the file, for example
+        # from filename == 'e54746bdf7d5c831eabe4dcea76a7626f1de73df.diff'
+        commit_id = ''
+        base_name = file_path.stem
+        if re.fullmatch(cls.RE_ALL_SHA1_FULL, base_name):
+            commit_id = base_name
+
+        # slightly modified contents of PatchSet.from_filename() alternate constructor
+        with file_path.open(mode='r', encoding=encoding, errors=errors, newline=newline) as fp:
+            obj = cls(fp, commit_id=commit_id)  # PatchSet.from_filename() has type mismatch
+
+        # adjust commit_id if we were able to retrieve commit metadata from file
+        if commit_id != '' and obj.commit_metadata is not None:
+            obj.commit_id = obj.commit_metadata['id']
+
+        return obj
 
 
 def _parse_authorship_info(authorship_line: str,
@@ -177,7 +211,13 @@ def _parse_commit_text(commit_text: str, with_parents_line: bool = True,
 
     # commit metadata
     line_no = 0
+    in_gpgsig = False
     for (idx, line) in enumerate(commit_lines):
+        if in_gpgsig:
+            if line == ' -----END PGP SIGNATURE-----':
+                in_gpgsig = False
+            continue
+
         if line == '':
             line_no = idx
             break
@@ -191,6 +231,8 @@ def _parse_commit_text(commit_text: str, with_parents_line: bool = True,
         for field in ('author', 'committer'):
             if line.startswith(f'{field} '):
                 commit_data[field] = _parse_authorship_info(line[len(f'{field} '):], field)
+        if line.startswith('gpgsig '):
+            in_gpgsig = True
 
     # commit message
     commit_data['message'] = ''

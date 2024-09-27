@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 """Test cases for 'src/diffannotator/utils/git.py' module"""
-
 import pytest
 from unidiff import PatchSet
 
@@ -330,3 +329,30 @@ def test_metadata_extraction_in_ChangeSet(example_repo):
         "extracted commit metadata from .log_p() result"
     assert patch_log.commit_metadata == revision_metadata, \
         "correctly extracted expected metadata from .log_p() result"
+
+
+def test_ChangeSet_from_filename():
+    commit_id = 'c0dcf39b046d1b4ff6de14ac99ad9a1b10487512'
+    filename_diff_only = f'tests/test_dataset/tqdm-1/{commit_id}.diff'
+    changeset_diff_only = ChangeSet.from_filename(filename_diff_only)
+
+    assert isinstance(changeset_diff_only, ChangeSet), \
+        "ChangeSet.from_filename returned ChangeSet or derived class"
+    assert isinstance(changeset_diff_only, PatchSet), \
+        "ChangeSet.from_filename returned PatchSet or derived class"
+    assert changeset_diff_only.commit_id == commit_id, \
+        "Extracted commit_id from file name"
+    assert changeset_diff_only.commit_metadata is None, \
+        "For file with diff only there is no way to get commit metadata from it"
+
+    filename_diff_full = f'tests/test_dataset/tqdm-1/{commit_id}.diff_with_raw'
+    changeset_diff_full = ChangeSet.from_filename(filename_diff_full)
+    assert changeset_diff_full.commit_id == commit_id, \
+        "Extracted commit_id from metadata matches with from file name"
+    assert changeset_diff_full.commit_metadata is not None, \
+        "Successful extraction of commit metadata from raw with patch format"
+    assert changeset_diff_full.commit_metadata['id'] == commit_id, \
+        "Commit id from metadata matches expectations"
+    # NOTE: this depends on the test file used!
+    assert changeset_diff_full.commit_metadata['message'].count('\n') == 1, \
+        "The commit message has exactly one line, ending in '\\n'"
