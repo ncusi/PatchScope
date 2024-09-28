@@ -1,7 +1,8 @@
 from collections import Counter
 from pathlib import Path
 
-from diffannotator.gather_data import PurposeCounterResults, AnnotatedBugDataset, map_diff_to_purpose_dict
+from diffannotator.gather_data import (PurposeCounterResults, AnnotatedBugDataset,
+                                       map_diff_to_purpose_dict, map_diff_to_timeline)
 
 
 def test_AnnotatedBugDataset_with_PurposeCounterResults():
@@ -28,6 +29,34 @@ def test_AnnotatedBugDataset_with_dict_mapping():
     assert 'UPGRADE.rst' in data_dict['CVE-2021-21332']['e54746bdf7d5c831eabe4dcea76a7626f1de73df.json']
     assert data_dict['CVE-2021-21332']['e54746bdf7d5c831eabe4dcea76a7626f1de73df.json']['UPGRADE.rst'] == [
         'documentation']
+
+
+def test_AnnotatedBugDataset_gather_data_list():
+    dataset_path = 'tests/test_dataset_annotated'
+    annotated_bug_dataset = AnnotatedBugDataset(dataset_path)
+    # TODO?: inject commit metadata, if missing
+    #print(f"{annotated_bug_dataset.bugs=}")
+
+    data_list = annotated_bug_dataset.gather_data_list(map_diff_to_timeline)
+
+    # DEBUG
+    #from pprint import pprint
+    #pprint(data_list)
+
+    # NOTE: change if the test data changes!
+    assert len(data_list) == 1, \
+        "only one annotation file was present"
+    assert data_list[0]['bug_id'] == 'CVE-2021-21332', \
+        "found expected bug id"
+
+    # NOTE: change if the test data changes!
+    annotation_file = 'e54746bdf7d5c831eabe4dcea76a7626f1de73df.json'
+    assert data_list[0]['patch_id'] == annotation_file, \
+        "found expected annotation file"
+
+    diff_data = data_list[0]
+    assert {'file_names', '+:count', '-:count'} <= set(diff_data.keys()), \
+        "expected keys present in extracted stats"
 
 
 def test_PurposeCounterResults_create():

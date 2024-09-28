@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import json
 import os
-from collections import Counter
+from collections import Counter, defaultdict
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, List, Optional, TypeVar
@@ -104,7 +104,8 @@ class AnnotatedFile:
         """
         self._path = Path(file_path)
 
-    def gather_data(self, bug_mapper: Callable[[str, dict], T]) -> T:
+    def gather_data(self, bug_mapper: Callable[..., T],
+                    **mapper_kwargs) -> T:
         """
         Retrieves data from file
 
@@ -113,7 +114,7 @@ class AnnotatedFile:
         """
         with self._path.open('r') as json_file:
             data = json.load(json_file)
-            return bug_mapper(str(self._path), data)
+            return bug_mapper(str(self._path), data, **mapper_kwargs)
 
 
 class AnnotatedBug:
@@ -132,7 +133,9 @@ class AnnotatedBug:
         except Exception as ex:
             print(f"Error in AnnotatedBug for '{self._path}': {ex}")
 
-    def gather_data(self, bug_mapper: Callable[[str, dict], T], datastructure_generator: Callable[[], T]) -> T:
+    def gather_data(self, bug_mapper: Callable[..., T],
+                    datastructure_generator: Callable[[], T],
+                    **mapper_kwargs) -> T:
         """
         Gathers dataset data via processing each file in current bug using AnnotatedFile class and provided functions
 
@@ -146,11 +149,12 @@ class AnnotatedBug:
                 continue
             annotation_file_path = self._annotations_path / annotation
             annotation_file = AnnotatedFile(annotation_file_path)
-            file_results = annotation_file.gather_data(bug_mapper)
+            file_results = annotation_file.gather_data(bug_mapper, **mapper_kwargs)
             combined_results += file_results
         return combined_results
 
-    def gather_data_dict(self, bug_dict_mapper: Callable[[str, dict], dict]) -> dict:
+    def gather_data_dict(self, bug_dict_mapper: Callable[..., dict],
+                         **mapper_kwargs) -> dict:
         """
         Gathers dataset data via processing each file in current bug using AnnotatedFile class and provided functions
 
@@ -163,7 +167,7 @@ class AnnotatedBug:
                 continue
             annotation_file_path = self._annotations_path / annotation
             annotation_file = AnnotatedFile(annotation_file_path)
-            diff_file_results = annotation_file.gather_data(bug_dict_mapper)
+            diff_file_results = annotation_file.gather_data(bug_dict_mapper, **mapper_kwargs)
             combined_results |= {str(annotation): diff_file_results}
         return combined_results
 
@@ -185,8 +189,10 @@ class AnnotatedBugDataset:
         except Exception as ex:
             print(f"Error in AnnotatedBugDataset for '{self._path}': {ex}")
 
-    def gather_data(self, bug_mapper: Callable[[str, dict], T], datastructure_generator: Callable[[], T],
-                    annotations_dir: str = Bug.DEFAULT_ANNOTATIONS_DIR) -> T:
+    def gather_data(self, bug_mapper: Callable[..., T],
+                    datastructure_generator: Callable[[], T],
+                    annotations_dir: str = Bug.DEFAULT_ANNOTATIONS_DIR,
+                    **mapper_kwargs) -> T:
         """
         Gathers dataset data via processing each bug using AnnotatedBug class and provided functions
 
@@ -204,13 +210,14 @@ class AnnotatedBugDataset:
             #print(bug_id)
             bug_path = self._path / bug_id
             bug = AnnotatedBug(bug_path, annotations_dir=annotations_dir)
-            bug_results = bug.gather_data(bug_mapper, datastructure_generator)
+            bug_results = bug.gather_data(bug_mapper, datastructure_generator, **mapper_kwargs)
             combined_results += bug_results
 
         return combined_results
 
-    def gather_data_dict(self, bug_dict_mapper: Callable[[str, dict], dict],
-                         annotations_dir: str = Bug.DEFAULT_ANNOTATIONS_DIR) -> dict:
+    def gather_data_dict(self, bug_dict_mapper: Callable[..., dict],
+                         annotations_dir: str = Bug.DEFAULT_ANNOTATIONS_DIR,
+                         **mapper_kwargs) -> dict:
         """
         Gathers dataset data via processing each bug using AnnotatedBug class and provided function
 
@@ -224,14 +231,49 @@ class AnnotatedBugDataset:
             print(bug_id)
             bug_path = self._path / bug_id
             bug = AnnotatedBug(bug_path, annotations_dir=annotations_dir)
-            bug_results = bug.gather_data_dict(bug_dict_mapper)
+            bug_results = bug.gather_data_dict(bug_dict_mapper, **mapper_kwargs)
             combined_results |= {bug_id: bug_results}
+        return combined_results
+
+    def gather_data_list(self, bug_to_dict_mapper: Callable[..., dict],
+                         annotations_dir: str = Bug.DEFAULT_ANNOTATIONS_DIR,
+                         **mapper_kwargs) -> list:
+        """
+        Gathers dataset data via processing each bug using AnnotatedBug class and provided function
+
+        :param bug_to_dict_mapper: function to map diff annotations to dictionary
+        :param annotations_dir: subdirectory where annotations are; path
+            to annotation in a dataset is <bug_id>/<annotations_dir>/<patch_data>.json
+        :return: list of bug dictionaries
+        """
+        combined_results = []
+        for bug_id in tqdm.tqdm(self.bugs, desc="patchset", position=2, leave=False):
+            bug_path = self._path / bug_id
+            bug = AnnotatedBug(bug_path, annotations_dir=annotations_dir)
+            bug_results = bug.gather_data_dict(bug_to_dict_mapper, **mapper_kwargs)
+            # NOTE: could have used `+=` instead of `.append()`
+            for patch_id, patch_data in bug_results.items():
+                combined_results.append({
+                    'bug_id': bug_id,
+                    'patch_id': patch_id,
+                    **patch_data
+                })
+
         return combined_results
 
 
 def map_diff_to_purpose_dict(_diff_file_path: str, data: dict) -> dict:
-    """
-    Example functon mapping diff of specific commit to dictionary
+    """Extracts file purposes of changed file in a diff annotation
+
+    Returns mapping from file name (of a changed file) to list (???)
+    of file purposes for that file.
+
+    Example:
+
+        {
+            'keras/engine/training_utils.py': ['programming'],
+            'tests/keras/engine/test_training.py': ['test'],
+        }
 
     :param _diff_file_path: file path containing diff, ignored
     :param data: dictionary loaded from file
@@ -243,11 +285,13 @@ def map_diff_to_purpose_dict(_diff_file_path: str, data: dict) -> dict:
             # this is not changed file information, but commit metadata
             continue
 
-        print(change_file)
-        print(data[change_file]['purpose'])
+        #print(change_file)
+        #print(data[change_file]['purpose'])
         if change_file not in result:
             result[change_file] = []
         result[change_file].append(data[change_file]['purpose'])
+
+    #print(f"{_diff_file_path}:{result=}")
     return result
 
 
@@ -326,6 +370,123 @@ def map_diff_to_lines_stats(annotation_file_basename: str,
                     result[filename]["+/-"][f"{data_type}.{line_data}"] += 1
 
     return result
+
+
+def map_diff_to_timeline(annotation_file_basename: str,
+                         annotation_data: dict) -> dict:
+    """Mapper passed by timeline() to *.gather_data_dict() method
+
+    It gathers information about file, and counts information about
+    changed lines (in pre-image i.e. "-", in post-image i.e. "+",...).
+
+    :param annotation_file_basename: name of JSON file with annotation data
+    :param annotation_data: parsed annotations data, retrieved from
+        `annotation_file_basename` file.
+    """
+    # Example fragment of annotation file:
+    #
+    # {
+    #   "commit_metadata": {
+    #     "id": "e54746bdf7d5c831eabe4dcea76a7626f1de73df",
+    #     "parents": ["93b61589b0bdb3845ee839e9c2a4e1adb06bd483"],
+    #     "tree": "262d65e6c945adfa2d64bfe51e70c09d2e1d7d06",
+    #     "author": {
+    #       "author": "Patrick Cloke <clokep@users.noreply.github.com>",
+    #       "name": "Patrick Cloke",
+    #       "email": "clokep@users.noreply.github.com",
+    #       "timestamp": 1611763190,
+    #       "tz_info": "-0500"
+    #     },
+    #     "committer": {
+    #       "committer": "GitHub <noreply@github.com>",
+    #       "name": "GitHub",
+    #       "email": "noreply@github.com",
+    #       "timestamp": 1611763190,
+    #       "tz_info": "-0500"
+    #     },
+    #   },
+    #   "third_party/xla/xla/service/gpu/ir_emitter_unnested.cc": {
+    #     "language": "C++",
+    #     "type": "programming",
+    #     "purpose": "programming",
+    #     "+": [
+    #       {
+    #         "id": 4,
+    #         "type": "code",
+    #         "purpose": "programming",
+    #         "tokens": […],
+    #       },
+    #       {"id":…},
+    #     ],
+    #     "-": […],
+    #   },…
+    # }
+
+    # TODO: add logging (info or debug)
+    result = Counter()
+    per_commit_info = {}
+
+    # gather summary data from all changed files
+    for filename, file_data in annotation_data.items():
+        # NOTE: each file should be present only once for given patch/commit
+
+        if filename == 'commit_metadata':
+            # this might be changed file information, but commit metadata
+            for metadata_key in ('author', 'committer'):
+                if metadata_key not in file_data:
+                    continue
+                authorship_data = file_data[metadata_key]
+                for authorship_key in ('timestamp', 'tz_info', 'name', 'email'):
+                    if authorship_key in authorship_data:
+                        per_commit_info[f"{metadata_key}.{authorship_key}"] = file_data[metadata_key][authorship_key]
+
+            if 'parents' in file_data:
+                per_commit_info['n_parents'] = len(file_data['parents'])
+
+            if 'purpose' not in file_data:
+                # commit metadata, skip processing it as a file
+                continue
+            else:
+                print(f"  warning: found file named 'commit_metadata' in {annotation_file_basename}")
+
+        result['file_names'] += 1
+
+        # gather per-file information, and aggregate it
+        per_file_data = {
+            key: value for key, value in file_data.items()
+            if key in ("language", "type", "purpose")
+        }
+        per_file_data.update({
+            "+": Counter(),
+            "-": Counter(),
+        })
+
+        for line_type in "+-":  # str used as iterable
+            # diff might have removed lines, or any added lines
+            if line_type not in file_data:
+                continue
+
+            for line in file_data[line_type]:
+                per_file_data[line_type]["count"] += 1  # count of added/removed lines
+
+                for data_type in ["type", "purpose"]:  # ignore "id" and "tokens" fields
+                    line_data = line[data_type]
+                    per_file_data[line_type][f"{data_type}.{line_data}"] += 1
+
+        for key, value in per_file_data.items():
+            if isinstance(value, (dict, defaultdict, Counter)):
+                for sub_key, sub_value in value.items():
+                    # don't expect anything deeper
+                    result[f"{key}:{sub_key}"] += sub_value
+            elif isinstance(value, int):
+                result[key] += value
+            else:
+                result[f"{key}:{value}"] += 1
+
+    result = dict(result, **per_commit_info)
+
+    return result
+
 
 
 # TODO: make it common (move it to 'utils' module or '__init__.py' file)
@@ -469,7 +630,7 @@ def purpose_per_file(
                                                annotations_dir=ctx.obj.annotations_dir)
         result[str(dataset)] = data
 
-    print(result)
+    #print(result)
     save_result(result, result_json)
 
 
@@ -515,6 +676,72 @@ def lines_stats(
 
         result[str(dataset)] = data
 
+    save_result(result, output_file)
+
+
+@app.command()
+def timeline(
+    ctx: typer.Context,  # common arguments like --annotations-dir
+    output_file: Annotated[
+        Path,
+        typer.Argument(
+            dir_okay=False,
+            help="file to write gathered results to"
+        )
+    ],
+    datasets: Annotated[
+        List[Path],
+        typer.Argument(
+            exists=True,
+            file_okay=False,
+            dir_okay=True,
+            readable=True,
+            writable=False,
+            help="list of dirs with datasets to process"
+        )
+    ],
+
+) -> None:
+    # TODO: extract common part of the command description
+    """Calculate timeline of bugs with per-bug count of different types of lines
+
+    For each bug (bugfix commit), compute the count of lines removed and added
+    by the patch (commit) in all changed files, keeping separate counts for
+    lines with different types, and (separately) with different purposes.
+
+    The gathered data is then saved in a format easy to load into dataframe.
+
+    Each DATASET is expected to be generated by annotating dataset or creating
+    annotations from a repository, and should be an existing directory with
+    the following structure:
+
+        <dataset_directory>/<bug_directory>/annotation/<patch_file>.json
+
+    Each dataset can consist of many BUGs, each BUG should include JSON
+    file with its diff/patch annotations as *.json file in 'annotation/'
+    subdirectory (by default).
+
+    Saves gathered timeline results to the OUTPUT_FILE.
+    """
+    result = {}
+
+    # often there is only one dataset, therefore joblib support is not needed
+    for dataset in tqdm.tqdm(datasets, desc='dataset'):
+        tqdm.tqdm.write(f"Dataset {dataset}")
+        annotated_bugs = AnnotatedBugDataset(dataset)
+        data = annotated_bugs.gather_data_list(map_diff_to_timeline,
+                                               annotations_dir=ctx.obj.annotations_dir)
+
+        # sanity check
+        if not data:
+            tqdm.tqdm.write("  warning: no data extracted from this dataset")
+        else:
+            if 'author.timestamp' not in data[0]:
+                tqdm.tqdm.write("  warning: dataset does not include time information")
+
+        result[dataset.name] = data
+
+    # TODO: support other formats than JSON
     save_result(result, output_file)
 
 
