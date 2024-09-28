@@ -12,7 +12,7 @@ from diffannotator.annotate import (split_multiline_lex_tokens, line_ends_idx,
                                     group_tokens_by_line, front_fill_gaps, deep_update,
                                     clean_text, line_is_comment, annotate_single_diff,
                                     Bug, BugDataset, AnnotatedPatchedFile, AnnotatedHunk)
-from diffannotator.utils.git import GitRepo, DiffSide
+from diffannotator.utils.git import GitRepo, DiffSide, ChangeSet
 
 # Example code to be tokenized
 example_C_code = r'''
@@ -340,6 +340,64 @@ def test_Bug_from_patchset():
                                               repo=GitRepo('a/b/c'))
     assert commit_id in bug_with_invalid_repo.patches, \
         "retrieved annotations for the single patchset (with invalid repo)"
+
+
+def test_Bug_from_changeset():
+    # see tests/test_utils_git.py::test_ChangeSet_from_filename
+    commit_id = 'c0dcf39b046d1b4ff6de14ac99ad9a1b10487512'
+    filename_diff = f'tests/test_dataset/tqdm-1/{commit_id}.diff_with_raw'
+    changeset = ChangeSet.from_filename(filename_diff)
+
+    bug = Bug.from_patchset(patch_id=commit_id, patch_set=changeset)
+    assert [commit_id] == list(bug.patches.keys()), \
+        "expected commit, and only expected commit, is in bug.patches"
+    assert 'commit_metadata' in bug.patches[commit_id], \
+        "commit information was extracted from the '--format=raw -p' diff"
+
+    # remove 'commit_metadata' to make further checks easier
+    # 'commit_metadata' is checked in another test
+    del bug.patches[commit_id]['commit_metadata']
+
+    # DEBUG
+    #print(f"{bug=}")
+    #print(f"{len(bug.patches[commit_id])=}")
+    #print(f"{bug.patches[commit_id].keys()=}")
+
+    files_changed = ['tqdm/contrib/__init__.py', 'tqdm/tests/tests_contrib.py']
+
+    # DEBUG
+    #for f in files_changed:
+    #    f_data = bug.patches[commit_id][f]
+    #    print(f"{f}: lang={f_data['language']}, type={f_data['type']}, purpose={f_data['purpose']}")
+    #    for pm in ['-', '+']:
+    #        for line_data in f_data[pm]:
+    #            line = "".join([tok[2] for tok in line_data['tokens']])
+    #            print(f"  {pm}:{line_data['id']}:type={line_data['type']}, purpose={line_data['purpose']}:{line}",
+    #                  end="")  # line includes trailing '\n' (usually)
+
+    assert sorted(files_changed) == sorted(bug.patches[commit_id].keys()), \
+        "expected files were changed in changeset"
+    for changed_file in files_changed:
+        assert {
+            'language': 'Python',
+            'type': 'programming',
+        }.items() <= bug.patches[commit_id][changed_file].items(), \
+            f"language of '{changed_file}' matches expectations"
+    assert bug.patches[commit_id]['tqdm/contrib/__init__.py']['purpose'] == 'programming', \
+        "__init__.py file in contrib/ purpose is 'programming'"
+    assert bug.patches[commit_id]['tqdm/tests/tests_contrib.py']['purpose'] == 'test', \
+        "test_*.py file in tests/ purpose is 'test'"
+
+    line_types = {}
+    for changed_file in files_changed:
+        line_types[changed_file] = {
+            line_data['type']
+            for pm in ['-', '+']
+            for line_data in bug.patches[commit_id][changed_file][pm]
+        }
+    #print(f"{line_types=}")
+    assert line_types['tqdm/contrib/__init__.py'] <= {'code', 'documentation'}, \
+        "types of lines in file which purpose is 'programming' should be 'code' or 'documentation'"
 
 
 def test_Bug_from_patchset_from_example_repo(example_repo: GitRepo):
