@@ -4,10 +4,11 @@ import os
 from collections import Counter, defaultdict
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Any, List, Optional, TypeVar
+from typing import Any, List, Tuple, Optional, TypeVar
 # NOTE: Callable should be imported from collections.abc for newer Python
 from typing import Callable
 
+import click
 import tqdm
 import typer
 from typing_extensions import Annotated
@@ -373,7 +374,8 @@ def map_diff_to_lines_stats(annotation_file_basename: str,
 
 
 def map_diff_to_timeline(annotation_file_basename: str,
-                         annotation_data: dict) -> dict:
+                         annotation_data: dict,
+                         purpose_to_annotation: Optional[list] = None) -> dict:
     """Mapper passed by timeline() to *.gather_data_dict() method
 
     It gathers information about file, and counts information about
@@ -382,6 +384,8 @@ def map_diff_to_timeline(annotation_file_basename: str,
     :param annotation_file_basename: name of JSON file with annotation data
     :param annotation_data: parsed annotations data, retrieved from
         `annotation_file_basename` file.
+    :param purpose_to_annotation: list of pairs (<file purpose>, <line type annotation>)
+        to treat each line of file with given purpose to have given type annotation.
     """
     # Example fragment of annotation file:
     #
@@ -425,6 +429,13 @@ def map_diff_to_timeline(annotation_file_basename: str,
     # TODO: add logging (info or debug)
     result = Counter()
     per_commit_info = {}
+    if purpose_to_annotation is None:
+        purpose_to_annotation = []
+    purpose_to_type_dict = dict([elem
+                                 for elem in purpose_to_annotation
+                                 if len(elem) == 2])
+    #print(f"{purpose_to_annotation=}")
+    #print(f"{purpose_to_type_dict=}")
 
     # gather summary data from all changed files
     for filename, file_data in annotation_data.items():
@@ -470,7 +481,12 @@ def map_diff_to_timeline(annotation_file_basename: str,
                 per_file_data[line_type]["count"] += 1  # count of added/removed lines
 
                 for data_type in ["type", "purpose"]:  # ignore "id" and "tokens" fields
-                    line_data = line[data_type]
+                    # handle --purpose-to-annotation PURPOSE:LINE_TYPE
+                    if data_type == "type" and file_data["purpose"] in purpose_to_type_dict:
+                        line_data = purpose_to_type_dict[file_data["purpose"]]
+                    else:
+                        line_data = line[data_type]
+
                     per_file_data[line_type][f"{data_type}.{line_data}"] += 1
 
         for key, value in per_file_data.items():
@@ -511,6 +527,27 @@ def save_result(result: Any, result_json: Path) -> None:
 
     with result_json.open(mode='w') as result_f:
         json.dump(result, result_f, indent=4)
+
+
+# TODO: consider making it common, and use the trick in other scripts
+def parse_colon_separated_pair(value: str) -> Tuple[str, ...]:
+    """Parse colon separated pair 'A:B' string into ('A', 'B') tuple
+
+    Examples:
+
+    >>> parse_colon_separated_pair('a:b')
+    ('a', 'b')
+    >>> parse_colon_separated_pair('a')
+    ('a',)
+    >>> # noinspection PyTypeChecker
+    >>> dict([parse_colon_separated_pair('key:value')])
+    {'key': 'value'}
+
+    :param value: string with colon-separated values, 'KEY:VALUE'
+    :return: 2-element tuple with KEY and VALUE: ('KEY', 'VALUE'),
+        or one element tuple if `str` does not include ':'
+    """
+    return tuple(value.split(sep=':', maxsplit=2))
 
 
 # implementing options common to all subcommands
@@ -700,7 +737,20 @@ def timeline(
             help="list of dirs with datasets to process"
         )
     ],
-
+    # TODO: make it a common option, or share it with lines_stats()
+    purpose_to_annotation: Annotated[
+        # see https://github.com/fastapi/typer/issues/387#issuecomment-1927465075
+        Optional[List[click.Tuple]],
+        typer.Option(
+            help="""Mapping from file PURPOSE to line type LINE_TYPE.
+                    Each line of such file will be treated as if it had given type.
+                    Can be given multiple times.""",
+            metavar="PURPOSE:LINE_TYPE",
+            # `parser` and `click_type` may not both be provided
+            #click_type=click.Tuple([str, str]),
+            parser=parse_colon_separated_pair,
+        )
+    ] = None,
 ) -> None:
     # TODO: extract common part of the command description
     """Calculate timeline of bugs with per-bug count of different types of lines
@@ -724,13 +774,16 @@ def timeline(
     Saves gathered timeline results to the OUTPUT_FILE.
     """
     result = {}
+    #print(f"{type(purpose_to_annotation)=}, {purpose_to_annotation=}")
+    # TODO: check if there were values without ':' among --purpose-to-annotation
 
     # often there is only one dataset, therefore joblib support is not needed
     for dataset in tqdm.tqdm(datasets, desc='dataset'):
         tqdm.tqdm.write(f"Dataset {dataset}")
         annotated_bugs = AnnotatedBugDataset(dataset)
         data = annotated_bugs.gather_data_list(map_diff_to_timeline,
-                                               annotations_dir=ctx.obj.annotations_dir)
+                                               annotations_dir=ctx.obj.annotations_dir,
+                                               purpose_to_annotation=purpose_to_annotation)
 
         # sanity check
         if not data:

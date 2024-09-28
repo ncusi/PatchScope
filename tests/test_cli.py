@@ -488,6 +488,9 @@ def test_gather_data(tmp_path: Path):
         # select subcommand
         "timeline",
         # pass options and arguments to subcommand
+        "--purpose-to-annotation=test:test",
+        "--purpose-to-annotation=other:other",
+        "--purpose-to-annotation=invalid",
         f"{json_path}",
         f"{dataset_dir_annotations}",
     ])

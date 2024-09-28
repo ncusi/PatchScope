@@ -56,7 +56,33 @@ def test_AnnotatedBugDataset_gather_data_list():
 
     diff_data = data_list[0]
     assert {'file_names', '+:count', '-:count'} <= set(diff_data.keys()), \
-        "expected keys present in extracted stats"
+        "expected common keys present in extracted stats"
+    # NOTE: change this single assert if the test data changes!
+    assert {
+        '-:type.code', '+:type.code', '-:type.documentation', '+:type.documentation'
+    } <= set(diff_data.keys()), \
+        "expected keys for line types present in extracted stats"
+    assert ('-:type.test' not in diff_data and
+            '+:type.test' not in diff_data), \
+        "there are no lines with type 'test' at all, with defaults"
+    assert ('-:type.other' not in diff_data and
+            '+:type.other' not in diff_data), \
+        "there are no lines with type 'other' at all, with defaults"
+
+    data_list = annotated_bug_dataset.gather_data_list(map_diff_to_timeline,
+                                                       purpose_to_annotation=[('test', 'test'),
+                                                                              ('other', 'other')])
+    diff_data = data_list[0]
+
+    # DEBUG
+    #from pprint import pprint
+    #print(f"passing purpose_to_annotation")
+    #pprint(data_list)
+
+    # NOTE: change if the test data changes, e.g. different annotated diff!
+    assert ('-:type.other' in diff_data or
+            '+:type.other' in diff_data), \
+        "there are lines that have type 'other' thanks to purpose_to_annotation"
 
 
 def test_PurposeCounterResults_create():
