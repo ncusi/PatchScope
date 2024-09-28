@@ -679,7 +679,7 @@ def lines_stats(
     save_result(result, output_file)
 
 
-@app.command(help="Gather timeline with per-bug count of lines per type")
+@app.command()
 def timeline(
     ctx: typer.Context,  # common arguments like --annotations-dir
     output_file: Annotated[
