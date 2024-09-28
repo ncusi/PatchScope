@@ -479,3 +479,26 @@ def test_gather_data(tmp_path: Path):
 
     # DEBUG
     #print(json_path.read_text())
+
+    ### for 'timeline'
+
+    #dataset_dir_annotations = 'tests/test_dataset_annotated'
+    json_path = Path(f"{dataset_dir_annotations}.timeline.json")
+    result = runner.invoke(gather_app, [
+        # select subcommand
+        "timeline",
+        # pass options and arguments to subcommand
+        f"{json_path}",
+        f"{dataset_dir_annotations}",
+    ])
+
+    #print(result.stdout)
+    if result.exit_code != 0:
+        print(result.stdout)
+
+    assert result.exit_code == 0, \
+        "gather app runs 'timeline' subcommand on generated annotations without errors"
+    assert json_path.is_file(), \
+        "output 'timeline' file app was requested to use exists (it was created)"
+    assert json_path.stat().st_size > 0, \
+        "generated 'timeline' JSON file with results is not empty"
