@@ -237,8 +237,17 @@ class AnnotatedBugDataset:
 
 
 def map_diff_to_purpose_dict(_diff_file_path: str, data: dict) -> dict:
-    """
-    Example functon mapping diff of specific commit to dictionary
+    """Extracts file purposes of changed file in a diff annotation
+
+    Returns mapping from file name (of a changed file) to list (???)
+    of file purposes for that file.
+
+    Example:
+
+        {
+            'keras/engine/training_utils.py': ['programming'],
+            'tests/keras/engine/test_training.py': ['test'],
+        }
 
     :param _diff_file_path: file path containing diff, ignored
     :param data: dictionary loaded from file
@@ -250,11 +259,13 @@ def map_diff_to_purpose_dict(_diff_file_path: str, data: dict) -> dict:
             # this is not changed file information, but commit metadata
             continue
 
-        print(change_file)
-        print(data[change_file]['purpose'])
+        #print(change_file)
+        #print(data[change_file]['purpose'])
         if change_file not in result:
             result[change_file] = []
         result[change_file].append(data[change_file]['purpose'])
+
+    #print(f"{_diff_file_path}:{result=}")
     return result
 
 
@@ -476,7 +487,7 @@ def purpose_per_file(
                                                annotations_dir=ctx.obj.annotations_dir)
         result[str(dataset)] = data
 
-    print(result)
+    #print(result)
     save_result(result, result_json)
 
 
