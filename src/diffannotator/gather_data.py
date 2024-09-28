@@ -104,7 +104,8 @@ class AnnotatedFile:
         """
         self._path = Path(file_path)
 
-    def gather_data(self, bug_mapper: Callable[[str, dict], T]) -> T:
+    def gather_data(self, bug_mapper: Callable[..., T],
+                    **mapper_kwargs) -> T:
         """
         Retrieves data from file
 
@@ -113,7 +114,7 @@ class AnnotatedFile:
         """
         with self._path.open('r') as json_file:
             data = json.load(json_file)
-            return bug_mapper(str(self._path), data)
+            return bug_mapper(str(self._path), data, **mapper_kwargs)
 
 
 class AnnotatedBug:
@@ -132,7 +133,9 @@ class AnnotatedBug:
         except Exception as ex:
             print(f"Error in AnnotatedBug for '{self._path}': {ex}")
 
-    def gather_data(self, bug_mapper: Callable[[str, dict], T], datastructure_generator: Callable[[], T]) -> T:
+    def gather_data(self, bug_mapper: Callable[..., T],
+                    datastructure_generator: Callable[[], T],
+                    **mapper_kwargs) -> T:
         """
         Gathers dataset data via processing each file in current bug using AnnotatedFile class and provided functions
 
@@ -146,11 +149,12 @@ class AnnotatedBug:
                 continue
             annotation_file_path = self._annotations_path / annotation
             annotation_file = AnnotatedFile(annotation_file_path)
-            file_results = annotation_file.gather_data(bug_mapper)
+            file_results = annotation_file.gather_data(bug_mapper, **mapper_kwargs)
             combined_results += file_results
         return combined_results
 
-    def gather_data_dict(self, bug_dict_mapper: Callable[[str, dict], dict]) -> dict:
+    def gather_data_dict(self, bug_dict_mapper: Callable[..., dict],
+                         **mapper_kwargs) -> dict:
         """
         Gathers dataset data via processing each file in current bug using AnnotatedFile class and provided functions
 
@@ -163,7 +167,7 @@ class AnnotatedBug:
                 continue
             annotation_file_path = self._annotations_path / annotation
             annotation_file = AnnotatedFile(annotation_file_path)
-            diff_file_results = annotation_file.gather_data(bug_dict_mapper)
+            diff_file_results = annotation_file.gather_data(bug_dict_mapper, **mapper_kwargs)
             combined_results |= {str(annotation): diff_file_results}
         return combined_results
 
@@ -185,8 +189,10 @@ class AnnotatedBugDataset:
         except Exception as ex:
             print(f"Error in AnnotatedBugDataset for '{self._path}': {ex}")
 
-    def gather_data(self, bug_mapper: Callable[[str, dict], T], datastructure_generator: Callable[[], T],
-                    annotations_dir: str = Bug.DEFAULT_ANNOTATIONS_DIR) -> T:
+    def gather_data(self, bug_mapper: Callable[..., T],
+                    datastructure_generator: Callable[[], T],
+                    annotations_dir: str = Bug.DEFAULT_ANNOTATIONS_DIR,
+                    **mapper_kwargs) -> T:
         """
         Gathers dataset data via processing each bug using AnnotatedBug class and provided functions
 
@@ -204,13 +210,14 @@ class AnnotatedBugDataset:
             #print(bug_id)
             bug_path = self._path / bug_id
             bug = AnnotatedBug(bug_path, annotations_dir=annotations_dir)
-            bug_results = bug.gather_data(bug_mapper, datastructure_generator)
+            bug_results = bug.gather_data(bug_mapper, datastructure_generator, **mapper_kwargs)
             combined_results += bug_results
 
         return combined_results
 
-    def gather_data_dict(self, bug_dict_mapper: Callable[[str, dict], dict],
-                         annotations_dir: str = Bug.DEFAULT_ANNOTATIONS_DIR) -> dict:
+    def gather_data_dict(self, bug_dict_mapper: Callable[..., dict],
+                         annotations_dir: str = Bug.DEFAULT_ANNOTATIONS_DIR,
+                         **mapper_kwargs) -> dict:
         """
         Gathers dataset data via processing each bug using AnnotatedBug class and provided function
 
@@ -224,7 +231,7 @@ class AnnotatedBugDataset:
             print(bug_id)
             bug_path = self._path / bug_id
             bug = AnnotatedBug(bug_path, annotations_dir=annotations_dir)
-            bug_results = bug.gather_data_dict(bug_dict_mapper)
+            bug_results = bug.gather_data_dict(bug_dict_mapper, **mapper_kwargs)
             combined_results |= {bug_id: bug_results}
         return combined_results
 
