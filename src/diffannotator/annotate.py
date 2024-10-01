@@ -54,7 +54,8 @@ class LanguagesFromLinguist:
     def __init__(self):
         super(LanguagesFromLinguist, self).__init__()
 
-    def annotate(self, path: str) -> dict:
+    @staticmethod
+    def annotate(path: str) -> dict:
         """Annotate file with its primary / first language metadata
 
         :param path: file path in the repository
