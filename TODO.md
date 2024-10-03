@@ -60,6 +60,20 @@
         - [x] `PURPOSE_TO_ANNOTATION` global variable
         - [x] global option `--purpose-to-annotation` in [`annotate.py`](src/diffannotator/annotate.py) script
     - [ ] configurable line annotation based on tokens
+    - [ ] computing patch/diff size and spread, following
+          _"[Dissection of a bug dataset: Anatomy of 395 patches from Defects4J](https://doi.org/10.1109/SANER.2018.8330203)"_
+          (and extending it)
+        - [ ] _patch size_ counting added ('+'), removed ('-'), and **modified** ('!') lines,
+              with simplified changed lines detection:<br>
+              "Lines are considered modified when sequences of removed lines are straight followed by added lines
+              (or vice versa). Thus, to count each modified line, a pair of added and removed lines is needed."
+        - [ ] _patch spreading_ - counting number of chunks / groups:<br>
+              "A chunk is a sequence of continuous changes in a file, consisting of the combination
+              of addition, removal, and modification of lines."
+        - [ ] _patch spreading_ - sum of spreading of chunks:<br>
+              "number of lines interleaving chunks in a patch", per file<br>
+              (does it count inter-hunk distances?)
+        - [ ] _patch spreading_ - number of modified source files
     - [ ] retrieving and adding commit metadata
         - [x] from Git repository - for 'from-repo'
         - [ ] from *.message files - for 'dataset' (see BugsInPy, HaPy-Bugs)
