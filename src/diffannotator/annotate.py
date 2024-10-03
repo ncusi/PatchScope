@@ -265,6 +265,144 @@ def line_is_comment(tokens_list: Iterable[Tuple]) -> bool:
     return can_be_comment and not cannot_be_comment
 
 
+class AnnotatedPatchSet:
+    """Annotations for whole patch / diff
+
+    :ivar: patch_set: original unidiff.PatchSet or diffannotator.git.ChangeSet"""
+    def __init__(self, patch_set: unidiff.PatchSet):
+        """Initialize AnnotatedPatchSet with unidiff.PatchSet (or derived class)
+
+        :param patch_set: parsed unified diff (if unidiff.PatchSet),
+            or parsed commit changes and parsed commit metadata (if ChangeSet)
+        """
+        self.patch_set = patch_set
+
+    @classmethod
+    def from_filename(cls, filename: Union[str, Path], encoding: str = unidiff.DEFAULT_ENCODING,
+                      errors: Optional[str] = None, newline: Optional[str] = None,
+                      missing_ok: bool = False,
+                      ignore_diff_parse_errors: bool = True,) -> Optional['AnnotatedPatchSet']:
+        """Return a AnnotatedPatchSet instance given a diff filename
+
+        :param filename: path to the patch file (diff file) to try to parse
+            (absolute or relative to the current working directory)
+        :param encoding: name of the encoding used to decode the file,
+            defaults to "UTF-8"
+        :param errors: optional string that specifies how decoding errors
+            are to be handled; see documentation of `open` function for list
+            of possible values, see: https://docs.python.org/3/library/functions.html#open
+        :param newline: determines how to parse newline characters from the stream;
+            see documentation of `open` function for possible values
+        :param missing_ok: if false (the default), `FileNotFoundError` is raised
+            if the path does not exist, and `PermissionError` is raised if file
+            exists but cannot be read because of path permissions; if `missing_ok` is true,
+            return None on missing file, or file with wrong permissions
+        :param ignore_diff_parse_errors: if false (the default), `unidiff.UnidiffParseError`
+            is raised if there was error parsing the unified diff; if true, return None
+            on parse errors
+        :return: wrapped result of parsing patch file `filename`
+        """
+        # NOTE: unconditionally using `file_path = Path(filename)` would simplify some code
+        try:
+            patch_set = ChangeSet.from_filename(filename, encoding=encoding,
+                                                errors=errors, newline=newline)
+
+        except FileNotFoundError as ex:
+            # TODO?: use logger, log either warning or error
+            print(f"No such patch file: '{filename}'", file=sys.stderr)
+
+            if not missing_ok:
+                raise ex
+            return None
+
+        except PermissionError as ex:
+            if Path(filename).exists() and Path(filename).is_dir():
+                print(f"Path points to directory, not patch file: '{filename}'")
+            else:
+                print(f"Permission denied to read patch file '{filename}'")
+
+            if not missing_ok:
+                raise ex
+            return None
+
+        except unidiff.UnidiffParseError as ex:
+            print(f"Error parsing patch file '{filename}': {ex!r}")
+
+            if not ignore_diff_parse_errors:
+                raise ex
+            return None
+
+        return cls(patch_set)
+
+    def compute_sizes_and_spreads(self) -> Counter:
+        """Compute patch set sizes and (TBD) spread
+
+        See the detailed description of returned metrics in docstring
+        for `AnnotatedPatchedFile.compute_sizes_and_spreads`.
+
+        :return: Counter with different sizes and different spreads
+            of the given patch set (unified diff object, or diff file)
+        """
+        result = Counter()
+
+        # print(f"patched file: {self.patched_file!r}")
+        patched_file: unidiff.PatchedFile
+        for patched_file in self.patch_set:
+            annotated_file = AnnotatedPatchedFile(patched_file)
+            file_result = annotated_file.compute_sizes_and_spreads()
+
+            result += file_result
+
+        return result
+
+    def process(self, ignore_annotation_errors: bool = True):
+        """Process wrapped patch set, annotating changes for patched files
+
+        Returns mapping from filename to pre- and post-image
+        line annotations.  The pre-image line annotations use "-" as key,
+        while post-image use "+".
+
+        The format of returned values is described in more detail
+        in `AnnotatedHunk.process()` documentation.
+
+        TODO: Update and returns the `self.patch_set_data` field (caching results).
+
+        :param ignore_annotation_errors: if true (the default), ignore errors during
+            patch annotation process
+        :return: annotated patch data, mapping from changed file names
+            to '+'/'-', to annotated line info (from post-image or pre-image)
+        :rtype: dict[str, dict[str, dict | list | str]]
+        """
+        i: Optional[int] = None
+        patch_annotations: Dict[str, Dict[str, Union[str, dict]]] = {}
+
+        try:
+            # once per changeset
+            # TODO/DOING: extract common code
+            # TODO: make '' into a constant, like UNKNOWN_ID, reducing duplication
+            if isinstance(self.patch_set, ChangeSet) and self.patch_set.commit_id != '':
+                commit_metadata = {'id': self.patch_set.commit_id}
+                if self.patch_set.commit_metadata is not None:
+                    commit_metadata.update(self.patch_set.commit_metadata)
+                patch_annotations['commit_metadata'] = commit_metadata
+
+            # for each changed file
+            for i, patched_file in enumerate(self.patch_set, start=1):
+                annotated_patch_file = AnnotatedPatchedFile(patched_file)
+                patch_annotations.update(annotated_patch_file.process())
+
+        except Exception as ex:
+            print(f"Error processing patch {self.patch_set!r}, at file no {i}: {ex!r}")
+            traceback.print_tb(ex.__traceback__)
+
+            if not ignore_annotation_errors:
+                raise ex
+            # returns what it was able to process so far
+
+        return patch_annotations
+
+
+
 class AnnotatedPatchedFile:
     """Annotations for diff for a single file in a patch
 
@@ -986,6 +1124,7 @@ class AnnotatedHunk:
             self.patch_data[source_file]["-"].append(data)
 
 
+# TODO: simplify by using methods from the AnnotatedPatchSet class
 def annotate_single_diff(diff_path: PathLike,
                          missing_ok: bool = False,
                          ignore_diff_parse_errors: bool = True,
