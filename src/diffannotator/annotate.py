@@ -636,10 +636,17 @@ class AnnotatedHunk:
 
         - hunk sizes:
 
-          - number of hunks (in the unified diff meaning)
+          - number of hunks (in the unified diff meaning),
+            as 'n_hunks'
           - number of modified, added and removed lines, counting
-            a pair of adjacent removed and added line as single modified line
-          - number of changed lines: sum of number of modified, added, and removed
+            a pair of adjacent removed and added line as single modified line,
+            as 'n_mod', 'n_rem', and 'n_add'
+          - number of changed lines: sum of number of modified, added, and removed,
+            as 'patch_size'
+          - number of '+' and '-' lines in hunk (without extracting modified lines),
+            as 'n_lines_added', 'n_lines_removed'
+          - number of all lines in hunk, including context lines, but excluding headers
+            'n_lines_all'
 
         - hunk spread TODO/DOING
 
@@ -655,7 +662,12 @@ class AnnotatedHunk:
         :return: Counter with different sizes and different spreads
             of the given hunk (part of patched file, part of patchset)
         """
-        result = Counter({'n_hunks': 1})
+        result = Counter({
+            'n_hunks': 1,
+            'n_lines_added': self.hunk.added,
+            'n_lines_removed': self.hunk.removed,
+            'n_lines_all': len(self.hunk),
+        })
 
         prev_group_line_type = unidiff.LINE_TYPE_CONTEXT
         n_same_type = 0

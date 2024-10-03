@@ -246,6 +246,10 @@ def test_hunk_sizes(example_patchset_java: unidiff.PatchSet):
     assert hunk_result['n_groups'] == 2, "two groups of changed lines (chunks)"
     assert hunk_result['n_hunks'] == 1, "analyzed only 1 hunk"
 
+    assert hunk_result['n_lines_all'] == 12, "12 lines in hunk, excluding hunk header"
+    assert hunk_result['n_lines_added'] == 3, "3 lines beginning with '+' in hunk"
+    assert hunk_result['n_lines_removed'] == 1, "1 line beginning with '-' in hunk"
+
 
 @pytest.mark.parametrize("line_type", [unidiff.LINE_TYPE_REMOVED, unidiff.LINE_TYPE_ADDED])
 def test_AnnotatedPatchedFile(line_type):
