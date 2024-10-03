@@ -1140,60 +1140,10 @@ def annotate_single_diff(diff_path: PathLike,
         patch annotation process
     :return: annotation data
     """
-    patch_annotations: Dict[str, Dict[str, Union[str, dict]]] = {}
+    patch_set = AnnotatedPatchSet.from_filename(diff_path, encoding="utf-8", missing_ok=missing_ok,
+                                                ignore_diff_parse_errors=ignore_diff_parse_errors)
 
-    try:
-        patch_set = ChangeSet.from_filename(diff_path, encoding="utf-8")
-
-    except FileNotFoundError as ex:
-        # TODO?: use logger, log either warning or error
-        print(f"No such patch file: '{diff_path}'", file=sys.stderr)
-
-        if not missing_ok:
-            raise ex
-        return {}
-
-    except PermissionError as ex:
-        if Path(diff_path).exists() and Path(diff_path).is_dir():
-            print(f"Path points to directory, not patch file: '{diff_path}'")
-        else:
-            print(f"Permission denied to read patch file '{diff_path}'")
-
-        if not missing_ok:
-            raise ex
-        return {}
-
-    except unidiff.UnidiffParseError as ex:
-        print(f"Error parsing patch file '{diff_path}': {ex!r}")
-
-        if not ignore_diff_parse_errors:
-            raise ex
-        return {}  # explicitly return empty dict on parse error
-
-    try:
-        # once per changeset
-        # TODO: extract common code
-        # TODO: make '' into a constant, like UNKNOWN_ID, reducing duplication
-        if isinstance(patch_set, ChangeSet) and patch_set.commit_id != '':
-            commit_metadata = {'id': patch_set.commit_id}
-            if patch_set.commit_metadata is not None:
-                commit_metadata.update(patch_set.commit_metadata)
-            patch_annotations['commit_metadata'] = commit_metadata
-
-        # for each changed file
-        for i, patched_file in enumerate(patch_set, start=1):
-            annotated_patch_file = AnnotatedPatchedFile(patched_file)
-            patch_annotations.update(annotated_patch_file.process())
-
-    except Exception as ex:
-        print(f"Error processing patch file '{diff_path}': {ex!r}")
-        traceback.print_tb(ex.__traceback__)
-
-        if not ignore_annotation_errors:
-            raise ex
-        # returns what it was able to process so far
-
-    return patch_annotations
+    return patch_set.process(ignore_annotation_errors=ignore_annotation_errors)
 
 
 class Bug:
