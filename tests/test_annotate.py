@@ -23,6 +23,37 @@ example_C_code = r'''
   int i = 1; /* an int */
 '''
 
+# example patch from "Listing 1. Patch for bug Closure-40"
+# in https://doi.org/10.1109/SANER.2018.8330203,
+# taken in turn from Defects4J
+# https://program-repair.org/defects4j-dissection/#!/bug/Closure/40
+# https://github.com/rjust/defects4j/blob/master/framework/projects/Closure/patches/40.src.patch
+example_patch_java = r'''
+diff --git a/src/com/google/javascript/jscomp/NameAnalyzer.java b/src/com/google/javascript/jscomp/NameAnalyzer.java
+index 6e9e470..088a993 100644
+--- a/src/com/google/javascript/jscomp/NameAnalyzer.java
++++ b/src/com/google/javascript/jscomp/NameAnalyzer.java
+@@ -632,9 +632,11 @@ final class NameAnalyzer implements CompilerPass {
+         Node nameNode = n.getFirstChild();
+         NameInformation ns = createNameInformation(t, nameNode, n);
+         if (ns != null && ns.onlyAffectsClassDef) {
+-          JsName name = getName(ns.name, true);
++          JsName name = getName(ns.name, false);
++          if (name != null) {
+           refNodes.add(new ClassDefiningFunctionNode(
+               name, n, parent, parent.getParent()));
++          }
+         }
+       }
+     }
+'''
+
+
+@pytest.fixture()
+def example_patchset_java() -> unidiff.PatchSet:
+    """PatchSet created from Closure-40 source diff in Defects4J dataset"""
+    return unidiff.PatchSet(example_patch_java)
+
 
 def test_line_ends_idx():
     text = "1st line\n2nd line\n3rd then empty\n\n5th line\n"
@@ -184,6 +215,36 @@ def test_annotate_single_diff():
     file_path = 'tests/test_dataset/this_patch_does_not_exist.diff'
     with pytest.raises(FileNotFoundError):
         annotate_single_diff(file_path, missing_ok=False)
+
+
+def test_hunk_sizes(example_patchset_java: unidiff.PatchSet):
+    patched_file = example_patchset_java[0]
+    #print(f"{example_patchset_java=}")
+    #print(f"{patched_file=}")
+    #print(f"{patched_file[0]=}")
+
+    annotated_patched_file = AnnotatedPatchedFile(patched_file)
+    annotated_hunk = AnnotatedHunk(annotated_patched_file, patched_file[0])
+    hunk_result = annotated_hunk.compute_sizes_and_spreads()
+    #print(f"{annotated_hunk=}")
+    #from pprint import pprint
+    #pprint(hunk_result)
+
+    # Listing 1 shows an example of patch
+    # with one modified line (line 635), two non-paired removed
+    # lines (the old 636 and 639 lines), and none non-paired added
+    # line. By summing these lines, we have the metric patch size
+    # in number of lines, which in the example is 3 lines.
+    #
+    # But patch on Listing 1 in Sobreira et al. 2018 is *wrong*,
+    # so the above is also wrong.  Asserted values are instead
+    # computed by hand (for given patch, copied from Defects4J)
+    assert hunk_result['n_mod'] == 1, "one modified line"
+    assert hunk_result['n_rem'] == 0, "no non-paired removed lines"
+    assert hunk_result['n_add'] == 2, "two non-paired added lines"
+    assert hunk_result['patch_size'] == 3, "patch size is 3 lines"
+    assert hunk_result['n_groups'] == 2, "two groups of changed lines (chunks)"
+    assert hunk_result['n_hunks'] == 1, "analyzed only 1 hunk"
 
 
 @pytest.mark.parametrize("line_type", [unidiff.LINE_TYPE_REMOVED, unidiff.LINE_TYPE_ADDED])

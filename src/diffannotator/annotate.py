@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import collections.abc
-from collections import defaultdict, deque, namedtuple
+from collections import defaultdict, deque, namedtuple, Counter
 import importlib.metadata
 import inspect
 import json
@@ -628,6 +628,95 @@ class AnnotatedHunk:
             None if there is no pre-/post-image contents attached.
         """
         return self.patched_file.hunk_tokens_for_type(line_type, self.hunk)
+
+    def compute_sizes_and_spreads(self) -> Counter:
+        """Compute hunk sizes and (TBD) inner-hunk spread
+
+        Computes the following metrics:
+
+        - hunk sizes:
+
+          - number of hunks (in the unified diff meaning)
+          - number of modified, added and removed lines, counting
+            a pair of adjacent removed and added line as single modified line
+          - number of changed lines: sum of number of modified, added, and removed
+
+        - hunk spread TODO/DOING
+
+          - number of groups, i.e. spans of removed and added lines,
+            not interrupted by context line (also called "chunks")
+          - sum of distance in context lines between groups (chunks) TODO
+
+        - patched file spread helpers TODO
+
+          - start and end if hunk (pre-image and post-image)
+          - start of first group and end of first group (pre-/post-image)
+
+        :return: Counter with different sizes and different spreads
+            of the given hunk (part of patched file, part of patchset)
+        """
+        result = Counter({'n_hunks': 1})
+
+        prev_group_line_type = unidiff.LINE_TYPE_CONTEXT
+        n_same_type = 0
+
+        hunk_line: unidiff.patch.Line
+        for idx, hunk_line in enumerate(self.hunk):
+            # Lines are considered modified when sequences of removed lines are straight followed by added lines
+            # (or vice versa). Thus, to count each modified line, a pair of added and removed lines is needed.
+            if hunk_line.is_added and prev_group_line_type == unidiff.LINE_TYPE_REMOVED:
+                # check if number of removed lines is not greater than number of added lines
+                if n_same_type > 0:
+                    result['n_mod'] += 1
+                    result['n_rem'] -= 1  # previous group
+                    n_same_type -= 1
+                else:
+                    result['n_add'] += 1
+                    # Assumes only __--++__ is possible, and --++-- etc. is not
+
+            elif hunk_line.is_removed and prev_group_line_type == unidiff.LINE_TYPE_ADDED:
+                print(f"  + -> - {n_same_type=}")
+                # this should never happen in a proper unified diff
+                # check if number of removed lines is not greater than number of added lines
+                if n_same_type > 0:
+                    result['n_mod'] += 1
+                    result['n_add'] -= 1  # previous group
+                    n_same_type -= 1
+                else:
+                    result['n_rem'] += 1
+                    # Assumes only __++--__ is possible, and --++-- etc. is not
+
+            elif hunk_line.is_context:
+                # A chunk (group) is a sequence of continuous changes in a file, consisting of the combination
+                # of addition, removal, and modification of lines (i.e. added ('+') or removed ('-') lines)
+                if prev_group_line_type != unidiff.LINE_TYPE_CONTEXT:
+                    result['n_groups'] += 1
+                prev_group_line_type = unidiff.LINE_TYPE_CONTEXT
+                n_same_type = 0
+
+            elif hunk_line.is_removed:
+                result['n_rem'] += 1
+                prev_group_line_type = unidiff.LINE_TYPE_REMOVED
+                n_same_type += 1
+
+            elif hunk_line.is_added:
+                result['n_add'] += 1
+                prev_group_line_type = unidiff.LINE_TYPE_ADDED
+                n_same_type += 1
+
+            else:
+                print("  ?")
+                # should be only LINE_TYPE_NO_NEWLINE or LINE_TYPE_EMPTY
+                # equivalent to LINE_TYPE_CONTEXT for this purpose
+                prev_group_line_type = unidiff.LINE_TYPE_CONTEXT
+
+        # Check if hunk ended in non-context line; if so, there was chunk not counted
+        if prev_group_line_type != unidiff.LINE_TYPE_CONTEXT:
+            result['n_groups'] += 1
+
+        result['patch_size'] = result['n_add'] + result['n_rem'] + result['n_mod']
+
+        return result
 
     def process(self):
         """Process associated patch hunk, annotating changes
