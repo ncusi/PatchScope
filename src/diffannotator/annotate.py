@@ -630,7 +630,7 @@ class AnnotatedHunk:
         return self.patched_file.hunk_tokens_for_type(line_type, self.hunk)
 
     def compute_sizes_and_spreads(self) -> Counter:
-        """Compute hunk sizes and (TBD) inner-hunk spread
+        """Compute hunk sizes and inner-hunk spread
 
         Computes the following metrics:
 
@@ -648,11 +648,13 @@ class AnnotatedHunk:
           - number of all lines in hunk, including context lines, but excluding headers
             'n_lines_all'
 
-        - hunk spread TODO/DOING
+        - hunk spread
 
           - number of groups, i.e. spans of removed and added lines,
-            not interrupted by context line (also called "chunks")
-          - sum of distance in context lines between groups (chunks) TODO
+            not interrupted by context line (also called "chunks"),
+            as 'n_groups'
+          - sum of distance in context lines between groups (chunks)
+            inside hunk, as 'spread_inner'
 
         - patched file spread helpers TODO
 
@@ -671,6 +673,7 @@ class AnnotatedHunk:
 
         prev_group_line_type = unidiff.LINE_TYPE_CONTEXT
         n_same_type = 0
+        n_context = 0
 
         hunk_line: unidiff.patch.Line
         for idx, hunk_line in enumerate(self.hunk):
@@ -687,8 +690,7 @@ class AnnotatedHunk:
                     # Assumes only __--++__ is possible, and --++-- etc. is not
 
             elif hunk_line.is_removed and prev_group_line_type == unidiff.LINE_TYPE_ADDED:
-                print(f"  + -> - {n_same_type=}")
-                # this should never happen in a proper unified diff
+                # NOTE: this should never happen in a proper unified diff
                 # check if number of removed lines is not greater than number of added lines
                 if n_same_type > 0:
                     result['n_mod'] += 1
@@ -703,15 +705,21 @@ class AnnotatedHunk:
                 # of addition, removal, and modification of lines (i.e. added ('+') or removed ('-') lines)
                 if prev_group_line_type != unidiff.LINE_TYPE_CONTEXT:
                     result['n_groups'] += 1
+                if result['n_groups'] > 0:  # this skips counting context lines at start
+                    n_context += 1
                 prev_group_line_type = unidiff.LINE_TYPE_CONTEXT
                 n_same_type = 0
 
             elif hunk_line.is_removed:
+                if prev_group_line_type == unidiff.LINE_TYPE_CONTEXT:  # start of a new group
+                    result['spread_inner'] += n_context
                 result['n_rem'] += 1
                 prev_group_line_type = unidiff.LINE_TYPE_REMOVED
                 n_same_type += 1
 
             elif hunk_line.is_added:
+                if prev_group_line_type == unidiff.LINE_TYPE_CONTEXT:  # start of a new group
+                    result['spread_inner'] += n_context
                 result['n_add'] += 1
                 prev_group_line_type = unidiff.LINE_TYPE_ADDED
                 n_same_type += 1
