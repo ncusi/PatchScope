@@ -563,6 +563,53 @@ class AnnotatedPatchedFile:
 
         return result
 
+    def compute_sizes_and_spreads(self) -> Counter:
+        """Compute patched file sizes and (TBD) spread
+
+        Computes the following metrics:
+
+        - patched file sizes:
+
+          - total number of hunks (in the unified diff meaning),
+            as 'n_hunks'
+          - total number of modified, added and removed lines for patched file, counting
+            a pair of adjacent removed and added line as single modified line,
+            as 'n_mod', 'n_rem', and 'n_add'
+          - total number of changed lines: sum of number of modified, added, and removed,
+            as 'patch_size'
+          - total number of '+' and '-' lines in hunks of patched file (without extracting modified lines),
+            as 'n_lines_added', 'n_lines_removed'
+          - number of all lines in all hunks of patched file, including context lines,
+            but excluding hunk headers and patched file headers, as 'n_lines_all'
+
+        - patched file spread TODO/DOING
+
+          - total number of groups, i.e. spans of removed and added lines,
+            not interrupted by context line (also called "chunks"),
+            as 'n_groups'
+          - number of modified files, as 'n_files' (always 1)
+          - sum of distances in context lines between groups (chunks)
+            inside hunk, for all hunks in patched file, as 'spread_inner'
+          - sum of distances in lines between groups (chunks) for
+            a single changed patched file, measuring how wide across file
+            contents the patch spreads, as 'spread' TODO
+
+        :return: Counter with different sizes and different spreads
+            of the given changed file
+        """
+        result = Counter({
+            'n_files': 1,
+        })
+
+        hunk: unidiff.Hunk
+        for hunk in self.patched_file:
+            annotated_hunk = AnnotatedHunk(self, hunk)
+            hunk_result, _ = annotated_hunk.compute_sizes_and_spreads()
+
+            result += hunk_result
+
+        return result
+
     def process(self):
         """Process hunks in patched file, annotating changes
 

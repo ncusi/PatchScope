@@ -267,6 +267,24 @@ def test_hunk_sizes_and_spreads(example_patchset_java: unidiff.PatchSet):
     assert hunk_info['type_last'] == '+', "last changed line is '+' line"
 
 
+def test_simple_patchset_sizes_and_spreads(example_patchset_java: unidiff.PatchSet):
+    patched_file = example_patchset_java[0]
+    #print(f"{example_patchset_java=}")
+    #print(f"{patched_file=}")
+    #print(f"{patched_file[0]=}")
+
+    annotated_patched_file = AnnotatedPatchedFile(patched_file)
+    #print(f"{annotated_patched_file=}")
+
+    patched_file_result = annotated_patched_file.compute_sizes_and_spreads()
+    #from pprint import pprint
+    #pprint(patched_file_result)
+
+    # there is only one hunk, so we need to test only that which
+    # was not tested by test_hunk_sizes_and_spreads() test
+    assert patched_file_result['n_files'] == 1, "analyzed only 1 patched file"
+
+
 @pytest.mark.parametrize("line_type", [unidiff.LINE_TYPE_REMOVED, unidiff.LINE_TYPE_ADDED])
 def test_AnnotatedPatchedFile(line_type):
     # code patch
