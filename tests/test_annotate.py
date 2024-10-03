@@ -285,6 +285,53 @@ def test_simple_patchset_sizes_and_spreads(example_patchset_java: unidiff.PatchS
     assert patched_file_result['n_files'] == 1, "analyzed only 1 patched file"
 
 
+def test_misc_patchsets_sizes_and_spreads():
+    file_path = 'tests/test_dataset/tqdm-1/c0dcf39b046d1b4ff6de14ac99ad9a1b10487512.diff'
+    patch = unidiff.PatchSet.from_filename(file_path, encoding='utf-8')
+    patched_file = AnnotatedPatchedFile(patch[0])
+    result = patched_file.compute_sizes_and_spreads()
+
+    # computed by hand
+    assert result['n_mod'] == 1, "one modified line"
+    assert result['n_rem'] == 0, "no non-paired removed lines"
+    assert result['n_add'] == 0, "no non-paired added lines"
+    assert result['patch_size'] == 1, "patch size is 1 modified line"
+    assert result['n_groups'] == 1, "1 groups of changed lines (chunks)"
+    assert result['n_hunks'] == 1, "1 hunk in patched file"
+    assert result['spread_inner'] == 0, "there is only 1 group, so there is no inner sep"
+
+    file_path = 'tests/test_dataset/unidiff-1/3353080f357a36c53d21c2464ece041b100075a1.diff'
+    patch = unidiff.PatchSet.from_filename(file_path, encoding='utf-8')
+    patched_file = AnnotatedPatchedFile(patch[0])
+    result = patched_file.compute_sizes_and_spreads()
+
+    # computed by hand
+    assert result['n_mod'] == 2, "2 modified lines"
+    assert result['n_rem'] == 0, "no non-paired removed lines"
+    assert result['n_add'] == 0, "no non-paired added lines"
+    assert result['patch_size'] == 2, "patch size is 2 modified line"
+    assert result['n_groups'] == 1, "1 groups of changed lines (chunks)"
+    assert result['n_hunks'] == 1, "1 hunk in patched file"
+    assert result['spread_inner'] == 0, "there is only 1 group, so there is no inner sep"
+
+    file_path = 'tests/test_dataset_structured/keras-10/patches/c1c4afe60b1355a6c0e83577791a0423f37a3324.diff'
+    patch = unidiff.PatchSet.from_filename(file_path, encoding='utf-8')
+    patched_file = AnnotatedPatchedFile(patch[0])
+    result = patched_file.compute_sizes_and_spreads()
+    #print(f"{patch[0]=}")
+    #from pprint import pprint
+    #pprint(result)
+
+    # computed by hand
+    assert result['n_mod'] == 12, "12 modified lines"
+    assert result['n_rem'] == 7, "7 non-paired removed lines"
+    assert result['n_add'] == 13, "13 non-paired added lines"
+    assert result['patch_size'] == 32, "patch size is 32 modified, removed, and added lines"
+    assert result['n_hunks'] == 4, "4 hunks in patched file"
+    assert result['n_groups'] == 1+1+4+2, "8 groups of changed lines in 4 hunks total"
+    assert result['spread_inner'] == 0+0+(3+3+1)+1, "sum of inner separations for 4 hunks"
+
+
 @pytest.mark.parametrize("line_type", [unidiff.LINE_TYPE_REMOVED, unidiff.LINE_TYPE_ADDED])
 def test_AnnotatedPatchedFile(line_type):
     # code patch

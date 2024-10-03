@@ -601,10 +601,13 @@ class AnnotatedPatchedFile:
             'n_files': 1,
         })
 
+        #print(f"patched file: {self.patched_file!r}")
         hunk: unidiff.Hunk
-        for hunk in self.patched_file:
+        for idx, hunk in enumerate(self.patched_file):
             annotated_hunk = AnnotatedHunk(self, hunk)
             hunk_result, _ = annotated_hunk.compute_sizes_and_spreads()
+            #print(f"[{idx}] hunk: inner spread={hunk_result['spread_inner']:3d} "
+            #      f"among {hunk_result['n_groups']} groups for {hunk!r}")
 
             result += hunk_result
 
@@ -798,6 +801,7 @@ class AnnotatedHunk:
             elif hunk_line.is_removed:
                 if prev_group_line_type == unidiff.LINE_TYPE_CONTEXT:  # start of a new group
                     result['spread_inner'] += n_context
+                    n_context = 0
 
                 if result['n_groups'] == 0:  # first group
                     info['type_first'] = hunk_line.line_type
@@ -817,6 +821,7 @@ class AnnotatedHunk:
             elif hunk_line.is_added:
                 if prev_group_line_type == unidiff.LINE_TYPE_CONTEXT:  # start of a new group
                     result['spread_inner'] += n_context
+                    n_context = 0
 
                 if result['n_groups'] == 0:  # first group
                     info['type_first'] = hunk_line.line_type
