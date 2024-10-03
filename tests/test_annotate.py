@@ -217,7 +217,7 @@ def test_annotate_single_diff():
         annotate_single_diff(file_path, missing_ok=False)
 
 
-def test_hunk_sizes(example_patchset_java: unidiff.PatchSet):
+def test_hunk_sizes_and_spreads(example_patchset_java: unidiff.PatchSet):
     patched_file = example_patchset_java[0]
     #print(f"{example_patchset_java=}")
     #print(f"{patched_file=}")
@@ -225,10 +225,12 @@ def test_hunk_sizes(example_patchset_java: unidiff.PatchSet):
 
     annotated_patched_file = AnnotatedPatchedFile(patched_file)
     annotated_hunk = AnnotatedHunk(annotated_patched_file, patched_file[0])
-    hunk_result = annotated_hunk.compute_sizes_and_spreads()
-    #print(f"{annotated_hunk=}")
+    hunk_result, hunk_info = annotated_hunk.compute_sizes_and_spreads()
+    #print(f"{annotated_hunk.hunk=}")
+    #print(f"{annotated_hunk.hunk.section_header=}")
     #from pprint import pprint
     #pprint(hunk_result)
+    #pprint(hunk_info)
 
     # Listing 1 shows an example of patch
     # with one modified line (line 635), two non-paired removed
@@ -251,6 +253,18 @@ def test_hunk_sizes(example_patchset_java: unidiff.PatchSet):
     assert hunk_result['n_lines_removed'] == 1, "1 line beginning with '-' in hunk"
 
     assert hunk_result['spread_inner'] == 2, "2 context lines between 2 groups (chunks)"
+
+    # diff header of example_diff_java:
+    # @@ -632,9 +632,11 @@ final class NameAnalyzer implements CompilerPass {
+    assert hunk_info['hunk_start'] == (632, 632), "'hunk_start' agrees with hunk header info"
+    assert hunk_info['hunk_end'] == (632+9-1, 632+11-1), "'hunk_end' agrees with hunk header info"
+
+    assert hunk_info['groups_start'] == (635, 635), \
+        "'groups_start': hunk start same line in pre-/post-image, first group includes -/+"
+    assert hunk_info['groups_end'] == (635, 639), \
+        "'groups_end': there was only single '-' line, last group had only '+'"
+    assert hunk_info['type_first'] == '-', "first changed line is '-' line"
+    assert hunk_info['type_last'] == '+', "last changed line is '+' line"
 
 
 @pytest.mark.parametrize("line_type", [unidiff.LINE_TYPE_REMOVED, unidiff.LINE_TYPE_ADDED])

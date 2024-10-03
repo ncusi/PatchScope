@@ -629,7 +629,7 @@ class AnnotatedHunk:
         """
         return self.patched_file.hunk_tokens_for_type(line_type, self.hunk)
 
-    def compute_sizes_and_spreads(self) -> Counter:
+    def compute_sizes_and_spreads(self) -> Tuple[Counter, dict]:
         """Compute hunk sizes and inner-hunk spread
 
         Computes the following metrics:
@@ -656,13 +656,19 @@ class AnnotatedHunk:
           - sum of distance in context lines between groups (chunks)
             inside hunk, as 'spread_inner'
 
-        - patched file spread helpers TODO
+        - patched file spread helpers
 
           - start and end if hunk (pre-image and post-image)
+            as 'hunk_start' and 'hunk_end' - both values are tuple of
+            source file (pre-image) line number and target file (post-image) line number
           - start of first group and end of first group (pre-/post-image)
+            as 'groups_start' and 'groups_end'
+          - type of line that started first group, and that ended last group
+            of changed lines, as 'type_first' and 'type_last'
 
-        :return: Counter with different sizes and different spreads
-            of the given hunk (part of patched file, part of patchset)
+        :return: (Counter with different sizes and different spreads
+            of the given hunk, dict with data needed to compute inter-hunk
+            spread)
         """
         result = Counter({
             'n_hunks': 1,
@@ -670,6 +676,22 @@ class AnnotatedHunk:
             'n_lines_removed': self.hunk.removed,
             'n_lines_all': len(self.hunk),
         })
+        info = {
+            'hunk_start': (
+                self.hunk.source_start,
+                self.hunk.target_start
+                # OR
+                #self.hunk[0].source_line_no,
+                #self.hunk[0].target_line_no
+            ),
+            'hunk_end': (
+                #self.hunk.source_start + self.hunk.source_length - 1,
+                #self.hunk.target_start + self.hunk.target_length - 1
+                # OR
+                self.hunk[-1].source_line_no,
+                self.hunk[-1].target_line_no
+            ),
+        }
 
         prev_group_line_type = unidiff.LINE_TYPE_CONTEXT
         n_same_type = 0
@@ -680,6 +702,13 @@ class AnnotatedHunk:
             # Lines are considered modified when sequences of removed lines are straight followed by added lines
             # (or vice versa). Thus, to count each modified line, a pair of added and removed lines is needed.
             if hunk_line.is_added and prev_group_line_type == unidiff.LINE_TYPE_REMOVED:
+                if info['groups_start'][1] is None:
+                    info['groups_start'] = (info['groups_start'][0], hunk_line.target_line_no)
+                if 'groups_end' not in info:
+                    info['groups_end'] = (hunk_line.source_line_no, hunk_line.target_line_no)
+                else:
+                    info['groups_end'] = (info['groups_end'][0], hunk_line.target_line_no)
+
                 # check if number of removed lines is not greater than number of added lines
                 if n_same_type > 0:
                     result['n_mod'] += 1
@@ -690,6 +719,13 @@ class AnnotatedHunk:
                     # Assumes only __--++__ is possible, and --++-- etc. is not
 
             elif hunk_line.is_removed and prev_group_line_type == unidiff.LINE_TYPE_ADDED:
+                if info['groups_start'][0] is None:
+                    info['groups_start'] = (hunk_line.source_line_no, info['groups_start'][1])
+                if 'groups_end' not in info:
+                    info['groups_end'] = (hunk_line.source_line_no, hunk_line.target_line_no)
+                else:
+                    info['groups_end'] = (hunk_line.source_line_no, info['groups_end'][1])
+
                 # NOTE: this should never happen in a proper unified diff
                 # check if number of removed lines is not greater than number of added lines
                 if n_same_type > 0:
@@ -705,6 +741,8 @@ class AnnotatedHunk:
                 # of addition, removal, and modification of lines (i.e. added ('+') or removed ('-') lines)
                 if prev_group_line_type != unidiff.LINE_TYPE_CONTEXT:
                     result['n_groups'] += 1
+                    if prev_group_line_type in {unidiff.LINE_TYPE_REMOVED, unidiff.LINE_TYPE_ADDED}:
+                        info['type_last'] = prev_group_line_type
                 if result['n_groups'] > 0:  # this skips counting context lines at start
                     n_context += 1
                 prev_group_line_type = unidiff.LINE_TYPE_CONTEXT
@@ -713,6 +751,18 @@ class AnnotatedHunk:
             elif hunk_line.is_removed:
                 if prev_group_line_type == unidiff.LINE_TYPE_CONTEXT:  # start of a new group
                     result['spread_inner'] += n_context
+
+                if result['n_groups'] == 0:  # first group
+                    info['type_first'] = hunk_line.line_type
+                if 'groups_start' not in info:
+                    info['groups_start'] = (hunk_line.source_line_no, hunk_line.target_line_no)
+                elif info['groups_start'][0] is None:
+                    info['groups_start'] = (hunk_line.source_line_no, info['groups_start'][1])
+                if 'groups_end' not in info:
+                    info['groups_end'] = (hunk_line.source_line_no, hunk_line.target_line_no)
+                else:
+                    info['groups_end'] = (hunk_line.source_line_no, info['groups_end'][1])
+
                 result['n_rem'] += 1
                 prev_group_line_type = unidiff.LINE_TYPE_REMOVED
                 n_same_type += 1
@@ -720,23 +770,38 @@ class AnnotatedHunk:
             elif hunk_line.is_added:
                 if prev_group_line_type == unidiff.LINE_TYPE_CONTEXT:  # start of a new group
                     result['spread_inner'] += n_context
+
+                if result['n_groups'] == 0:  # first group
+                    info['type_first'] = hunk_line.line_type
+                if 'groups_start' not in info:
+                    info['groups_start'] = (hunk_line.source_line_no, hunk_line.target_line_no)
+                elif info['groups_start'][1] is None:
+                    info['groups_start'] = (info['groups_start'][0], hunk_line.target_line_no)
+                if 'groups_end' not in info:
+                    info['groups_end'] = (hunk_line.source_line_no, hunk_line.target_line_no)
+                else:
+                    info['groups_end'] = (info['groups_end'][0], hunk_line.target_line_no)
+
                 result['n_add'] += 1
                 prev_group_line_type = unidiff.LINE_TYPE_ADDED
                 n_same_type += 1
 
             else:
-                print("  ?")
                 # should be only LINE_TYPE_NO_NEWLINE or LINE_TYPE_EMPTY
                 # equivalent to LINE_TYPE_CONTEXT for this purpose
                 prev_group_line_type = unidiff.LINE_TYPE_CONTEXT
 
-        # Check if hunk ended in non-context line; if so, there was chunk not counted
+        # Check if hunk ended in non-context line;
+        # if so, there was chunk (group) not counted
         if prev_group_line_type != unidiff.LINE_TYPE_CONTEXT:
             result['n_groups'] += 1
+        # if so, 'type_last' was not set for last line in last group
+        if prev_group_line_type in {unidiff.LINE_TYPE_REMOVED, unidiff.LINE_TYPE_ADDED}:
+            info['type_last'] = prev_group_line_type
 
         result['patch_size'] = result['n_add'] + result['n_rem'] + result['n_mod']
 
-        return result
+        return result, info
 
     def process(self):
         """Process associated patch hunk, annotating changes
