@@ -737,6 +737,14 @@ class AnnotatedPatchedFile:
         """
         result = Counter({
             'n_files': 1,
+            'hunk_span_src':
+                # line number of last hunk - line number of first hunk in source (pre-image)
+                (self.patched_file[-1].source_start + self.patched_file[-1].source_length - 1
+                 - self.patched_file[0].source_start),
+            'hunk_span_dst':
+                # line number of last hunk - line number of first hunk in target (post-image)
+                (self.patched_file[-1].target_start + self.patched_file[-1].target_length - 1
+                 - self.patched_file[0].target_start),
         })
 
         #print(f"patched file: {self.patched_file!r}")
