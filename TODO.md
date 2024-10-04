@@ -76,9 +76,11 @@
         - [x] _patch spreading_ - number of modified source files
         - [ ] _patch spreading_ - number of modified classes (_**not planned**_)
         - [ ] _patch spreading_ - number of modified methods \[and functions] (_**not planned**_)
-        - [ ] check the Python (and JavaScript) code used by work mentioned above, available at
+        - [x] check the Python (and JavaScript) code used by work mentioned above, available at
               <https://github.com/program-repair/defects4j-dissection>,
-              and maybe use it (copy, or import from PyPI/GitHub, or include as submodule and import)
+              ~~and maybe use it~~ (copy, ~~or import from PyPI/GitHub, or include as submodule and import~~):
+              it calls `defect4j` binary from <https://github.com/rjust/defects4j>
+              (Java code, Ant build system, with Perl wrappers - for Java code only)
     - [ ] retrieving and adding commit metadata
         - [x] from Git repository - for 'from-repo'
         - [ ] from *.message files - for 'dataset' (see BugsInPy, HaPy-Bugs)
