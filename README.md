@@ -72,6 +72,12 @@ Each script and subcommand supports the `--help` option.
 
 - ...
 
+### Jupyter Notebooks
+
+The `notebooks/` directory contains Jupyter Notebooks with data exploration,
+data analysis, etc.  See [`notebooks/README.md`](./notebooks/README.md)
+for details.
+
 ## Development
 
 ### Virtual environment
