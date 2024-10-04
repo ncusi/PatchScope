@@ -19,6 +19,11 @@
          (see also ["version at runtime" in setuptools_scm docs](https://setuptools-scm.readthedocs.io/en/stable/usage/#version-at-runtime)
           and ["Single-sourcing the package version" in Python Packaging User Guide](https://packaging.python.org/en/latest/guides/single-sourcing-package-version/))
     - [ ] add `docs/` directory (for man pages, and maybe API documentation)
+      - [ ] use [MkDocs][] or [Material for MkDocs][mkdocs-material] for general documentation
+      - [ ] generate API documentation using [mkdocstrings][]
+      - [ ] _maybe_ generate manpages from MkDocs with [mkdocs-manpage][] (at least for scripts)
+      - [ ] _maybe_ CLI demos with [Asciinema][], or one of the alternatives, like
+            [shelldemo][], [Terminalizer][], [ttyrec][] (and possibly also [ttygif][])
     - [ ] _maybe_ use build tool like Poetry, Hatch, PDM, Rye, uv, Flit,...
     - [ ] _maybe_ use in HaPy-Bug (python_bug_dataset) [via a GitHub URL][1]
 - [x] ~~3~~ 4 scripts _(their names may change in the future)_ - see `[project.scripts]` section
@@ -170,6 +175,17 @@ data.
 [Rich]: https://github.com/Textualize/rich
 [Textual]: https://github.com/Textualize/textual
 [Colorama]: https://github.com/tartley/colorama
+
+[MkDocs]: https://www.mkdocs.org/ "MkDocs: Project documentation with Markdown"
+[mkdocs-material]: https://squidfunk.github.io/mkdocs-material/ "Material for MkDocs: Documentation framework on top of MkDocs"
+[mkdocstrings]: https://mkdocstrings.github.io/ "mkdocstrings: Automatic documentation from sources, for MkDocs"
+[mkdocs-manpage]: https://pawamoy.github.io/mkdocs-manpage/ "MkDocs Manpage: MkDocs plugin to generate a manpage from the documentation site"
+[Asciinema]: https://asciinema.org/ "Asciinema - Record and share your terminal sessions, the simple way"
+[Terminalizer]: https://www.terminalizer.com/ "Terminalizer: Record your terminal and generate animated gif images or share a web player"
+[ttyrec]: http://0xcc.net/ttyrec/ "ttyrec: a tty recorder"
+[ttygif]: https://github.com/icholy/ttygif "ttygif: Convert terminal recordings to animated gifs"
+[shelldemo]: https://github.com/pawamoy/shelldemo "pawamoy/shelldemo: Run a set of Bash commands as if typed by a robo- I mean, a person"
+
 
 [github/linguist]: https://github.com/github/linguist
 [douban/linguist]: https://github.com/douban/linguist
