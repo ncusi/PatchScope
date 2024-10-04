@@ -530,24 +530,31 @@ def save_result(result: Any, result_json: Path) -> None:
 
 
 # TODO: consider making it common, and use the trick in other scripts
-def parse_colon_separated_pair(value: str) -> Tuple[str, ...]:
+def parse_colon_separated_pair(value: str) -> Tuple[str, str]:
     """Parse colon separated pair 'A:B' string into ('A', 'B') tuple
+
+    As a shortcut, parse 'A' into ('A', 'A') tuple
+    (if 'A' does not contain the colon ':').
 
     Examples:
 
     >>> parse_colon_separated_pair('a:b')
     ('a', 'b')
     >>> parse_colon_separated_pair('a')
-    ('a',)
-    >>> # noinspection PyTypeChecker
+    ('a','a')
     >>> dict([parse_colon_separated_pair('key:value')])
     {'key': 'value'}
 
-    :param value: string with colon-separated values, 'KEY:VALUE'
+    :param value: string with colon-separated values, 'KEY:VALUE',
+        or stringwithout colon, 'STR'
     :return: 2-element tuple with KEY and VALUE: ('KEY', 'VALUE'),
-        or one element tuple if `str` does not include ':'
+        or ('STR', 'STR') if `str` does not include ':'
     """
-    return tuple(value.split(sep=':', maxsplit=2))
+    result = value.split(sep=':', maxsplit=2)
+    if len(result) == 1:  # len it is always > 0
+        result = result * 2
+
+    return tuple(result)
 
 
 # implementing options common to all subcommands
@@ -744,8 +751,9 @@ def timeline(
         typer.Option(
             help="""Mapping from file PURPOSE to line type LINE_TYPE.
                     Each line of such file will be treated as if it had given type.
+                    As a shortcut, giving PURPOSE is the same as PURPOSE:PURPOSE.
                     Can be given multiple times.""",
-            metavar="PURPOSE:LINE_TYPE",
+            metavar="PURPOSE:LINE_TYPE|PURPOSE",
             # `parser` and `click_type` may not both be provided
             #click_type=click.Tuple([str, str]),
             parser=parse_colon_separated_pair,
