@@ -54,7 +54,8 @@ class LanguagesFromLinguist:
     def __init__(self):
         super(LanguagesFromLinguist, self).__init__()
 
-    def annotate(self, path: str) -> dict:
+    @staticmethod
+    def annotate(path: str) -> dict:
         """Annotate file with its primary / first language metadata
 
         :param path: file path in the repository
@@ -538,7 +539,7 @@ class AnnotatedPatchedFile:
         :param line_type: denotes line type, e.g. line.line_type from unidiff;
             must be one of '-' (unidiff.LINE_TYPE_REMOVED) or '+' (unidiff.LINE_TYPE_ADDED).
         :param hunk: block of changes in fragment of diff corresponding
-            to changed file
+            to changed file, either unidiff.Hunk or annotate.AnnotatedHunk
         :return: post-processed result of lexing, split into lines,
             if there is pre-/post-image file contents available;
             None if there is no pre-/post-image contents attached.
@@ -638,7 +639,7 @@ class AnnotatedHunk:
 
         - "id": line number in the hunk itself (it is not line number in pre-image
           for "-" lines, or line image in post-image for "+" lines); this numbering
-          counts context lines, which are currently ignored.
+          counts context lines, which are currently ignored, 0-based.
         - "type": "documentation" or "code", or the value mapped from the file purpose
           by the `PURPOSE_TO_ANNOTATION` global variable, or the value provided by the
           `AnnotatedPatchedFile.line_callback` function; comments and docstrings
@@ -666,8 +667,8 @@ class AnnotatedHunk:
         file_purpose = self.patched_file.patch_data[file_path]["purpose"]
 
         if file_purpose in PURPOSE_TO_ANNOTATION:
-            for line_idx, line in enumerate(self.hunk):
-                self.add_line_annotation(line_idx,
+            for line_idx_hunk, line in enumerate(self.hunk):
+                self.add_line_annotation(line_idx_hunk,
                                          self.patched_file.source_file,
                                          self.patched_file.target_file,
                                          line.line_type,
@@ -734,7 +735,7 @@ class AnnotatedHunk:
                             tokens: List[Tuple]) -> None:
         """Add line annotations for a given line in a hunk
 
-        :param line_no: line number in a diff hunk body
+        :param line_no: line number (line index) in a diff hunk body, 0-based
         :param source_file: name of changed file in pre-image of diff,
             before changes
         :param target_file: name of changed file in post-image of diff,
@@ -774,7 +775,7 @@ def annotate_single_diff(diff_path: PathLike,
         patch annotation process
     :return: annotation data
     """
-    patch_annotations = {}
+    patch_annotations: Dict[str, Dict[str, Union[str, dict]]] = {}
 
     try:
         patch_set = ChangeSet.from_filename(diff_path, encoding="utf-8")
@@ -825,6 +826,7 @@ def annotate_single_diff(diff_path: PathLike,
 
         if not ignore_annotation_errors:
             raise ex
+        # returns what it was able to process so far
 
     return patch_annotations
 
@@ -937,7 +939,7 @@ class Bug:
             it, `patch_set` should be changes in repo for commit `patch_id`
         :return: Bug object instance
         """
-        patch_annotations = {}
+        patch_annotations: Dict[str, Dict[str, Union[str, dict]]] = {}
         i = 0
 
         src_commit: Optional[str] = None
