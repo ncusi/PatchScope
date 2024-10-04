@@ -27,6 +27,8 @@ or (assuming that you can clone the repository with SSH)
 python -m pip install diffannotator@git+ssh://git@github.com/ncusi/python-diff-annotator.git#egg=main
 ```
 
+## Usage
+
 ### Running scripts
 
 This package installs scripts (currently three) that you can run
@@ -71,6 +73,8 @@ Each script and subcommand supports the `--help` option.
       calculate timeline of bugs with per-bug count of different types of lines;
 
 - ...
+
+## Examples and demos
 
 ### Jupyter Notebooks
 
@@ -129,6 +133,10 @@ or
 ```commandline
 python -m pytest
 ```
+
+### Roadmap
+
+See [`TODO.md`](./TODO.md).
 
 ## Related projects
 
