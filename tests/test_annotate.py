@@ -11,7 +11,7 @@ import unidiff
 from diffannotator.annotate import (split_multiline_lex_tokens, line_ends_idx,
                                     group_tokens_by_line, front_fill_gaps, deep_update,
                                     clean_text, line_is_comment, annotate_single_diff,
-                                    Bug, BugDataset, AnnotatedPatchedFile, AnnotatedHunk)
+                                    Bug, BugDataset, AnnotatedPatchedFile, AnnotatedHunk, AnnotatedPatchSet)
 from diffannotator.utils.git import GitRepo, DiffSide, ChangeSet
 
 # Example code to be tokenized
@@ -285,7 +285,7 @@ def test_simple_patchset_sizes_and_spreads(example_patchset_java: unidiff.PatchS
     assert patched_file_result['n_files'] == 1, "analyzed only 1 patched file"
 
 
-def test_misc_patchsets_sizes_and_spreads():
+def test_misc_patched_files_sizes_and_spreads():
     file_path = 'tests/test_dataset/tqdm-1/c0dcf39b046d1b4ff6de14ac99ad9a1b10487512.diff'
     patch = unidiff.PatchSet.from_filename(file_path, encoding='utf-8')
     patched_file = AnnotatedPatchedFile(patch[0])
@@ -359,6 +359,27 @@ def test_misc_patchsets_sizes_and_spreads():
     #pprint(result)
     assert result['groups_spread'] == 16, \
         "computed groups spread matches hand count, test_dataset_annotated, patch[6]"
+
+
+def test_misc_patchsets_sizes_and_spreads():
+    # checking only complex, multi-file patches (diffs)
+    file_path = 'tests/test_dataset_structured/keras-10/patches/c1c4afe60b1355a6c0e83577791a0423f37a3324.diff'
+    patch_set = AnnotatedPatchSet.from_filename(file_path, encoding='utf-8')
+    result = patch_set.compute_sizes_and_spreads()
+    #print(f"{file_path=}")
+    #print(f"{patch_set=}, {patch_set.patch_set=}")
+    #from pprint import pprint
+    #pprint(result)
+    assert result['n_files'] == 2, "there were 2 changed files in patch"
+
+    file_path = 'tests/test_dataset_annotated/CVE-2021-21332/patches/e54746bdf7d5c831eabe4dcea76a7626f1de73df.diff'
+    patch_set = AnnotatedPatchSet.from_filename(file_path, encoding='utf-8')
+    result = patch_set.compute_sizes_and_spreads()
+    #print(f"{file_path=}")
+    #print(f"{patch_set=}, {patch_set.patch_set=}")
+    #from pprint import pprint
+    #pprint(result)
+    assert result['n_files'] == 12, "there were 12 changed files in patch"
 
 
 @pytest.mark.parametrize("line_type", [unidiff.LINE_TYPE_REMOVED, unidiff.LINE_TYPE_ADDED])
