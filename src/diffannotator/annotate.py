@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import collections.abc
-from collections import defaultdict, deque, namedtuple
+from collections import defaultdict, deque, namedtuple, Counter
 import importlib.metadata
 import inspect
 import json
@@ -263,6 +263,144 @@ def line_is_comment(tokens_list: Iterable[Tuple]) -> bool:
             break
 
     return can_be_comment and not cannot_be_comment
+
+
+class AnnotatedPatchSet:
+    """Annotations for whole patch / diff
+
+    :ivar: patch_set: original unidiff.PatchSet or diffannotator.git.ChangeSet"""
+    def __init__(self, patch_set: unidiff.PatchSet):
+        """Initialize AnnotatedPatchSet with unidiff.PatchSet (or derived class)
+
+        :param patch_set: parsed unified diff (if unidiff.PatchSet),
+            or parsed commit changes and parsed commit metadata (if ChangeSet)
+        """
+        self.patch_set = patch_set
+
+    @classmethod
+    def from_filename(cls, filename: Union[str, Path], encoding: str = unidiff.DEFAULT_ENCODING,
+                      errors: Optional[str] = None, newline: Optional[str] = None,
+                      missing_ok: bool = False,
+                      ignore_diff_parse_errors: bool = True,) -> Optional['AnnotatedPatchSet']:
+        """Return a AnnotatedPatchSet instance given a diff filename
+
+        :param filename: path to the patch file (diff file) to try to parse
+            (absolute or relative to the current working directory)
+        :param encoding: name of the encoding used to decode the file,
+            defaults to "UTF-8"
+        :param errors: optional string that specifies how decoding errors
+            are to be handled; see documentation of `open` function for list
+            of possible values, see: https://docs.python.org/3/library/functions.html#open
+        :param newline: determines how to parse newline characters from the stream;
+            see documentation of `open` function for possible values
+        :param missing_ok: if false (the default), `FileNotFoundError` is raised
+            if the path does not exist, and `PermissionError` is raised if file
+            exists but cannot be read because of path permissions; if `missing_ok` is true,
+            return None on missing file, or file with wrong permissions
+        :param ignore_diff_parse_errors: if false (the default), `unidiff.UnidiffParseError`
+            is raised if there was error parsing the unified diff; if true, return None
+            on parse errors
+        :return: wrapped result of parsing patch file `filename`
+        """
+        # NOTE: unconditionally using `file_path = Path(filename)` would simplify some code
+        try:
+            patch_set = ChangeSet.from_filename(filename, encoding=encoding,
+                                                errors=errors, newline=newline)
+
+        except FileNotFoundError as ex:
+            # TODO?: use logger, log either warning or error
+            print(f"No such patch file: '{filename}'", file=sys.stderr)
+
+            if not missing_ok:
+                raise ex
+            return None
+
+        except PermissionError as ex:
+            if Path(filename).exists() and Path(filename).is_dir():
+                print(f"Path points to directory, not patch file: '{filename}'")
+            else:
+                print(f"Permission denied to read patch file '{filename}'")
+
+            if not missing_ok:
+                raise ex
+            return None
+
+        except unidiff.UnidiffParseError as ex:
+            print(f"Error parsing patch file '{filename}': {ex!r}")
+
+            if not ignore_diff_parse_errors:
+                raise ex
+            return None
+
+        return cls(patch_set)
+
+    def compute_sizes_and_spreads(self) -> Counter:
+        """Compute patch set sizes and spread
+
+        See the detailed description of returned metrics in docstring
+        for `AnnotatedPatchedFile.compute_sizes_and_spreads`.
+
+        :return: Counter with different sizes and different spreads
+            of the given patch set (unified diff object, or diff file)
+        """
+        result = Counter()
+
+        # print(f"patched file: {self.patched_file!r}")
+        patched_file: unidiff.PatchedFile
+        for patched_file in self.patch_set:
+            annotated_file = AnnotatedPatchedFile(patched_file)
+            file_result = annotated_file.compute_sizes_and_spreads()
+
+            result += file_result
+
+        return result
+
+    def process(self, ignore_annotation_errors: bool = True):
+        """Process wrapped patch set, annotating changes for patched files
+
+        Returns mapping from filename to pre- and post-image
+        line annotations.  The pre-image line annotations use "-" as key,
+        while post-image use "+".
+
+        The format of returned values is described in more detail
+        in `AnnotatedHunk.process()` documentation.
+
+        TODO: Update and returns the `self.patch_set_data` field (caching results).
+
+        :param ignore_annotation_errors: if true (the default), ignore errors during
+            patch annotation process
+        :return: annotated patch data, mapping from changed file names
+            to '+'/'-', to annotated line info (from post-image or pre-image)
+        :rtype: dict[str, dict[str, dict | list | str]]
+        """
+        i: Optional[int] = None
+        patch_annotations: Dict[str, Dict[str, Union[str, dict]]] = {}
+
+        try:
+            # once per changeset
+            # TODO/DOING: extract common code
+            # TODO: make '' into a constant, like UNKNOWN_ID, reducing duplication
+            if isinstance(self.patch_set, ChangeSet) and self.patch_set.commit_id != '':
+                commit_metadata = {'id': self.patch_set.commit_id}
+                if self.patch_set.commit_metadata is not None:
+                    commit_metadata.update(self.patch_set.commit_metadata)
+                patch_annotations['commit_metadata'] = commit_metadata
+
+            # for each changed file
+            for i, patched_file in enumerate(self.patch_set, start=1):
+                annotated_patch_file = AnnotatedPatchedFile(patched_file)
+                patch_annotations.update(annotated_patch_file.process())
+
+        except Exception as ex:
+            print(f"Error processing patch {self.patch_set!r}, at file no {i}: {ex!r}")
+            traceback.print_tb(ex.__traceback__)
+
+            if not ignore_annotation_errors:
+                raise ex
+            # returns what it was able to process so far
+
+        return patch_annotations
+
 
 
 class AnnotatedPatchedFile:
@@ -563,6 +701,119 @@ class AnnotatedPatchedFile:
 
         return result
 
+    def compute_sizes_and_spreads(self) -> Counter:
+        """Compute sizes and spread for patched file in diff/patch
+
+        Computes the following metrics:
+
+        - patched file sizes:
+
+          - total number of hunks (in the unified diff meaning),
+            as 'n_hunks'
+          - total number of modified, added and removed lines for patched file, counting
+            a pair of adjacent removed and added line as single modified line,
+            as 'n_mod', 'n_rem', and 'n_add'
+          - total number of changed lines: sum of number of modified, added, and removed,
+            as 'patch_size'
+          - total number of '+' and '-' lines in hunks of patched file (without extracting modified lines),
+            as 'n_lines_added', 'n_lines_removed'
+          - number of all lines in all hunks of patched file, including context lines,
+            but excluding hunk headers and patched file headers, as 'n_lines_all'
+
+        - patched file spread
+
+          - total number of groups, i.e. spans of removed and added lines,
+            not interrupted by context line (also called "chunks"),
+            as 'n_groups'
+          - number of modified files, as 'n_files' (always 1)
+          - sum of distances in context lines between groups (chunks)
+            inside hunk, for all hunks in patched file, as 'spread_inner'
+          - sum of distances in lines between groups (chunks) for
+            a single changed patched file, measuring how wide across file
+            contents the patch spreads, as 'groups_spread'
+
+        :return: Counter with different sizes and different spreads
+            of the given changed file
+        """
+        result = Counter({
+            'n_files': 1,
+            'hunk_span_src':
+                # line number of last hunk - line number of first hunk in source (pre-image)
+                (self.patched_file[-1].source_start + self.patched_file[-1].source_length - 1
+                 - self.patched_file[0].source_start),
+            'hunk_span_dst':
+                # line number of last hunk - line number of first hunk in target (post-image)
+                (self.patched_file[-1].target_start + self.patched_file[-1].target_length - 1
+                 - self.patched_file[0].target_start),
+        })
+
+        #print(f"patched file: {self.patched_file!r}")
+        prev_hunk_info: Optional[dict] = None
+        inter_hunk_span = 0
+
+        hunk: unidiff.Hunk
+        for idx, hunk in enumerate(self.patched_file):
+            annotated_hunk = AnnotatedHunk(self, hunk)
+            hunk_result, hunk_info = annotated_hunk.compute_sizes_and_spreads()
+            #print(f"[{idx}] hunk: inner spread={hunk_result['spread_inner']:3d} "
+            #      f"among {hunk_result['n_groups']} groups for {hunk!r}")
+
+            result += hunk_result
+
+            if prev_hunk_info is not None:
+                # there was previous hunk,
+
+                # computing hunk-to-hunk distance
+                # between pre- and post-image line numbers of end of previous hunk
+                # and pre- and post-image line numbers of beginning of current hunk
+                result['hunk_spread_src'] += hunk_info['hunk_start'][0] - prev_hunk_info['hunk_end'][0]
+                result['hunk_spread_dst'] += hunk_info['hunk_start'][1] - prev_hunk_info['hunk_end'][1]
+
+                # computing inter-hunk distance
+                # between last group in previous hunk
+                # and first group in the current hunk
+                prev_end_type = prev_hunk_info['type_last']
+                curr_beg_type = hunk_info['type_first']
+
+                #  1:-removed, 1st hunk, groups_end=1
+                #  2: context
+                #  3: context
+                #  4:-removed, 2nd hunk, groups_start=4
+                # 4-1 = 3, but there are 2 = 3-1 = 3-2+1 context lines
+                if prev_end_type == curr_beg_type:
+                    #print(f"from group ending to starting in {prev_end_type}={curr_beg_type}")
+                    if prev_end_type == unidiff.LINE_TYPE_REMOVED:
+                        # removed line to removed line, can use pre-image line numbers
+                        inter_hunk_span = hunk_info['groups_start'][0] - prev_hunk_info['groups_end'][0] - 1
+                    elif prev_end_type == unidiff.LINE_TYPE_ADDED:
+                        # added line to added line, can use post-image line numbers
+                        inter_hunk_span = hunk_info['groups_start'][1] - prev_hunk_info['groups_end'][1] - 1
+                else:
+                    #print(f"from group ending in {prev_end_type} to starting in {curr_beg_type}")
+                    if prev_end_type == unidiff.LINE_TYPE_REMOVED:
+                        # from removed line to next hunk start using pre-image line numbers
+                        inter_hunk_span = hunk_info['hunk_start'][0] - prev_hunk_info['groups_end'][0] - 1
+                    elif prev_end_type == unidiff.LINE_TYPE_ADDED:
+                        # from added line to next hunk start using post-image line numbers
+                        inter_hunk_span = hunk_info['hunk_start'][1] - prev_hunk_info['groups_end'][1] - 1
+
+                    if curr_beg_type == unidiff.LINE_TYPE_REMOVED:
+                        # from start of current hunk using pre-image line numbers to removed line
+                        inter_hunk_span += hunk_info['groups_start'][0] - hunk_info['hunk_start'][0]  # -1?
+                    elif curr_beg_type == unidiff.LINE_TYPE_ADDED:
+                        # from start of current hunk using post-image line numbers to added line
+                        inter_hunk_span += hunk_info['groups_start'][1] - hunk_info['hunk_start'][1]  # -1?
+
+            #print(f"inner={hunk_result['spread_inner']:2d}, inter={inter_hunk_span:2d} for "
+            #      f"{hunk_info['type_first']}->{hunk_info['type_last']}:{hunk!r}")
+            result['groups_spread'] += hunk_result['spread_inner']
+            result['groups_spread'] += inter_hunk_span  # will be 0 for the first hunk
+
+            # at the end of the loop
+            prev_hunk_info = hunk_info
+
+        return result
+
     def process(self):
         """Process hunks in patched file, annotating changes
 
@@ -628,6 +879,182 @@ class AnnotatedHunk:
             None if there is no pre-/post-image contents attached.
         """
         return self.patched_file.hunk_tokens_for_type(line_type, self.hunk)
+
+    def compute_sizes_and_spreads(self) -> Tuple[Counter, dict]:
+        """Compute hunk sizes and inner-hunk spread
+
+        Computes the following metrics:
+
+        - hunk sizes:
+
+          - number of hunks (in the unified diff meaning),
+            as 'n_hunks'
+          - number of modified, added and removed lines, counting
+            a pair of adjacent removed and added line as single modified line,
+            as 'n_mod', 'n_rem', and 'n_add'
+          - number of changed lines: sum of number of modified, added, and removed,
+            as 'patch_size'
+          - number of '+' and '-' lines in hunk (without extracting modified lines),
+            as 'n_lines_added', 'n_lines_removed'
+          - number of all lines in hunk, including context lines, but excluding headers
+            'n_lines_all'
+
+        - hunk spread
+
+          - number of groups, i.e. spans of removed and added lines,
+            not interrupted by context line (also called "chunks"),
+            as 'n_groups'
+          - sum of distance in context lines between groups (chunks)
+            inside hunk, as 'spread_inner'
+
+        - patched file spread helpers
+
+          - start and end if hunk (pre-image and post-image)
+            as 'hunk_start' and 'hunk_end' - both values are tuple of
+            source file (pre-image) line number and target file (post-image) line number
+          - start of first group and end of first group (pre-/post-image)
+            as 'groups_start' and 'groups_end'
+          - type of line that started first group, and that ended last group
+            of changed lines, as 'type_first' and 'type_last'
+
+        :return: (Counter with different sizes and different spreads
+            of the given hunk, dict with data needed to compute inter-hunk
+            spread)
+        """
+        result = Counter({
+            'n_hunks': 1,
+            'n_lines_added': self.hunk.added,
+            'n_lines_removed': self.hunk.removed,
+            'n_lines_all': len(self.hunk),
+        })
+        info = {
+            'hunk_start': (
+                self.hunk.source_start,
+                self.hunk.target_start
+                # OR
+                #self.hunk[0].source_line_no,
+                #self.hunk[0].target_line_no
+            ),
+            'hunk_end': (
+                #self.hunk.source_start + self.hunk.source_length - 1,
+                #self.hunk.target_start + self.hunk.target_length - 1
+                # OR
+                self.hunk[-1].source_line_no,
+                self.hunk[-1].target_line_no
+            ),
+        }
+
+        prev_group_line_type = unidiff.LINE_TYPE_CONTEXT
+        n_same_type = 0
+        n_context = 0
+
+        hunk_line: unidiff.patch.Line
+        for idx, hunk_line in enumerate(self.hunk):
+            # Lines are considered modified when sequences of removed lines are straight followed by added lines
+            # (or vice versa). Thus, to count each modified line, a pair of added and removed lines is needed.
+            if hunk_line.is_added and prev_group_line_type == unidiff.LINE_TYPE_REMOVED:
+                if info['groups_start'][1] is None:
+                    info['groups_start'] = (info['groups_start'][0], hunk_line.target_line_no)
+                if 'groups_end' not in info:
+                    info['groups_end'] = (hunk_line.source_line_no, hunk_line.target_line_no)
+                else:
+                    info['groups_end'] = (info['groups_end'][0], hunk_line.target_line_no)
+
+                # check if number of removed lines is not greater than number of added lines
+                if n_same_type > 0:
+                    result['n_mod'] += 1
+                    result['n_rem'] -= 1  # previous group
+                    n_same_type -= 1
+                else:
+                    result['n_add'] += 1
+                    # Assumes only __--++__ is possible, and --++-- etc. is not
+
+            elif hunk_line.is_removed and prev_group_line_type == unidiff.LINE_TYPE_ADDED:
+                if info['groups_start'][0] is None:
+                    info['groups_start'] = (hunk_line.source_line_no, info['groups_start'][1])
+                if 'groups_end' not in info:
+                    info['groups_end'] = (hunk_line.source_line_no, hunk_line.target_line_no)
+                else:
+                    info['groups_end'] = (hunk_line.source_line_no, info['groups_end'][1])
+
+                # NOTE: this should never happen in a proper unified diff
+                # check if number of removed lines is not greater than number of added lines
+                if n_same_type > 0:
+                    result['n_mod'] += 1
+                    result['n_add'] -= 1  # previous group
+                    n_same_type -= 1
+                else:
+                    result['n_rem'] += 1
+                    # Assumes only __++--__ is possible, and --++-- etc. is not
+
+            elif hunk_line.is_context:
+                # A chunk (group) is a sequence of continuous changes in a file, consisting of the combination
+                # of addition, removal, and modification of lines (i.e. added ('+') or removed ('-') lines)
+                if prev_group_line_type != unidiff.LINE_TYPE_CONTEXT:
+                    result['n_groups'] += 1
+                    if prev_group_line_type in {unidiff.LINE_TYPE_REMOVED, unidiff.LINE_TYPE_ADDED}:
+                        info['type_last'] = prev_group_line_type
+                if result['n_groups'] > 0:  # this skips counting context lines at start
+                    n_context += 1
+                prev_group_line_type = unidiff.LINE_TYPE_CONTEXT
+                n_same_type = 0
+
+            elif hunk_line.is_removed:
+                if prev_group_line_type == unidiff.LINE_TYPE_CONTEXT:  # start of a new group
+                    result['spread_inner'] += n_context
+                    n_context = 0
+
+                if result['n_groups'] == 0:  # first group
+                    info['type_first'] = hunk_line.line_type
+                if 'groups_start' not in info:
+                    info['groups_start'] = (hunk_line.source_line_no, hunk_line.target_line_no)
+                elif info['groups_start'][0] is None:
+                    info['groups_start'] = (hunk_line.source_line_no, info['groups_start'][1])
+                if 'groups_end' not in info:
+                    info['groups_end'] = (hunk_line.source_line_no, hunk_line.target_line_no)
+                else:
+                    info['groups_end'] = (hunk_line.source_line_no, info['groups_end'][1])
+
+                result['n_rem'] += 1
+                prev_group_line_type = unidiff.LINE_TYPE_REMOVED
+                n_same_type += 1
+
+            elif hunk_line.is_added:
+                if prev_group_line_type == unidiff.LINE_TYPE_CONTEXT:  # start of a new group
+                    result['spread_inner'] += n_context
+                    n_context = 0
+
+                if result['n_groups'] == 0:  # first group
+                    info['type_first'] = hunk_line.line_type
+                if 'groups_start' not in info:
+                    info['groups_start'] = (hunk_line.source_line_no, hunk_line.target_line_no)
+                elif info['groups_start'][1] is None:
+                    info['groups_start'] = (info['groups_start'][0], hunk_line.target_line_no)
+                if 'groups_end' not in info:
+                    info['groups_end'] = (hunk_line.source_line_no, hunk_line.target_line_no)
+                else:
+                    info['groups_end'] = (info['groups_end'][0], hunk_line.target_line_no)
+
+                result['n_add'] += 1
+                prev_group_line_type = unidiff.LINE_TYPE_ADDED
+                n_same_type += 1
+
+            else:
+                # should be only LINE_TYPE_NO_NEWLINE or LINE_TYPE_EMPTY
+                # equivalent to LINE_TYPE_CONTEXT for this purpose
+                prev_group_line_type = unidiff.LINE_TYPE_CONTEXT
+
+        # Check if hunk ended in non-context line;
+        # if so, there was chunk (group) not counted
+        if prev_group_line_type != unidiff.LINE_TYPE_CONTEXT:
+            result['n_groups'] += 1
+        # if so, 'type_last' was not set for last line in last group
+        if prev_group_line_type in {unidiff.LINE_TYPE_REMOVED, unidiff.LINE_TYPE_ADDED}:
+            info['type_last'] = prev_group_line_type
+
+        result['patch_size'] = result['n_add'] + result['n_rem'] + result['n_mod']
+
+        return result, info
 
     def process(self):
         """Process associated patch hunk, annotating changes
@@ -760,6 +1187,7 @@ class AnnotatedHunk:
             self.patch_data[source_file]["-"].append(data)
 
 
+# TODO: simplify by using methods from the AnnotatedPatchSet class
 def annotate_single_diff(diff_path: PathLike,
                          missing_ok: bool = False,
                          ignore_diff_parse_errors: bool = True,
@@ -775,60 +1203,10 @@ def annotate_single_diff(diff_path: PathLike,
         patch annotation process
     :return: annotation data
     """
-    patch_annotations: Dict[str, Dict[str, Union[str, dict]]] = {}
+    patch_set = AnnotatedPatchSet.from_filename(diff_path, encoding="utf-8", missing_ok=missing_ok,
+                                                ignore_diff_parse_errors=ignore_diff_parse_errors)
 
-    try:
-        patch_set = ChangeSet.from_filename(diff_path, encoding="utf-8")
-
-    except FileNotFoundError as ex:
-        # TODO?: use logger, log either warning or error
-        print(f"No such patch file: '{diff_path}'", file=sys.stderr)
-
-        if not missing_ok:
-            raise ex
-        return {}
-
-    except PermissionError as ex:
-        if Path(diff_path).exists() and Path(diff_path).is_dir():
-            print(f"Path points to directory, not patch file: '{diff_path}'")
-        else:
-            print(f"Permission denied to read patch file '{diff_path}'")
-
-        if not missing_ok:
-            raise ex
-        return {}
-
-    except unidiff.UnidiffParseError as ex:
-        print(f"Error parsing patch file '{diff_path}': {ex!r}")
-
-        if not ignore_diff_parse_errors:
-            raise ex
-        return {}  # explicitly return empty dict on parse error
-
-    try:
-        # once per changeset
-        # TODO: extract common code
-        # TODO: make '' into a constant, like UNKNOWN_ID, reducing duplication
-        if isinstance(patch_set, ChangeSet) and patch_set.commit_id != '':
-            commit_metadata = {'id': patch_set.commit_id}
-            if patch_set.commit_metadata is not None:
-                commit_metadata.update(patch_set.commit_metadata)
-            patch_annotations['commit_metadata'] = commit_metadata
-
-        # for each changed file
-        for i, patched_file in enumerate(patch_set, start=1):
-            annotated_patch_file = AnnotatedPatchedFile(patched_file)
-            patch_annotations.update(annotated_patch_file.process())
-
-    except Exception as ex:
-        print(f"Error processing patch file '{diff_path}': {ex!r}")
-        traceback.print_tb(ex.__traceback__)
-
-        if not ignore_annotation_errors:
-            raise ex
-        # returns what it was able to process so far
-
-    return patch_annotations
+    return patch_set.process(ignore_annotation_errors=ignore_annotation_errors)
 
 
 class Bug:

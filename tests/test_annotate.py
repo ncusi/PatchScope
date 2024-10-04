@@ -11,7 +11,7 @@ import unidiff
 from diffannotator.annotate import (split_multiline_lex_tokens, line_ends_idx,
                                     group_tokens_by_line, front_fill_gaps, deep_update,
                                     clean_text, line_is_comment, annotate_single_diff,
-                                    Bug, BugDataset, AnnotatedPatchedFile, AnnotatedHunk)
+                                    Bug, BugDataset, AnnotatedPatchedFile, AnnotatedHunk, AnnotatedPatchSet)
 from diffannotator.utils.git import GitRepo, DiffSide, ChangeSet
 
 # Example code to be tokenized
@@ -22,6 +22,37 @@ example_C_code = r'''
   */
   int i = 1; /* an int */
 '''
+
+# example patch from "Listing 1. Patch for bug Closure-40"
+# in https://doi.org/10.1109/SANER.2018.8330203,
+# taken in turn from Defects4J
+# https://program-repair.org/defects4j-dissection/#!/bug/Closure/40
+# https://github.com/rjust/defects4j/blob/master/framework/projects/Closure/patches/40.src.patch
+example_patch_java = r'''
+diff --git a/src/com/google/javascript/jscomp/NameAnalyzer.java b/src/com/google/javascript/jscomp/NameAnalyzer.java
+index 6e9e470..088a993 100644
+--- a/src/com/google/javascript/jscomp/NameAnalyzer.java
++++ b/src/com/google/javascript/jscomp/NameAnalyzer.java
+@@ -632,9 +632,11 @@ final class NameAnalyzer implements CompilerPass {
+         Node nameNode = n.getFirstChild();
+         NameInformation ns = createNameInformation(t, nameNode, n);
+         if (ns != null && ns.onlyAffectsClassDef) {
+-          JsName name = getName(ns.name, true);
++          JsName name = getName(ns.name, false);
++          if (name != null) {
+           refNodes.add(new ClassDefiningFunctionNode(
+               name, n, parent, parent.getParent()));
++          }
+         }
+       }
+     }
+'''
+
+
+@pytest.fixture()
+def example_patchset_java() -> unidiff.PatchSet:
+    """PatchSet created from Closure-40 source diff in Defects4J dataset"""
+    return unidiff.PatchSet(example_patch_java)
 
 
 def test_line_ends_idx():
@@ -184,6 +215,171 @@ def test_annotate_single_diff():
     file_path = 'tests/test_dataset/this_patch_does_not_exist.diff'
     with pytest.raises(FileNotFoundError):
         annotate_single_diff(file_path, missing_ok=False)
+
+
+def test_hunk_sizes_and_spreads(example_patchset_java: unidiff.PatchSet):
+    patched_file = example_patchset_java[0]
+    #print(f"{example_patchset_java=}")
+    #print(f"{patched_file=}")
+    #print(f"{patched_file[0]=}")
+
+    annotated_patched_file = AnnotatedPatchedFile(patched_file)
+    annotated_hunk = AnnotatedHunk(annotated_patched_file, patched_file[0])
+    hunk_result, hunk_info = annotated_hunk.compute_sizes_and_spreads()
+    #print(f"{annotated_hunk.hunk=}")
+    #print(f"{annotated_hunk.hunk.section_header=}")
+    #from pprint import pprint
+    #pprint(hunk_result)
+    #pprint(hunk_info)
+
+    # Listing 1 shows an example of patch
+    # with one modified line (line 635), two non-paired removed
+    # lines (the old 636 and 639 lines), and none non-paired added
+    # line. By summing these lines, we have the metric patch size
+    # in number of lines, which in the example is 3 lines.
+    #
+    # But patch on Listing 1 in Sobreira et al. 2018 is *wrong*,
+    # so the above is also wrong.  Asserted values are instead
+    # computed by hand (for given patch, copied from Defects4J)
+    assert hunk_result['n_mod'] == 1, "one modified line"
+    assert hunk_result['n_rem'] == 0, "no non-paired removed lines"
+    assert hunk_result['n_add'] == 2, "two non-paired added lines"
+    assert hunk_result['patch_size'] == 3, "patch size is 3 lines"
+    assert hunk_result['n_groups'] == 2, "two groups of changed lines (chunks)"
+    assert hunk_result['n_hunks'] == 1, "analyzed only 1 hunk"
+
+    assert hunk_result['n_lines_all'] == 12, "12 lines in hunk, excluding hunk header"
+    assert hunk_result['n_lines_added'] == 3, "3 lines beginning with '+' in hunk"
+    assert hunk_result['n_lines_removed'] == 1, "1 line beginning with '-' in hunk"
+
+    assert hunk_result['spread_inner'] == 2, "2 context lines between 2 groups (chunks)"
+
+    # diff header of example_diff_java:
+    # @@ -632,9 +632,11 @@ final class NameAnalyzer implements CompilerPass {
+    assert hunk_info['hunk_start'] == (632, 632), "'hunk_start' agrees with hunk header info"
+    assert hunk_info['hunk_end'] == (632+9-1, 632+11-1), "'hunk_end' agrees with hunk header info"
+
+    assert hunk_info['groups_start'] == (635, 635), \
+        "'groups_start': hunk start same line in pre-/post-image, first group includes -/+"
+    assert hunk_info['groups_end'] == (635, 639), \
+        "'groups_end': there was only single '-' line, last group had only '+'"
+    assert hunk_info['type_first'] == '-', "first changed line is '-' line"
+    assert hunk_info['type_last'] == '+', "last changed line is '+' line"
+
+
+def test_simple_patchset_sizes_and_spreads(example_patchset_java: unidiff.PatchSet):
+    patched_file = example_patchset_java[0]
+    #print(f"{example_patchset_java=}")
+    #print(f"{patched_file=}")
+    #print(f"{patched_file[0]=}")
+
+    annotated_patched_file = AnnotatedPatchedFile(patched_file)
+    #print(f"{annotated_patched_file=}")
+
+    patched_file_result = annotated_patched_file.compute_sizes_and_spreads()
+    #from pprint import pprint
+    #pprint(patched_file_result)
+
+    # there is only one hunk, so we need to test only that which
+    # was not tested by test_hunk_sizes_and_spreads() test
+    assert patched_file_result['n_files'] == 1, "analyzed only 1 patched file"
+
+
+def test_misc_patched_files_sizes_and_spreads():
+    file_path = 'tests/test_dataset/tqdm-1/c0dcf39b046d1b4ff6de14ac99ad9a1b10487512.diff'
+    patch = unidiff.PatchSet.from_filename(file_path, encoding='utf-8')
+    patched_file = AnnotatedPatchedFile(patch[0])
+    result = patched_file.compute_sizes_and_spreads()
+
+    # computed by hand
+    assert result['n_mod'] == 1, "one modified line"
+    assert result['n_rem'] == 0, "no non-paired removed lines"
+    assert result['n_add'] == 0, "no non-paired added lines"
+    assert result['patch_size'] == 1, "patch size is 1 modified line"
+    assert result['n_groups'] == 1, "1 groups of changed lines (chunks)"
+    assert result['n_hunks'] == 1, "1 hunk in patched file"
+    assert result['spread_inner'] == 0, "there is only 1 group, so there is no inner sep"
+
+    file_path = 'tests/test_dataset/unidiff-1/3353080f357a36c53d21c2464ece041b100075a1.diff'
+    patch = unidiff.PatchSet.from_filename(file_path, encoding='utf-8')
+    patched_file = AnnotatedPatchedFile(patch[0])
+    result = patched_file.compute_sizes_and_spreads()
+
+    # computed by hand
+    assert result['n_mod'] == 2, "2 modified lines"
+    assert result['n_rem'] == 0, "no non-paired removed lines"
+    assert result['n_add'] == 0, "no non-paired added lines"
+    assert result['patch_size'] == 2, "patch size is 2 modified line"
+    assert result['n_groups'] == 1, "1 groups of changed lines (chunks)"
+    assert result['n_hunks'] == 1, "1 hunk in patched file"
+    assert result['spread_inner'] == 0, "there is only 1 group, so there is no inner sep"
+
+    file_path = 'tests/test_dataset_structured/keras-10/patches/c1c4afe60b1355a6c0e83577791a0423f37a3324.diff'
+    patch = unidiff.PatchSet.from_filename(file_path, encoding='utf-8')
+    #print(f"{patch[0]=}")
+    #print(f"expected span = {45 + 13 + (3 + 3 + 1) + 8 + (1) =}")
+    #print(f"inter-hunk spaces = {(480-436+1, 497-485+1, 521-514+1)}")
+    patched_file = AnnotatedPatchedFile(patch[0])
+    result = patched_file.compute_sizes_and_spreads()
+    #from pprint import pprint
+    #pprint(result)
+
+    # computed by hand
+    assert result['n_mod'] == 12, "12 modified lines"
+    assert result['n_rem'] == 7, "7 non-paired removed lines"
+    assert result['n_add'] == 13, "13 non-paired added lines"
+    assert result['patch_size'] == 32, "patch size is 32 modified, removed, and added lines"
+    assert result['n_hunks'] == 4, "4 hunks in patched file"
+    assert result['n_groups'] == 1+1+4+2, "8 groups of changed lines in 4 hunks total"
+    assert result['spread_inner'] == 0+0+(3+3+1)+1, "sum of inner separations for 4 hunks"
+
+    # computed by hand, helped by expanding inter-hunk space in commit diff fully, at
+    # https://github.com/keras-team/keras/commit/c1c4afe60b1355a6c0e83577791a0423f37a3324
+    assert result['groups_spread'] == 45 + 13 + (3 + 3 + 1) + 8 + (1), \
+        "computed groups spread matches hand count, test_dataset_structure, patch[0]"
+
+    file_path = 'tests/test_dataset_annotated/CVE-2021-21332/patches/e54746bdf7d5c831eabe4dcea76a7626f1de73df.diff'
+    patch = unidiff.PatchSet.from_filename(file_path, encoding='utf-8')
+    #print(f"{patch[2]=}")
+    #print(f"expected span = {(1)+7+7+(6)+16+9=}")
+    #print(f"inter-hunk spaces = {(251-236+1,261-253+1)}")
+    patched_file = AnnotatedPatchedFile(patch[2])
+    result = patched_file.compute_sizes_and_spreads()
+    #from pprint import pprint
+    #pprint(result)
+    assert result['groups_spread'] == (1) + 7 + 7 + (6) + 16 + 9, \
+        "computed groups spread matches hand count, test_dataset_annotated, patch[2]"
+
+    #print(f"\n{patch[6]=}")
+    #print(f"expected span     = {16=}")
+    #print(f"inter-hunk spaces = {(686-671+1)=}=={(695-680+1)=}")
+    patched_file = AnnotatedPatchedFile(patch[6])
+    result = patched_file.compute_sizes_and_spreads()
+    #from pprint import pprint
+    #pprint(result)
+    assert result['groups_spread'] == 16, \
+        "computed groups spread matches hand count, test_dataset_annotated, patch[6]"
+
+
+def test_misc_patchsets_sizes_and_spreads():
+    # checking only complex, multi-file patches (diffs)
+    file_path = 'tests/test_dataset_structured/keras-10/patches/c1c4afe60b1355a6c0e83577791a0423f37a3324.diff'
+    patch_set = AnnotatedPatchSet.from_filename(file_path, encoding='utf-8')
+    result = patch_set.compute_sizes_and_spreads()
+    #print(f"{file_path=}")
+    #print(f"{patch_set=}, {patch_set.patch_set=}")
+    #from pprint import pprint
+    #pprint(result)
+    assert result['n_files'] == 2, "there were 2 changed files in patch"
+
+    file_path = 'tests/test_dataset_annotated/CVE-2021-21332/patches/e54746bdf7d5c831eabe4dcea76a7626f1de73df.diff'
+    patch_set = AnnotatedPatchSet.from_filename(file_path, encoding='utf-8')
+    result = patch_set.compute_sizes_and_spreads()
+    #print(f"{file_path=}")
+    #print(f"{patch_set=}, {patch_set.patch_set=}")
+    #from pprint import pprint
+    #pprint(result)
+    assert result['n_files'] == 12, "there were 12 changed files in patch"
 
 
 @pytest.mark.parametrize("line_type", [unidiff.LINE_TYPE_REMOVED, unidiff.LINE_TYPE_ADDED])
