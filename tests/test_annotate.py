@@ -316,9 +316,11 @@ def test_misc_patchsets_sizes_and_spreads():
 
     file_path = 'tests/test_dataset_structured/keras-10/patches/c1c4afe60b1355a6c0e83577791a0423f37a3324.diff'
     patch = unidiff.PatchSet.from_filename(file_path, encoding='utf-8')
+    #print(f"{patch[0]=}")
+    #print(f"expected span = {45 + 13 + (3 + 3 + 1) + 8 + (1) =}")
+    #print(f"inter-hunk spaces = {(480-436+1, 497-485+1, 521-514+1)}")
     patched_file = AnnotatedPatchedFile(patch[0])
     result = patched_file.compute_sizes_and_spreads()
-    #print(f"{patch[0]=}")
     #from pprint import pprint
     #pprint(result)
 
@@ -330,6 +332,33 @@ def test_misc_patchsets_sizes_and_spreads():
     assert result['n_hunks'] == 4, "4 hunks in patched file"
     assert result['n_groups'] == 1+1+4+2, "8 groups of changed lines in 4 hunks total"
     assert result['spread_inner'] == 0+0+(3+3+1)+1, "sum of inner separations for 4 hunks"
+
+    # computed by hand, helped by expanding inter-hunk space in commit diff fully, at
+    # https://github.com/keras-team/keras/commit/c1c4afe60b1355a6c0e83577791a0423f37a3324
+    assert result['groups_spread'] == 45 + 13 + (3 + 3 + 1) + 8 + (1), \
+        "computed groups spread matches hand count, test_dataset_structure, patch[0]"
+
+    file_path = 'tests/test_dataset_annotated/CVE-2021-21332/patches/e54746bdf7d5c831eabe4dcea76a7626f1de73df.diff'
+    patch = unidiff.PatchSet.from_filename(file_path, encoding='utf-8')
+    #print(f"{patch[2]=}")
+    #print(f"expected span = {(1)+7+7+(6)+16+9=}")
+    #print(f"inter-hunk spaces = {(251-236+1,261-253+1)}")
+    patched_file = AnnotatedPatchedFile(patch[2])
+    result = patched_file.compute_sizes_and_spreads()
+    #from pprint import pprint
+    #pprint(result)
+    assert result['groups_spread'] == (1) + 7 + 7 + (6) + 16 + 9, \
+        "computed groups spread matches hand count, test_dataset_annotated, patch[2]"
+
+    #print(f"\n{patch[6]=}")
+    #print(f"expected span     = {16=}")
+    #print(f"inter-hunk spaces = {(686-671+1)=}=={(695-680+1)=}")
+    patched_file = AnnotatedPatchedFile(patch[6])
+    result = patched_file.compute_sizes_and_spreads()
+    #from pprint import pprint
+    #pprint(result)
+    assert result['groups_spread'] == 16, \
+        "computed groups spread matches hand count, test_dataset_annotated, patch[6]"
 
 
 @pytest.mark.parametrize("line_type", [unidiff.LINE_TYPE_REMOVED, unidiff.LINE_TYPE_ADDED])

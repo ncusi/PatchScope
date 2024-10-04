@@ -335,7 +335,7 @@ class AnnotatedPatchSet:
         return cls(patch_set)
 
     def compute_sizes_and_spreads(self) -> Counter:
-        """Compute patch set sizes and (TBD) spread
+        """Compute patch set sizes and spread
 
         See the detailed description of returned metrics in docstring
         for `AnnotatedPatchedFile.compute_sizes_and_spreads`.
@@ -702,7 +702,7 @@ class AnnotatedPatchedFile:
         return result
 
     def compute_sizes_and_spreads(self) -> Counter:
-        """Compute patched file sizes and (TBD) spread
+        """Compute sizes and spread for patched file in diff/patch
 
         Computes the following metrics:
 
@@ -720,7 +720,7 @@ class AnnotatedPatchedFile:
           - number of all lines in all hunks of patched file, including context lines,
             but excluding hunk headers and patched file headers, as 'n_lines_all'
 
-        - patched file spread TODO/DOING
+        - patched file spread
 
           - total number of groups, i.e. spans of removed and added lines,
             not interrupted by context line (also called "chunks"),
@@ -730,7 +730,7 @@ class AnnotatedPatchedFile:
             inside hunk, for all hunks in patched file, as 'spread_inner'
           - sum of distances in lines between groups (chunks) for
             a single changed patched file, measuring how wide across file
-            contents the patch spreads, as 'spread' TODO
+            contents the patch spreads, as 'groups_spread'
 
         :return: Counter with different sizes and different spreads
             of the given changed file
@@ -740,14 +740,69 @@ class AnnotatedPatchedFile:
         })
 
         #print(f"patched file: {self.patched_file!r}")
+        prev_hunk_info: Optional[dict] = None
+        inter_hunk_span = 0
+
         hunk: unidiff.Hunk
         for idx, hunk in enumerate(self.patched_file):
             annotated_hunk = AnnotatedHunk(self, hunk)
-            hunk_result, _ = annotated_hunk.compute_sizes_and_spreads()
+            hunk_result, hunk_info = annotated_hunk.compute_sizes_and_spreads()
             #print(f"[{idx}] hunk: inner spread={hunk_result['spread_inner']:3d} "
             #      f"among {hunk_result['n_groups']} groups for {hunk!r}")
 
             result += hunk_result
+
+            if prev_hunk_info is not None:
+                # there was previous hunk,
+
+                # computing hunk-to-hunk distance
+                # between pre- and post-image line numbers of end of previous hunk
+                # and pre- and post-image line numbers of beginning of current hunk
+                result['hunk_spread_src'] += hunk_info['hunk_start'][0] - prev_hunk_info['hunk_end'][0]
+                result['hunk_spread_dst'] += hunk_info['hunk_start'][1] - prev_hunk_info['hunk_end'][1]
+
+                # computing inter-hunk distance
+                # between last group in previous hunk
+                # and first group in the current hunk
+                prev_end_type = prev_hunk_info['type_last']
+                curr_beg_type = hunk_info['type_first']
+
+                #  1:-removed, 1st hunk, groups_end=1
+                #  2: context
+                #  3: context
+                #  4:-removed, 2nd hunk, groups_start=4
+                # 4-1 = 3, but there are 2 = 3-1 = 3-2+1 context lines
+                if prev_end_type == curr_beg_type:
+                    #print(f"from group ending to starting in {prev_end_type}={curr_beg_type}")
+                    if prev_end_type == unidiff.LINE_TYPE_REMOVED:
+                        # removed line to removed line, can use pre-image line numbers
+                        inter_hunk_span = hunk_info['groups_start'][0] - prev_hunk_info['groups_end'][0] - 1
+                    elif prev_end_type == unidiff.LINE_TYPE_ADDED:
+                        # added line to added line, can use post-image line numbers
+                        inter_hunk_span = hunk_info['groups_start'][1] - prev_hunk_info['groups_end'][1] - 1
+                else:
+                    #print(f"from group ending in {prev_end_type} to starting in {curr_beg_type}")
+                    if prev_end_type == unidiff.LINE_TYPE_REMOVED:
+                        # from removed line to next hunk start using pre-image line numbers
+                        inter_hunk_span = hunk_info['hunk_start'][0] - prev_hunk_info['groups_end'][0] - 1
+                    elif prev_end_type == unidiff.LINE_TYPE_ADDED:
+                        # from added line to next hunk start using post-image line numbers
+                        inter_hunk_span = hunk_info['hunk_start'][1] - prev_hunk_info['groups_end'][1] - 1
+
+                    if curr_beg_type == unidiff.LINE_TYPE_REMOVED:
+                        # from start of current hunk using pre-image line numbers to removed line
+                        inter_hunk_span += hunk_info['groups_start'][0] - hunk_info['hunk_start'][0]  # -1?
+                    elif curr_beg_type == unidiff.LINE_TYPE_ADDED:
+                        # from start of current hunk using post-image line numbers to added line
+                        inter_hunk_span += hunk_info['groups_start'][1] - hunk_info['hunk_start'][1]  # -1?
+
+            #print(f"inner={hunk_result['spread_inner']:2d}, inter={inter_hunk_span:2d} for "
+            #      f"{hunk_info['type_first']}->{hunk_info['type_last']}:{hunk!r}")
+            result['groups_spread'] += hunk_result['spread_inner']
+            result['groups_spread'] += inter_hunk_span  # will be 0 for the first hunk
+
+            # at the end of the loop
+            prev_hunk_info = hunk_info
 
         return result
 
