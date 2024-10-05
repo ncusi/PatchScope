@@ -2264,7 +2264,7 @@ def from_repo(
                                    annotations_dir, bugsinpy_layout, use_fanout, use_repo)
     else:
         # NOTE: alternative would be to use tqdm.contrib.concurrent.process_map
-        print(f"  using joblib with n_jobs={n_jobs}")
+        print(f"  using joblib with n_jobs={n_jobs} (with {os.cpu_count()} CPUs)")
         Parallel(n_jobs=n_jobs)(
             delayed(process_single_bug)(bugs, bug_id, output_dir,
                                         annotations_dir, bugsinpy_layout, use_fanout, use_repo)
