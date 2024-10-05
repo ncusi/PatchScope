@@ -311,8 +311,7 @@ class AnnotatedPatchSet:
                                                 errors=errors, newline=newline)
 
         except FileNotFoundError as ex:
-            # TODO?: use logger, log either warning or error
-            print(f"No such patch file: '{filename}'", file=sys.stderr)
+            logger.error(f"No such patch file: '{filename}'")
 
             if not missing_ok:
                 raise ex
@@ -320,16 +319,16 @@ class AnnotatedPatchSet:
 
         except PermissionError as ex:
             if Path(filename).exists() and Path(filename).is_dir():
-                print(f"Path points to directory, not patch file: '{filename}'")
+                logger.error(f"Path points to directory, not patch file: '{filename}'")
             else:
-                print(f"Permission denied to read patch file '{filename}'")
+                logger.error(f"Permission denied to read patch file '{filename}'")
 
             if not missing_ok:
                 raise ex
             return None
 
         except unidiff.UnidiffParseError as ex:
-            print(f"Error parsing patch file '{filename}': {ex!r}")
+            logger.error(msg=f"Error parsing patch file '{filename}'", exc_info=True)
 
             if not ignore_diff_parse_errors:
                 raise ex
@@ -348,7 +347,7 @@ class AnnotatedPatchSet:
         """
         result = Counter()
 
-        # print(f"patched file: {self.patched_file!r}")
+        #print(f"patched file: {self.patched_file!r}")
         patched_file: unidiff.PatchedFile
         for patched_file in self.patch_set:
             annotated_file = AnnotatedPatchedFile(patched_file)
@@ -395,8 +394,10 @@ class AnnotatedPatchSet:
                 patch_annotations.update(annotated_patch_file.process())
 
         except Exception as ex:
-            print(f"Error processing patch {self.patch_set!r}, at file no {i}: {ex!r}")
-            traceback.print_tb(ex.__traceback__)
+            #print(f"Error processing patch {self.patch_set!r}, at file no {i}: {ex!r}")
+            #traceback.print_tb(ex.__traceback__)
+            logger.error(msg=f"Error processing patch {self.patch_set!r}, at file no {i}",
+                         exc_info=True)
 
             if not ignore_annotation_errors:
                 raise ex
@@ -1290,11 +1291,9 @@ class Bug:
 
         # sanity checking
         if not read_dir.exists():
-            # TODO: use logger, log error
-            print(f"Error during Bug constructor: '{read_dir}' path does not exist")
+            logger.error(f"Error during Bug constructor: '{read_dir}' path does not exist")
         elif not read_dir.is_dir():
-            # TODO: use logger, log error
-            print(f"Error during Bug constructor: '{read_dir}' is not a directory")
+            logger.error(f"Error during Bug constructor: '{read_dir}' is not a directory")
 
         obj = Bug({}, read_dir=read_dir, save_dir=save_dir)
         if fan_out:
@@ -1358,8 +1357,10 @@ class Bug:
                 patch_annotations.update(annotated_patch_file.process())
 
         except Exception as ex:
-            print(f"Error processing PatchSet {patch_set!r} at {i} patched file: {ex!r}")
-            traceback.print_tb(ex.__traceback__)
+            #print(f"Error processing PatchSet {patch_set!r} at {i} patched file: {ex!r}")
+            #traceback.print_tb(ex.__traceback__)
+            logger.error(msg=f"Error processing PatchSet {patch_set!r} at {i} patched file",
+                         exc_info=True)
             # raise ex
 
         if patch_id is None:
@@ -1377,7 +1378,7 @@ class Bug:
 
         # Skip diffs between multiple versions
         if "..." in str(patch_path):
-            # TODO: log a warning
+            logger.warning(f"Skipping patch at '{patch_path}' becsue its name contains '...'")
             return {}
 
         return annotate_single_diff(patch_path)
@@ -1563,7 +1564,8 @@ class BugDataset:
 
         # TODO: use a more specific exception class
         except Exception as ex:
-            print(f"Error in BugDataset.from_directory('{dataset_path}'): {ex}")
+            logger.error(msg=f"Error in BugDataset.from_directory('{dataset_path}')",
+                         exc_info=True)
             return BugDataset([])
 
     @classmethod
@@ -1618,8 +1620,7 @@ class BugDataset:
             return Bug.from_patchset(bug_id, patch_set,
                                      repo=self._git_repo if use_repo else None)
 
-        # TODO: log an error
-        print(f"{self!r}: could not get bug with {bug_id=}")
+        logger.error(f"{self!r}: could not get bug with {bug_id=}")
         return Bug({})
 
     def iter_bugs(self) -> Iterator[Bug]:
@@ -1731,10 +1732,9 @@ def to_simple_mapping_callback(ctx: typer.Context, param: typer.CallbackParam,
             if allow_simplified:
                 mapping[colon_separated_pair] = colon_separated_pair
             else:
-                # TODO: use logging
                 quotes = '\'"'  # work around limitations of f-strings in older Python
-                print(f"Warning: {param.get_error_hint(ctx).strip(quotes)}="
-                      f"{colon_separated_pair} ignored, no colon (:)")
+                logger.warning(f"Warning: {param.get_error_hint(ctx).strip(quotes)}="
+                               f"{colon_separated_pair} ignored, no colon (:)")
 
     return values
 
@@ -1791,13 +1791,11 @@ def to_language_mapping_callback(ctx: typer.Context, param: typer.CallbackParam,
         elif ':' in colon_separated_pair:
             key, val = colon_separated_pair.split(sep=':', maxsplit=1)
             if key in mapping:
-                # TODO: use logging
-                print(f"Warning: changing mapping for {key} from {mapping[key]} to {[val]}")
+                logger.warning(f"Warning: changing mapping for {key} from {mapping[key]} to {[val]}")
             mapping[key] = [val]
         else:
-            # TODO: use logging
             quotes = '\'"'  # work around limitations of f-strings in older Python
-            print(f"Warning: {param.get_error_hint(ctx).strip(quotes)}={colon_separated_pair} ignored, no colon (:)")
+            logger.warning(f"Warning: {param.get_error_hint(ctx).strip(quotes)}={colon_separated_pair} ignored, no colon (:)")
 
     return values
 
@@ -1941,7 +1939,9 @@ def common(
         return
 
     # set up logger
-    logging.basicConfig(filename=f'{Path(sys.argv[0]).stem}.log', level=logging.WARNING)
+    logfile = f'{Path(sys.argv[0]).stem}.log'
+    logging.basicConfig(filename=logfile, level=logging.WARNING)
+    print(f"Logging to '{logfile}', with log level=WARNING")
 
     if version:  # this should never happen, because version_callback() exits the app
         print(f"Diff Annotator version: {get_version()}")
