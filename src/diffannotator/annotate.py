@@ -2233,6 +2233,8 @@ def from_repo(
         print('<output_dir>/<commit_id[:2]>/<commit_id[2:]>.json')
     else:
         print('<output_dir>/<commit_id>.json')
+    # expand ~ and ~user constructs
+    output_dir = output_dir.expanduser()
     print(f"  with output dir: '{output_dir}'")
 
     # create GitRepo 'helper' object
