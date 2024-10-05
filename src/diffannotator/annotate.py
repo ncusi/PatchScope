@@ -1940,6 +1940,9 @@ def common(
     if ctx.resilient_parsing:
         return
 
+    # set up logger
+    logging.basicConfig(filename=f'{Path(sys.argv[0]).stem}.log', level=logging.WARNING)
+
     if version:  # this should never happen, because version_callback() exits the app
         print(f"Diff Annotator version: {get_version()}")
     if use_pylinguist:

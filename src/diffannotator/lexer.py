@@ -40,7 +40,8 @@ class Lexer(object):
         try:
             lexer = pygments.lexers.get_lexer_for_filename(filename)
         except pygments.util.ClassNotFound:
-            print(f"Warning: No lexer found for '{filename}', trying Text lexer")
+            logger.warning(f"Warning: No lexer found for '{filename}', trying Text lexer")
+            # TODO: use Text lexer directly: pygments.lexers.special.TextLexer
             lexer = lexers.get_lexer_for_filename("Test.txt")
 
         self.lexers[suffix] = lexer
@@ -57,8 +58,8 @@ class Lexer(object):
         lexer = self.get_lexer(filename)
 
         if not lexer:
-            print(f"Error in lex: no lexer selected for file '{filename}'")
+            logger.error(f"Error in lex: no lexer selected for file '{filename}'")
             return []
 
-        # TODO: consider returning generator, instead of list
+        # TODO: consider returning generator or iterator, instead of iterable/list
         return list(lexer.get_tokens_unprocessed(code))
