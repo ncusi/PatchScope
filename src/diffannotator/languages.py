@@ -1,11 +1,10 @@
-from collections import defaultdict
 import logging
 import os
+from collections import defaultdict
 from pathlib import Path, PurePath
 from typing import List, TypeVar
 
 import yaml
-
 
 # configure logging
 logger = logging.getLogger(__name__)
@@ -219,7 +218,7 @@ class Languages(object):
             return "/dev/null"
 
         # DEBUG information
-        logger.warning(f"Unknown file type for '{file_path}' ({filename} + {ext})")
+        logger.warning(f"Unknown file type for '{file_path}' ({filename}{ext})")
 
         #print(f"... unknown type for {file_path=}")
         return "unknown"
