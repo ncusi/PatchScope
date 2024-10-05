@@ -1939,9 +1939,15 @@ def common(
         return
 
     # set up logger
+    global logger
     logfile = f'{Path(sys.argv[0]).stem}.log'
+    if  __name__ != "__main__":
+        # run from a script 'diff-annotate' generated during build/installation
+        # common() should be called only when running it as Typer script, from app
+        logger = logging.getLogger()
+
     logging.basicConfig(filename=logfile, level=logging.WARNING)
-    print(f"Logging to '{logfile}', with log level=WARNING")
+    print(f"Logging to '{logfile}' file, with log level={logging.getLevelName(logger.level)}")
 
     if version:  # this should never happen, because version_callback() exits the app
         print(f"Diff Annotator version: {get_version()}")
