@@ -21,6 +21,8 @@
     - [ ] add `docs/` directory (for man pages, and maybe API documentation)
       - [ ] use [MkDocs][] or [Material for MkDocs][mkdocs-material] for general documentation
       - [ ] generate API documentation using [mkdocstrings][]
+      - [ ] generate documentation for scripts using [mkdocs-typer][]
+            ([typer][] is used for parsing CLI arguments)
       - [ ] _maybe_ generate manpages from MkDocs with [mkdocs-manpage][] (at least for scripts)
       - [ ] _maybe_ CLI demos with [Asciinema][], or one of the alternatives, like
             [shelldemo][], [Terminalizer][], [ttyrec][] (and possibly also [ttygif][])
@@ -32,6 +34,16 @@
     - [x] `diff-annotate` (from [`annotate.py`](src/diffannotator/annotate.py))
     - [x] `diff-gather-stats` (from [`gather_data.py`](src/diffannotator/gather_data.py))
     - [ ] `diff-augment` - augment JSON files with data from Git or from GitHub
+- [ ] improve common handling of command line parameters for all scripts
+    - [ ] _maybe_ make it possible to use configuration files to set parameters for CLI
+      (similarly to [Hydra][]) with [typer-config][] (e.g. `my-typer-app --config config.yml`)
+    - [ ] _maybe_ implement options common to all scripts, like `--version`,
+      putting their implementation `__init__.py`,
+      and make use of "_Options Anywhere_" and "_Dependency Injection_" capabilities
+      that [typer-tools][] adds
+    - [ ] _maybe_ implement `--log-file` (defaults to '<script-name>.log', supports '-' for stderr)
+      and `--log-level` options, the latter with the help of [click-loglevel][]
+      and [Typer support for Click custom type](https://typer.tiangolo.com/tutorial/parameter-types/custom-types/#type-parser)
 
 ## TO DO List for `diff-generate` script
 
@@ -165,6 +177,8 @@ data.
 
 [click]: https://click.palletsprojects.com/
 [typer]: https://typer.tiangolo.com/
+[typer-config]: https://maxb2.github.io/typer-config/latest/
+[typer-tools]: https://pypi.org/project/typer-tools/
 [git-filter-repo]: https://htmlpreview.github.io/?https://github.com/newren/git-filter-repo/blob/docs/html/git-filter-repo.html#CALLBACKS
 [scrapy]: https://docs.scrapy.org/en/latest/intro/tutorial.html#creating-a-project
 [sklearn]: https://scikit-learn.org/stable/modules/compose.html
@@ -180,6 +194,7 @@ data.
 [mkdocs-material]: https://squidfunk.github.io/mkdocs-material/ "Material for MkDocs: Documentation framework on top of MkDocs"
 [mkdocstrings]: https://mkdocstrings.github.io/ "mkdocstrings: Automatic documentation from sources, for MkDocs"
 [mkdocs-manpage]: https://pawamoy.github.io/mkdocs-manpage/ "MkDocs Manpage: MkDocs plugin to generate a manpage from the documentation site"
+[mkdocs-typer]: https://github.com/bruce-szalwinski/mkdocs-typer "mkdocs-typer: An MkDocs extension to generate documentation for Typer command line applications"
 [Asciinema]: https://asciinema.org/ "Asciinema - Record and share your terminal sessions, the simple way"
 [Terminalizer]: https://www.terminalizer.com/ "Terminalizer: Record your terminal and generate animated gif images or share a web player"
 [ttyrec]: http://0xcc.net/ttyrec/ "ttyrec: a tty recorder"
