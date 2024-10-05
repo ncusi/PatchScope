@@ -2092,6 +2092,10 @@ def dataset(
     to annotate as *.diff file in 'patches/' subdirectory (or in subdirectory
     you provide via --patches-dir option).
     """
+    print(f"Expecting patches   in "
+          f"{Path('<dataset_directory>/<bug_directory>').joinpath(patches_dir, '<patch_file>.diff')}")
+    print(f"Storing annotations in "
+          f"{Path('<dataset_directory>/<bug_directory>').joinpath(annotations_dir, '<patch_file>.json')}")
     for dataset_dir in datasets:
         print(f"Processing dataset in directory '{dataset_dir}'{' with fanout' if uses_fanout else ''}")
         bugs = BugDataset.from_directory(dataset_dir,
@@ -2106,6 +2110,7 @@ def dataset(
             else:
                 output_path = output_prefix.joinpath(dataset_dir)
             # ensure that directory exists
+            print(f"Ensuring that output directory '{output_path}' exists")
             output_path.mkdir(parents=True, exist_ok=True)
 
         print(f"Annotating patches and saving annotated data, for {len(bugs)} bugs")
@@ -2221,6 +2226,15 @@ def from_repo(
         print(f"ignoring the value of --annotations-dir={annotations_dir}")
         print("no --bugsinpy-layout option present")
 
+    print("Storing annotations in", end=" ")
+    if bugsinpy_layout:
+        print(Path('<output_dir>').joinpath(annotations_dir, '<commit_id>.json'))
+    elif use_fanout:
+        print('<output_dir>/<commit_id[:2]>/<commit_id[2:]>.json')
+    else:
+        print('<output_dir>/<commit_id>.json')
+    print(f"  with output dir: '{output_dir}'")
+
     # create GitRepo 'helper' object
     repo = GitRepo(repo_path)
 
@@ -2235,10 +2249,13 @@ def from_repo(
     beg_time = time.perf_counter()
     bugs = BugDataset.from_repo(repo, revision_range=log_args.args)
     end_time = time.perf_counter()
-    print(f"  took {end_time - beg_time:0.4f} seconds")
+    print(f"  took {end_time - beg_time:0.3f} seconds (includes parsing unified diffs)")
 
     print(f"Annotating commits and saving annotated data, for {len(bugs)} commits")
+    if use_repo:
+        print(f"  lexing pre- and post-image file contents, from repo '{repo_path.name}'")
     if n_jobs == 0:
+        print("  using sequential processing")
         with logging_redirect_tqdm():
             for bug_id in tqdm.tqdm(bugs, desc='commits'):
                 process_single_bug(bugs, bug_id, output_dir,
