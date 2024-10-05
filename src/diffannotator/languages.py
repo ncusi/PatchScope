@@ -7,10 +7,11 @@ from typing import List, TypeVar
 import yaml
 
 
-PathLike = TypeVar("PathLike", str, bytes, Path, os.PathLike)
-
 # configure logging
 logger = logging.getLogger(__name__)
+
+PathLike = TypeVar("PathLike", str, bytes, Path, os.PathLike)
+
 
 # names without extensions to be considered text files
 FILENAME_TO_LANGUAGES = {

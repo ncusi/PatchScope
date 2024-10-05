@@ -77,6 +77,9 @@ class LanguagesFromLinguist:
 
 __version__ = "0.1.0"
 
+# configure logging
+logger = logging.getLogger(__name__)
+
 T = TypeVar('T')
 PathLike = TypeVar("PathLike", str, bytes, Path, os.PathLike)
 LineCallback = Callable[[Iterable[Tuple]], str]

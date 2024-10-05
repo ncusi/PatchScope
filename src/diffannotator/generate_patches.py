@@ -10,6 +10,7 @@ Example (after installing the 'diffannotator' package):
     diff-generate python-diff-annotator \
         --output-dataset=diffannotator/user-jnareb --author=jnareb
 """
+import logging
 import os
 import sys
 from pathlib import Path
@@ -20,6 +21,10 @@ import typer
 from typing_extensions import Annotated
 
 from .utils.git import GitRepo
+
+
+# configure logging
+logger = logging.getLogger(__name__)
 
 # TODO: move to __init__.py (it is common to all scripts)
 PathLike = TypeVar("PathLike", str, bytes, Path, os.PathLike)

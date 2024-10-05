@@ -18,6 +18,7 @@ WARNING: at the time this backend does not have error handling implemented;
 it would simply return empty result, without any notification about the
 error (like incorrect repository path, or incorrect commit)!!!
 """
+import logging
 import os
 import re
 import subprocess
@@ -32,6 +33,9 @@ from typing import Iterable, Iterator  # should be imported from collections.abc
 from unidiff import PatchSet, DEFAULT_ENCODING
 from unidiff.patch import Line as PatchLine
 
+
+# support logging
+logger = logging.getLogger(__name__)
 
 # TODO: move to __init__.py (it is common to all scripts)
 PathLike = TypeVar("PathLike", str, bytes, Path, os.PathLike)

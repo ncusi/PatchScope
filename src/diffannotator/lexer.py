@@ -1,9 +1,14 @@
+import logging
 from pathlib import Path
 from typing import Dict, Tuple, Iterable
 
 import pygments
 from pygments.lexer import Lexer as PygmentsLexer
 from pygments import lexers, util
+
+
+# support logging
+logger = logging.getLogger(__name__)
 
 
 class Lexer(object):

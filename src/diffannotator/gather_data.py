@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import json
+import logging
 import os
 from collections import Counter, defaultdict
 from pathlib import Path
@@ -15,6 +16,9 @@ from typing_extensions import Annotated
 
 from .annotate import Bug
 
+
+# configure logging
+logger = logging.getLogger(__name__)
 
 PathLike = TypeVar("PathLike", str, bytes, Path, os.PathLike)
 T = TypeVar('T')  # Declare type variable "T" to use in typing
