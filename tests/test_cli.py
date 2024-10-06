@@ -1,6 +1,7 @@
 import subprocess
 from pathlib import Path
 
+import pytest
 from typer.testing import CliRunner
 
 from diffannotator.annotate import app as annotate_app, Bug
@@ -200,7 +201,7 @@ def test_annotate_patch_with_purpose_to_annotation(tmp_path: Path):
 
 
 # NOTE: some duplication with/similarities to test_annotate_patch_with_purpose_to_annotation
-def test_annotate_patch_with_pattern_to_purpose(tmp_path: Path):
+def test_annotate_patch_with_pattern_to_purpose(tmp_path: Path, caplog: pytest.LogCaptureFixture):
     file_path = Path('tests/test_dataset/tqdm-1/c0dcf39b046d1b4ff6de14ac99ad9a1b10487512.diff')
     save_path = tmp_path.joinpath(file_path).with_suffix('.json')
 
@@ -223,11 +224,11 @@ def test_annotate_patch_with_pattern_to_purpose(tmp_path: Path):
         "app adds the requested mapping with --pattern-to-purpose"
     assert \
         f"test{separator}test" not in result.stdout and \
-        "Warning: --pattern-to-purpose=test ignored" in result.stdout, \
+        "Warning: --pattern-to-purpose=test ignored" in caplog.text, \
         "app does not add mapping via --pattern-to-purpose=<pattern> (no purpose)"
 
 
-def test_annotate_patch_with_ext_to_language(tmp_path: Path):
+def test_annotate_patch_with_ext_to_language(tmp_path: Path, caplog: pytest.LogCaptureFixture):
     file_path = Path('tests/test_dataset/tqdm-1/c0dcf39b046d1b4ff6de14ac99ad9a1b10487512.diff')
     save_path = tmp_path.joinpath(file_path).with_suffix('.json')
 
@@ -252,17 +253,20 @@ def test_annotate_patch_with_ext_to_language(tmp_path: Path):
 
     if result.exit_code != 0:
         print(result.stdout)
+    #print(f"{caplog.messages=}")
+    #print(f"{caplog.records=}")
+    #print(f"{caplog.record_tuples=}")
 
     assert result.exit_code == 0, \
         "app runs 'patch' subcommand with special cases of --ext-to-language without errors"
-    assert "Warning:" in result.stdout and ".extension ignored" in result.stdout, \
+    assert "Warning:" in caplog.text and ".extension ignored" in caplog.text, \
         "app warns about --ext-to-language with value without colon (:)"
     assert "Cleared mapping from file extension to programming language" in result.stdout, \
         "app mentions that it cleared mapping because of empty value of --ext-to-language"
 
 
 # TODO: very similar to previous test, use parametrized test
-def test_annotate_patch_with_filename_to_language(tmp_path: Path):
+def test_annotate_patch_with_filename_to_language(tmp_path: Path, caplog: pytest.LogCaptureFixture):
     file_path = Path('tests/test_dataset/tqdm-1/c0dcf39b046d1b4ff6de14ac99ad9a1b10487512.diff')
     save_path = tmp_path.joinpath(file_path).with_suffix('.json')
 
@@ -290,7 +294,7 @@ def test_annotate_patch_with_filename_to_language(tmp_path: Path):
 
     assert result.exit_code == 0, \
         "app runs 'patch' subcommand with special cases of --filename-to-language without errors"
-    assert "Warning:" in result.stdout and "COPYING ignored" in result.stdout, \
+    assert "Warning:" in caplog.text and "COPYING ignored" in caplog.text, \
         "app warns about --filename-to-language with value without colon (:)"
     assert "Cleared mapping from filename to programming language" in result.stdout, \
         "app mentions that it cleared mapping because of empty value of --filename-to-language"

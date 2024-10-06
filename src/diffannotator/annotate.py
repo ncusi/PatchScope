@@ -11,7 +11,7 @@ from pathlib import Path
 import re
 import sys
 import time
-import traceback
+#import traceback  # replaced by exc_info (and possibly stack_info) when loging
 from textwrap import dedent
 from typing import List, Dict, Tuple, TypeVar, Optional, Union, Iterator, Literal
 from typing import Iterable, Generator, Callable  # should be imported from collections.abc
@@ -77,6 +77,9 @@ class LanguagesFromLinguist:
 
 __version__ = "0.1.0"
 
+# configure logging
+logger = logging.getLogger(__name__)
+
 T = TypeVar('T')
 PathLike = TypeVar("PathLike", str, bytes, Path, os.PathLike)
 LineCallback = Callable[[Iterable[Tuple]], str]
@@ -85,9 +88,6 @@ OptionalLineCallback = Optional[LineCallback]
 PURPOSE_TO_ANNOTATION = {"documentation": "documentation"}
 """Defines when purpose of the file is propagated to line annotation, without parsing"""
 TRANSLATION_TABLE = str.maketrans("", "", "*/\\\t\n")
-
-# configure logging
-logger = logging.getLogger(__name__)
 
 LANGUAGES = Languages()
 LEXER = Lexer()
@@ -308,8 +308,7 @@ class AnnotatedPatchSet:
                                                 errors=errors, newline=newline)
 
         except FileNotFoundError as ex:
-            # TODO?: use logger, log either warning or error
-            print(f"No such patch file: '{filename}'", file=sys.stderr)
+            logger.error(f"No such patch file: '{filename}'")
 
             if not missing_ok:
                 raise ex
@@ -317,16 +316,16 @@ class AnnotatedPatchSet:
 
         except PermissionError as ex:
             if Path(filename).exists() and Path(filename).is_dir():
-                print(f"Path points to directory, not patch file: '{filename}'")
+                logger.error(f"Path points to directory, not patch file: '{filename}'")
             else:
-                print(f"Permission denied to read patch file '{filename}'")
+                logger.error(f"Permission denied to read patch file '{filename}'")
 
             if not missing_ok:
                 raise ex
             return None
 
         except unidiff.UnidiffParseError as ex:
-            print(f"Error parsing patch file '{filename}': {ex!r}")
+            logger.error(msg=f"Error parsing patch file '{filename}'", exc_info=True)
 
             if not ignore_diff_parse_errors:
                 raise ex
@@ -345,7 +344,7 @@ class AnnotatedPatchSet:
         """
         result = Counter()
 
-        # print(f"patched file: {self.patched_file!r}")
+        #print(f"patched file: {self.patched_file!r}")
         patched_file: unidiff.PatchedFile
         for patched_file in self.patch_set:
             annotated_file = AnnotatedPatchedFile(patched_file)
@@ -392,8 +391,10 @@ class AnnotatedPatchSet:
                 patch_annotations.update(annotated_patch_file.process())
 
         except Exception as ex:
-            print(f"Error processing patch {self.patch_set!r}, at file no {i}: {ex!r}")
-            traceback.print_tb(ex.__traceback__)
+            #print(f"Error processing patch {self.patch_set!r}, at file no {i}: {ex!r}")
+            #traceback.print_tb(ex.__traceback__)
+            logger.error(msg=f"Error processing patch {self.patch_set!r}, at file no {i}",
+                         exc_info=True)
 
             if not ignore_annotation_errors:
                 raise ex
@@ -1287,11 +1288,9 @@ class Bug:
 
         # sanity checking
         if not read_dir.exists():
-            # TODO: use logger, log error
-            print(f"Error during Bug constructor: '{read_dir}' path does not exist")
+            logger.error(f"Error during Bug constructor: '{read_dir}' path does not exist")
         elif not read_dir.is_dir():
-            # TODO: use logger, log error
-            print(f"Error during Bug constructor: '{read_dir}' is not a directory")
+            logger.error(f"Error during Bug constructor: '{read_dir}' is not a directory")
 
         obj = Bug({}, read_dir=read_dir, save_dir=save_dir)
         if fan_out:
@@ -1355,8 +1354,10 @@ class Bug:
                 patch_annotations.update(annotated_patch_file.process())
 
         except Exception as ex:
-            print(f"Error processing PatchSet {patch_set!r} at {i} patched file: {ex!r}")
-            traceback.print_tb(ex.__traceback__)
+            #print(f"Error processing PatchSet {patch_set!r} at {i} patched file: {ex!r}")
+            #traceback.print_tb(ex.__traceback__)
+            logger.error(msg=f"Error processing PatchSet {patch_set!r} at {i} patched file",
+                         exc_info=True)
             # raise ex
 
         if patch_id is None:
@@ -1374,7 +1375,7 @@ class Bug:
 
         # Skip diffs between multiple versions
         if "..." in str(patch_path):
-            # TODO: log a warning
+            logger.warning(f"Skipping patch at '{patch_path}' becsue its name contains '...'")
             return {}
 
         return annotate_single_diff(patch_path)
@@ -1560,7 +1561,8 @@ class BugDataset:
 
         # TODO: use a more specific exception class
         except Exception as ex:
-            print(f"Error in BugDataset.from_directory('{dataset_path}'): {ex}")
+            logger.error(msg=f"Error in BugDataset.from_directory('{dataset_path}')",
+                         exc_info=True)
             return BugDataset([])
 
     @classmethod
@@ -1615,8 +1617,7 @@ class BugDataset:
             return Bug.from_patchset(bug_id, patch_set,
                                      repo=self._git_repo if use_repo else None)
 
-        # TODO: log an error
-        print(f"{self!r}: could not get bug with {bug_id=}")
+        logger.error(f"{self!r}: could not get bug with {bug_id=}")
         return Bug({})
 
     def iter_bugs(self) -> Iterator[Bug]:
@@ -1728,10 +1729,9 @@ def to_simple_mapping_callback(ctx: typer.Context, param: typer.CallbackParam,
             if allow_simplified:
                 mapping[colon_separated_pair] = colon_separated_pair
             else:
-                # TODO: use logging
                 quotes = '\'"'  # work around limitations of f-strings in older Python
-                print(f"Warning: {param.get_error_hint(ctx).strip(quotes)}="
-                      f"{colon_separated_pair} ignored, no colon (:)")
+                logger.warning(f"Warning: {param.get_error_hint(ctx).strip(quotes)}="
+                               f"{colon_separated_pair} ignored, no colon (:)")
 
     return values
 
@@ -1788,13 +1788,11 @@ def to_language_mapping_callback(ctx: typer.Context, param: typer.CallbackParam,
         elif ':' in colon_separated_pair:
             key, val = colon_separated_pair.split(sep=':', maxsplit=1)
             if key in mapping:
-                # TODO: use logging
-                print(f"Warning: changing mapping for {key} from {mapping[key]} to {[val]}")
+                logger.warning(f"Warning: changing mapping for {key} from {mapping[key]} to {[val]}")
             mapping[key] = [val]
         else:
-            # TODO: use logging
             quotes = '\'"'  # work around limitations of f-strings in older Python
-            print(f"Warning: {param.get_error_hint(ctx).strip(quotes)}={colon_separated_pair} ignored, no colon (:)")
+            logger.warning(f"Warning: {param.get_error_hint(ctx).strip(quotes)}={colon_separated_pair} ignored, no colon (:)")
 
     return values
 
@@ -1936,6 +1934,17 @@ def common(
     # see https://typer.tiangolo.com/tutorial/options/callback-and-context/#fix-completion-using-the-context
     if ctx.resilient_parsing:
         return
+
+    # set up logger
+    global logger
+    logfile = f'{Path(sys.argv[0]).stem}.log'
+    if  __name__ != "__main__":
+        # run from a script 'diff-annotate' generated during build/installation
+        # common() should be called only when running it as Typer script, from app
+        logger = logging.getLogger()
+
+    logging.basicConfig(filename=logfile, level=logging.WARNING)
+    print(f"Logging to '{logfile}' file, with log level={logging.getLevelName(logger.level)}")
 
     if version:  # this should never happen, because version_callback() exits the app
         print(f"Diff Annotator version: {get_version()}")
@@ -2092,6 +2101,10 @@ def dataset(
     to annotate as *.diff file in 'patches/' subdirectory (or in subdirectory
     you provide via --patches-dir option).
     """
+    print(f"Expecting patches   in "
+          f"{Path('<dataset_directory>/<bug_directory>').joinpath(patches_dir, '<patch_file>.diff')}")
+    print(f"Storing annotations in "
+          f"{Path('<dataset_directory>/<bug_directory>').joinpath(annotations_dir, '<patch_file>.json')}")
     for dataset_dir in datasets:
         print(f"Processing dataset in directory '{dataset_dir}'{' with fanout' if uses_fanout else ''}")
         bugs = BugDataset.from_directory(dataset_dir,
@@ -2106,6 +2119,7 @@ def dataset(
             else:
                 output_path = output_prefix.joinpath(dataset_dir)
             # ensure that directory exists
+            print(f"Ensuring that output directory '{output_path}' exists")
             output_path.mkdir(parents=True, exist_ok=True)
 
         print(f"Annotating patches and saving annotated data, for {len(bugs)} bugs")
@@ -2221,6 +2235,17 @@ def from_repo(
         print(f"ignoring the value of --annotations-dir={annotations_dir}")
         print("no --bugsinpy-layout option present")
 
+    print("Storing annotations in", end=" ")
+    if bugsinpy_layout:
+        print(Path('<output_dir>').joinpath(annotations_dir, '<commit_id>.json'))
+    elif use_fanout:
+        print('<output_dir>/<commit_id[:2]>/<commit_id[2:]>.json')
+    else:
+        print('<output_dir>/<commit_id>.json')
+    # expand ~ and ~user constructs
+    output_dir = output_dir.expanduser()
+    print(f"  with output dir: '{output_dir}'")
+
     # create GitRepo 'helper' object
     repo = GitRepo(repo_path)
 
@@ -2235,17 +2260,20 @@ def from_repo(
     beg_time = time.perf_counter()
     bugs = BugDataset.from_repo(repo, revision_range=log_args.args)
     end_time = time.perf_counter()
-    print(f"  took {end_time - beg_time:0.4f} seconds")
+    print(f"  took {end_time - beg_time:0.3f} seconds (includes parsing unified diffs)")
 
     print(f"Annotating commits and saving annotated data, for {len(bugs)} commits")
+    if use_repo:
+        print(f"  lexing pre- and post-image file contents, from repo '{repo_path.name}'")
     if n_jobs == 0:
+        print("  using sequential processing")
         with logging_redirect_tqdm():
             for bug_id in tqdm.tqdm(bugs, desc='commits'):
                 process_single_bug(bugs, bug_id, output_dir,
                                    annotations_dir, bugsinpy_layout, use_fanout, use_repo)
     else:
         # NOTE: alternative would be to use tqdm.contrib.concurrent.process_map
-        print(f"  using joblib with n_jobs={n_jobs}")
+        print(f"  using joblib with n_jobs={n_jobs} (with {os.cpu_count()} CPUs)")
         Parallel(n_jobs=n_jobs)(
             delayed(process_single_bug)(bugs, bug_id, output_dir,
                                         annotations_dir, bugsinpy_layout, use_fanout, use_repo)

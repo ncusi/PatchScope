@@ -1,16 +1,16 @@
-from collections import defaultdict
 import logging
 import os
+from collections import defaultdict
 from pathlib import Path, PurePath
 from typing import List, TypeVar
 
 import yaml
 
+# configure logging
+logger = logging.getLogger(__name__)
 
 PathLike = TypeVar("PathLike", str, bytes, Path, os.PathLike)
 
-# configure logging
-logger = logging.getLogger(__name__)
 
 # names without extensions to be considered text files
 FILENAME_TO_LANGUAGES = {
@@ -218,7 +218,7 @@ class Languages(object):
             return "/dev/null"
 
         # DEBUG information
-        logger.warning(f"Unknown file type for '{file_path}' ({filename} + {ext})")
+        logger.warning(f"Unknown file type for '{file_path}' ({filename}{ext})")
 
         #print(f"... unknown type for {file_path=}")
         return "unknown"
