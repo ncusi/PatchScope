@@ -155,6 +155,16 @@ supported.  Different subcommands use different schemas and save different
 data.
 
 - [ ] improvements and new features for `gather_data.py`
+    - [ ] `purpose-counter` subcommand
+      - ...
+    - [ ] `purpose-per-file` subcommand
+      - ...
+    - [ ] `lines-stats` subcommand
+      - [ ] fix handling of `'commit_metadata'` field (skip it)
+    - [ ] `timeline` subcommand
+      - [ ] _maybe_ create pandas.DataFrame and save as Parquet, Feather, HDF5, or pickle
+      - [ ] _maybe_ resample / groupby
+    - [ ] store only basename of the dataset in *.json output, not the full path
     - [ ] global option `--output-format` (json, _maybe_ jsonlines, csv, parquet,...)
     - [ ] option or subcommand to output flow diagram using 
       [Mermaid][] diagramming language (optionally wrapped in Markdown block)
