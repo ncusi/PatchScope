@@ -11,7 +11,7 @@ from pathlib import Path
 import re
 import sys
 import time
-import traceback
+#import traceback  # replaced by exc_info (and possibly stack_info) when loging
 from textwrap import dedent
 from typing import List, Dict, Tuple, TypeVar, Optional, Union, Iterator, Literal
 from typing import Iterable, Generator, Callable  # should be imported from collections.abc
@@ -88,9 +88,6 @@ OptionalLineCallback = Optional[LineCallback]
 PURPOSE_TO_ANNOTATION = {"documentation": "documentation"}
 """Defines when purpose of the file is propagated to line annotation, without parsing"""
 TRANSLATION_TABLE = str.maketrans("", "", "*/\\\t\n")
-
-# configure logging
-logger = logging.getLogger(__name__)
 
 LANGUAGES = Languages()
 LEXER = Lexer()
