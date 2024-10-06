@@ -44,6 +44,20 @@
     - [ ] _maybe_ implement `--log-file` (defaults to '<script-name>.log', supports '-' for stderr)
       and `--log-level` options, the latter with the help of [click-loglevel][]
       and [Typer support for Click custom type](https://typer.tiangolo.com/tutorial/parameter-types/custom-types/#type-parser)
+- [x] add logging, save logged information to a `*.log` (or `*.err` and `*.messages`):
+      currently uses [logging][] module from standard library.
+    - [ ] limit information logged to console to ERROR or higher, or CRITICAL only
+    - [ ] _maybe_ if consider using [colorlog][] for colored log on console
+    - [ ] _maybe_ allow structured JSON logging (e.g. if log file name ends with *.json)
+          with [python-json-logger][]
+    - [ ] use `logger.exception()` in exception handlers, in place of `logger.error()`
+    - [ ] _maybe_ consider using alternative tools:
+      - [loguru][] (possibly with [pytest-loguru](https://github.com/mcarans/pytest-loguru),
+        or see [Replacing `caplog` fixture from `pytest` library](https://loguru.readthedocs.io/en/stable/resources/migration.html#replacing-caplog-fixture-from-pytest-library)
+        in the loguru documentation)
+      - [structlog][] (possibly with [pytest-structlog](https://github.com/wimglenn/pytest-structlog) plugin,
+        or use [structlog tools for testing](https://www.structlog.org/en/stable/testing.html))
+      - ...
 
 ## TO DO List for `diff-generate` script
 
@@ -199,6 +213,12 @@ data.
 [Rich]: https://github.com/Textualize/rich
 [Textual]: https://github.com/Textualize/textual
 [Colorama]: https://github.com/tartley/colorama
+
+[logging]: https://docs.python.org/3/library/logging.html "logging — Logging facility for Python"
+[colorlog]: https://github.com/borntyping/python-colorlog "python-colorlog: A colored formatter for the python logging module"
+[python-json-logger]: https://github.com/madzak/python-json-logger "python-json-logger: Json Formatter for the standard python logger"
+[loguru]: https://loguru.readthedocs.io/en/stable/index.html "Loguru: Python logging made (stupidly) simple"
+[structlog]: https://www.structlog.org/en/stable/ "Structlog: Structured Logging"
 
 [MkDocs]: https://www.mkdocs.org/ "MkDocs: Project documentation with Markdown"
 [mkdocs-material]: https://squidfunk.github.io/mkdocs-material/ "Material for MkDocs: Documentation framework on top of MkDocs"
