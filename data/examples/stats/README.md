@@ -69,8 +69,25 @@ file per different type of statistics.
 - `tensorflow.timeline.json` (3.2 MB) was generated with the following command:
 
     ```commandline
-     diff-gather-stats --annotations-dir='' \
+    diff-gather-stats --annotations-dir='' \
       timeline \
       ~/example_annotations/tensorflow.timeline.json \
       ~/example_annotations/tensorflow/
     ```
+
+- `tensorflow.timeline.purpose-to-type.json` (3.2 MB) was generated with
+  the following command:
+
+    ```commandline
+    diff-gather-stats --annotations-dir='' \
+      timeline \
+      --purpose-to-annotation=data \
+      --purpose-to-annotation=documentation \
+      --purpose-to-annotation=markup \
+      --purpose-to-annotation=other \
+      --purpose-to-annotation=project \
+      --purpose-to-annotation=test \
+      ~/example_annotations/tensorflow.timeline.purpose-to-type.json \
+      ~/example_annotations/tensorflow/
+    ```
+
