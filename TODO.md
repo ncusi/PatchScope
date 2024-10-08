@@ -24,6 +24,7 @@
       - [ ] generate documentation for scripts using [mkdocs-typer][]
             ([typer][] is used for parsing CLI arguments)
       - [ ] _maybe_ generate manpages from MkDocs with [mkdocs-manpage][] (at least for scripts)
+      - [ ] _maybe_ include gallery of examples with [mkdocs-gallery](https://smarie.github.io/mkdocs-gallery/)
       - [ ] _maybe_ CLI demos with [Asciinema][], or one of the alternatives, like
             [shelldemo][], [Terminalizer][], [ttyrec][] (and possibly also [ttygif][])
     - [ ] _maybe_ use build tool like Poetry, Hatch, PDM, Rye, uv, Flit,...
@@ -100,7 +101,10 @@ The result of annotation is saved in JSON files, one per patch / commit.
     - [ ] support [.gitattributes overrides of GitHub Linguist][2]
     - [x] optionally use Python clone of [github/linguist][], namely [retanoj/linguist][], installed from GitHub,
           with `--use-pylinguist` (note: [install requires libmagic-dev and libicu-dev libraries](https://github.com/douban/linguist/issues/25))
-        - [x] make it use newer version of `languages.yml` by default 
+        - [x] make it use newer version of `languages.yml` by default
+        - [ ] _maybe_ use `Language.detect(name=file_name, data=file_contents)`,
+          or `FileBlob(file_name).language.name` (_deprecated_) to detect language based on file contents
+          if extension is not enough to determine it
     - [ ] optionally use Python wrapper around [github/linguist][], ~~namely [scivision/linguist-python][],~~
           with `--use-ghlinguist` (e.g. via [RbCall](https://github.com/yohm/rb_call),
           or ~~via [rython](https://pypi.org/project/rython/)~~,
@@ -108,9 +112,11 @@ The result of annotation is saved in JSON files, one per patch / commit.
     - [x] configurable line annotation based on file ~~type~~ purpose
         - [x] `PURPOSE_TO_ANNOTATION` global variable
         - [x] global option `--purpose-to-annotation` in [`annotate.py`](src/diffannotator/annotate.py) script
+          - [ ] do not modify the global variable `PURPOSE_TO_ANNOTATION`,
+            reuse the code from `diff-gather-stats timeline --purpose-to-annotation`
     - [ ] configurable line annotation based on tokens
     - [x] computing patch/diff size and spread, following
-          _"[Dissection of a bug dataset: Anatomy of 395 patches from Defects4J](https://doi.org/10.1109/SANER.2018.8330203)"_
+          _"[Dissection of a bug dataset: Anatomy of 395 patches from Defects4J][dissection-defects4j-paper]"_
           (and extending it) - independent implementation
         - [x] _patch size_ counting added ('+'), removed ('-'), and **modified** ('!') lines,
               with simplified changed lines detection:<br>
@@ -169,6 +175,7 @@ supported.  Different subcommands use different schemas and save different
 data.
 
 - [ ] improvements and new features for `gather_data.py`
+    - [ ] docstring for `common()` function
     - [ ] `purpose-counter` subcommand
       - ...
     - [ ] `purpose-per-file` subcommand
@@ -177,11 +184,24 @@ data.
       - [ ] fix handling of `'commit_metadata'` field (skip it)
     - [ ] `timeline` subcommand
       - [ ] _maybe_ create pandas.DataFrame and save as Parquet, Feather, HDF5, or pickle
-      - [ ] _maybe_ resample / groupby
-    - [ ] store only basename of the dataset in *.json output, not the full path
+      - [ ] _maybe_ resample / groupby (see `notebooks/`)
+      - [ ] print information about results of `--purpose-to-annotation`
+      - [ ] include information about patch size and spread metrics
+    - [ ] store only basename of the dataset in \*.json output, not the full path
     - [ ] global option `--output-format` (json, _maybe_ jsonlines, csv, parquet,...)
-    - [ ] option or subcommand to output flow diagram using 
-      [Mermaid][] diagramming language (optionally wrapped in Markdown block)
+    - [ ] global options `--bugsinpy-layout`, `--from-repo-layout`, `--uses-fanout`
+      (mutually exclusive), configuring where the script searches for annotation data;
+      print errors if there is a mismatch of expectations vs reality (if detectable)
+    - [ ] option or subcommand to output flow diagram
+      (here the flow could be from file purpose to line type,
+      or from directory structure (with different steps) to line type or file purpose)<br>
+      using:
+      - [ ] [Mermaid][] diagramming language (optionally wrapped in Markdown block)
+      - [ ] [Plotly][] (for Python) `plotly.graph_objects.Sankey()`
+        / `plotly.express.parallel_categories()` (or `plotly.graph_objects.Parcats()`), or<br>
+        [HoloViews][] `holoviews.Sankey()` - with Bokeh and matplotlib backends, or<br>
+        [pySankey](https://github.com/anazalea/pySankey) - which uses matplotlib,
+        but is limited to simple two divisions flow diagram
     - [ ] option or subcommand to generate ASCII-art chart in terminal;<br>
       perhaps using [Rich][] (used by typer by default) or  [Textual][],
       or just [Colorama][] - perhaps with [tabulate](https://pypi.org/project/tabulate/)
@@ -203,6 +223,7 @@ data.
 [typer]: https://typer.tiangolo.com/
 [typer-config]: https://maxb2.github.io/typer-config/latest/
 [typer-tools]: https://pypi.org/project/typer-tools/
+[click-loglevel]: https://github.com/jwodder/click-loglevel
 [git-filter-repo]: https://htmlpreview.github.io/?https://github.com/newren/git-filter-repo/blob/docs/html/git-filter-repo.html#CALLBACKS
 [scrapy]: https://docs.scrapy.org/en/latest/intro/tutorial.html#creating-a-project
 [sklearn]: https://scikit-learn.org/stable/modules/compose.html
@@ -210,6 +231,8 @@ data.
 [Dynaconf]: https://www.dynaconf.com/
 [configparser]: https://docs.python.org/3/library/configparser.html
 [Mermaid]: https://mermaid.js.org/
+[Plotly]: https://plotly.com/python/
+[HoloViews]: https://holoviews.org/index.html
 [Rich]: https://github.com/Textualize/rich
 [Textual]: https://github.com/Textualize/textual
 [Colorama]: https://github.com/tartley/colorama
@@ -230,7 +253,6 @@ data.
 [ttyrec]: http://0xcc.net/ttyrec/ "ttyrec: a tty recorder"
 [ttygif]: https://github.com/icholy/ttygif "ttygif: Convert terminal recordings to animated gifs"
 [shelldemo]: https://github.com/pawamoy/shelldemo "pawamoy/shelldemo: Run a set of Bash commands as if typed by a robo- I mean, a person"
-
 
 [github/linguist]: https://github.com/github/linguist
 [douban/linguist]: https://github.com/douban/linguist
