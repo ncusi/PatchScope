@@ -177,9 +177,88 @@ data.
 - [ ] improvements and new features for `gather_data.py`
     - [ ] docstring for `common()` function
     - [ ] `purpose-counter` subcommand
-      - ...
+      - [ ] rename to `dataset-summary` (and include other metrics)
+      - [ ] draw Venn diagram of patches that contain added, removed and/or modified lines,
+        like on Fig. 1 of _"[Dissection of a bug dataset: Anatomy of 395 patches from Defects4J][dissection-defects4j-paper]"_
+        - [matplotlib-venn[shapely]](https://github.com/konstantint/matplotlib-venn) or
+          [matplotlib_set_diagrams](https://matplotlib-set-diagrams.readthedocs.io/), or
+        - [upsetplot](https://upsetplot.readthedocs.io/)
+      - [ ] draw Venn / Euler diagram, or upsetplot, of patches that unidiff contain
+        added and/or removed lines; see above
+      - [ ] table or DataFrame with descriptive statistics for patch size and spreading,
+        like on Table 1 in _"[Dissection...][dissection-defects4j-paper]"_<br>
+        - patch size: \# Added lines, \# Removed lines, \# Modified lines, Patch size
+        - patch spreading: \# Chunks (Groups), Spreading, \# Files, ~~\# Classes~~, ~~\# Methods~~
+        - statistics: min, 25%, 50%, 75%, 90%, 95%, max
+      - [ ] _if missing_, table or DataFrame with statistics
+        of dataset and patch size: \# Patches/Bugs/Commits, \# Files, \# Lines
+        (however the last one is determined: sum of '+' and '-' lines, max, average,...)
+        like in the first third of the table on Fig. 1(b) "dataset characteristics"
+        in unpublished _"[HaPy-Bug – Human Annotated Python Bug Resolution Dataset][HaPy-Bug-paper]"_
+        paper
+      - [ ] _maybe_ number of patches/bugs/commits for each project,
+        like on Table 1 in _"[BugsInPy:...][BugsInPy-paper]"_
+        - [ ] _maybe_ augmented with project data:
+          LoC (lines of code, e.g. via
+          [SLOCCount](https://dwheeler.com/sloccount/) in Perl,
+          [loccount](https://gitlab.com/esr/loccount) in Go,
+          [pygount](https://pygount.readthedocs.io/) in Python with Pygments),
+          Test LoC, \# Tests, \# Stars
+          (but see _"[The Fault in Our Stars: An Analysis of GitHub Stars as an Importance Metric for Web Source Code](https://casa.rub.de/forschung/publikationen/detail/the-fault-in-our-stars-an-analysis-of-github-stars-as-an-importance-metric-for-web-source-code)"_)
+          - [ ] _maybe_ exponential fit, half life in years, to
+            % of commit still present in code base over time (KM estimate of survival function),
+            like [Git-of-Theseus](https://github.com/erikbern/git-of-theseus/)
+            (_"[The half-life of code & the ship of Theseus](https://erikbern.com/2016/12/05/the-half-life-of-code.html)"_,
+            see _Half-life by repository_ section)
+      - [ ] _maybe_ with Timeframe, \# Bugs, \# Commits,
+        like on Table 3 in _[Herbold et al.][Herbold-paper]_
+      - [ ] statistics of assigned line labels over all data (automatic, human consensus),
+        like in Table 4 in _[Herbold et al.][Herbold-paper]_:
+        labels in rows (bug fix, test, documentation, refactoring,..., no consensus, total),
+        all changes, production code, other code in columns - number of lines, \% of lines
+        (\% of lines is also used in second third of table in Fig. 1(b), "line annotations",
+        in _"[HaPy Bug - ...][HaPy-Bug-paper]"_ unpublished paper)
+      - [ ] robust statistics of assigned line labels over all data (automatic,...)
+        like in table in Fig. 2(a) in _[Herbold et al.][Herbold-paper]_:
+        labels in rows (bug fix, test, documentation, refactoring,..., no consensus, total),
+        overall (all changes), production code in columns - subdivided into
+        median, MAD (Median Absolute Deviation from median), CI (Confidence Interval), >0 count
+      - [ ] histogram of bug fixing lines percentage per commit (overall, production code)
+        like in Fig. 2(b,c) in _[Herbold et al.][Herbold-paper]_
+      - boxplot, (or boxenplot, violin plot, or scatterplot, or beeswarm plot)
+        of percentages of line labels per commit (overall, production code)
+        like in Fig. 2(b,c) in _[Herbold et al.][Herbold-paper]_
+        and in Fig. 1(d) in _"[HaPy Bug - ...][HaPy-Bug-paper]"_ - "distribution
+        of number of line types divided by all changes made in the bugfix"
+      - [ ] _maybe_ hexgrid colormap showing relationship between the number of lines changed
+        in production code files and the percentage of bug fixing lines
+        ~~and lines without consensus~~ like in Fig. 9 in _[Herbold et al.][Herbold-paper]_.
+        The plot has percentage of bugfixing lines ~~(or lines without consensus)~~ on X axis (0.0..1.0),
+        \# Lines changed  on Y axis using logscale (10^0..10^4),
+        and log10(\# Commits) ~~or log10(\# Issues)~~ as the hue / color (10^0..10^3, mostly),
+        with the regression line for a linear relationship between the variables overlaid,
+        and the <i>r</i>-value i.e. Pearson's correlation coefficient
+      - [ ] _maybe_ the table of observed label combinations;
+        the Table 8 in the appendix of _[Herbold et al.][Herbold-paper]_
+        is for lines without consensus, but we may put lines in a single commit / patch;
+        instead of the table, [UpSet Chart](https://python-graph-gallery.com/venn-diagram/#UpSet%20Chart)
+        / [UpSet: Visualizing Intersecting Sets](https://upset.app/)
+        may be used (using [`upsetplot`](https://upsetplot.readthedocs.io/) library/package,
+        or older [`pyupset`](https://github.com/ImSoErgodic/py-upset) for Python)
+      - [x] add `--output` option - currently supports only the JSON format
+        - [ ] support for `-` as file name for printing to stdout
     - [ ] `purpose-per-file` subcommand
-      - ...
+      - [ ] table, horizontal bar plot, or pie chart - of % of file purposes
+        in the dataset, like bar plot in left part of Fig. 1(c)
+        "percentage of lines by annotated file type"
+        in _"[HaPy Bug - ...][HaPy-Bug-paper]"_ unpublished paper
+      - [ ] composition of different line labels for different file types,
+        using horizontal stacked bar plot of percentages, or many pie charts,
+        like the stacked bar plot on the right part of Fig. 1(c)
+        "breakdown of line types by file type" in _"[HaPy Bug - ...][HaPy-Bug-paper]"_;<br>
+        though note that for some file types all lines are considered to be specific type,
+        and that this plot might be more interesting for human-generated line types,
+        rather than for line types generated by `diff-annotate` tool
     - [ ] `lines-stats` subcommand
       - [ ] fix handling of `'commit_metadata'` field (skip it)
     - [ ] `timeline` subcommand
@@ -262,3 +341,8 @@ data.
 [1]: https://stackoverflow.com/questions/70387750/how-to-manage-sub-projects-in-python
 [2]: https://github.com/github-linguist/linguist/blob/master/docs/overrides.md#using-gitattributes
 [3]: https://stackoverflow.com/questions/70811640/using-typer-and-hydra-together
+
+[dissection-defects4j-paper]: https://doi.org/10.1109/SANER.2018.8330203 "Sobreira et al.: 'Dissection of a bug dataset: Anatomy of 395 patches from Defects4J', SANER 2018"
+[BugsInPy-paper]: https://doi.org/10.1145/3368089.3417943 "'BugsInPy: a database of existing bugs in Python programs to enable controlled testing and debugging studies', ESEC/FSE 2020"
+[Herbold-paper]: https://doi.org/10.1007/s10664-021-10083-5 "Herbold et al.: 'A fine-grained data set and analysis of tangling in bug fixing commits', ESE 2022"
+[HaPy-Bug-paper]: https://github.com/ncusi/python_cve_dataset_paper/ "'HaPy-Bug – Human Annotated Python Bug Resolution Dataset' (private repo with the paper)"
