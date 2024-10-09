@@ -35,6 +35,9 @@
     - [x] `diff-annotate` (from [`annotate.py`](src/diffannotator/annotate.py))
     - [x] `diff-gather-stats` (from [`gather_data.py`](src/diffannotator/gather_data.py))
     - [ ] `diff-augment` - augment JSON files with data from Git or from GitHub
+- [ ] make it possible to use each script features from Python
+  (see for example `process_single_bug()` function in [`annotate.py`](src/diffannotator/annotate.py))
+  and document such use (in `docs/`, in function docstring, in file docstring, in doctests)
 - [ ] improve common handling of command line parameters for all scripts
     - [ ] _maybe_ make it possible to use configuration files to set parameters for CLI
       (similarly to [Hydra][]) with [typer-config][] (e.g. `my-typer-app --config config.yml`)
@@ -98,6 +101,8 @@ The result of annotation is saved in JSON files, one per patch / commit.
         - [x] global option `--pattern-to-purpose` (using new API)
         - [ ] (optionally?) use [`wcmatch.pathlib`](https://facelessuser.github.io/wcmatch/pathlib/)
           to be able to use `**` in patterns (with `globmatch` and `pathlib.GLOBSTAR`)
+    - [ ] option to limit analyzing changes to only "production code" changes,
+      for example with `--production-code-only`, or `--file-purpose-limit`, etc.
     - [ ] support [.gitattributes overrides of GitHub Linguist][2]
     - [x] optionally use Python clone of [github/linguist][], namely [retanoj/linguist][], installed from GitHub,
           with `--use-pylinguist` (note: [install requires libmagic-dev and libicu-dev libraries](https://github.com/douban/linguist/issues/25))
@@ -144,6 +149,7 @@ The result of annotation is saved in JSON files, one per patch / commit.
         - [ ] from Git (or GitHub) repository provided via CLI option - for 'dataset'
     - [ ] configuration file (*.toml, *.yaml, *.json, *.ini, *.cfg, or *.py);<br>
       maybe using [Hydra][] (see [_Using Typer and Hydra together_][3]),
+      maybe using [typer-config][] (e.g. `my-typer-app --config config.yml`),
       maybe using [Dynaconf][],
       maybe using [configparser][] standard library
       (see also: files read by [rcfile](https://pypi.org/project/rcfile/) package,
@@ -214,18 +220,18 @@ data.
         like on Table 3 in _[Herbold et al.][Herbold-paper]_
       - [ ] statistics of assigned line labels over all data (automatic, human consensus),
         like in Table 4 in _[Herbold et al.][Herbold-paper]_:
-        labels in rows (bug fix, test, documentation, refactoring,..., no consensus, total),
-        all changes, production code, other code in columns - number of lines, \% of lines
-        (\% of lines is also used in second third of table in Fig. 1(b), "line annotations",
-        in _"[HaPy Bug - ...][HaPy-Bug-paper]"_ unpublished paper)
+        - labels in rows (bug fix, test, documentation, refactoring,..., no consensus, total),
+        - all changes, production code, other code in columns - number of lines, \% of lines
+          (\% of lines is also used in second third of table in Fig. 1(b), "line annotations",
+          in _"[HaPy Bug - ...][HaPy-Bug-paper]"_ unpublished paper)
       - [ ] robust statistics of assigned line labels over all data (automatic,...)
         like in table in Fig. 2(a) in _[Herbold et al.][Herbold-paper]_:
-        labels in rows (bug fix, test, documentation, refactoring,..., no consensus, total),
-        overall (all changes), production code in columns - subdivided into
-        median, MAD (Median Absolute Deviation from median), CI (Confidence Interval), >0 count
+        - labels in rows (bug fix, test, documentation, refactoring,..., no consensus, total),
+        - overall (all changes), production code in columns - subdivided into
+          median, MAD (Median Absolute Deviation from median), CI (Confidence Interval), >0 count
       - [ ] histogram of bug fixing lines percentage per commit (overall, production code)
         like in Fig. 2(b,c) in _[Herbold et al.][Herbold-paper]_
-      - boxplot, (or boxenplot, violin plot, or scatterplot, or beeswarm plot)
+      - [ ] boxplot, (or boxenplot, violin plot, or scatterplot, or beeswarm plot)
         of percentages of line labels per commit (overall, production code)
         like in Fig. 2(b,c) in _[Herbold et al.][Herbold-paper]_
         and in Fig. 1(d) in _"[HaPy Bug - ...][HaPy-Bug-paper]"_ - "distribution
@@ -233,11 +239,12 @@ data.
       - [ ] _maybe_ hexgrid colormap showing relationship between the number of lines changed
         in production code files and the percentage of bug fixing lines
         ~~and lines without consensus~~ like in Fig. 9 in _[Herbold et al.][Herbold-paper]_.
-        The plot has percentage of bugfixing lines ~~(or lines without consensus)~~ on X axis (0.0..1.0),
-        \# Lines changed  on Y axis using logscale (10^0..10^4),
-        and log10(\# Commits) ~~or log10(\# Issues)~~ as the hue / color (10^0..10^3, mostly),
-        with the regression line for a linear relationship between the variables overlaid,
-        and the <i>r</i>-value i.e. Pearson's correlation coefficient
+        The plot has 
+        - percentage of bugfixing lines ~~(or lines without consensus)~~ on X axis (0.0..1.0),
+        - \# Lines changed  on Y axis using logscale (10^0..10^4),
+        - and log10(\# Commits) ~~or log10(\# Issues)~~ as the hue / color (10^0..10^3, mostly),
+        - with the regression line for a linear relationship between the variables overlaid,<br>
+          and the <i>r</i>-value i.e. Pearson's correlation coefficient
       - [ ] _maybe_ the table of observed label combinations;
         the Table 8 in the appendix of _[Herbold et al.][Herbold-paper]_
         is for lines without consensus, but we may put lines in a single commit / patch;
