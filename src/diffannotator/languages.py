@@ -1,3 +1,43 @@
+# -*- coding: utf-8-unix -*-
+"""Contains code to detect language of a file based on its file name
+
+It uses the 'language.yml' ('src/diffannotator/languages.yml') taken from
+the GitHub Linguist project, which is the library is used on GitHub.com
+to detect blob languages, ignore binary or vendored files, suppress generated
+files in diffs, and generate language breakdown graphs (written in Ruby, MIT license)
+https://github.com/github-linguist/linguist
+
+This module has currently much more limited scope: it tries to use the file name,
+and does not try to check file contents, nor does it take user-provided
+configuration included in '.gitattributes' file, like GitHub Linguist does
+https://github.com/github-linguist/linguist/blob/master/docs/overrides.md#using-gitattributes
+
+Overrides to the data extracted from 'languages.yml' are provided via
+the following globl variables:
+
+- `FILENAME_TO_LANGUAGES` - mapping from filenames (basenames) of files
+  to single-element list of language corresponding to that name, for example
+  FILENAME_TO_LANGUAGES['COPYING'] == 'Text'
+- `EXT_TO_LANGUAGES` - mapping from file extension (including the dot '.')
+  to single-element list of language corresponding to that name, for example
+  EXT_TO_LANGUAGES['.md'] == ['Markdown']
+- `PATTERN_TO_PURPOSE` - mapping from file wildcard / glob pattern
+  to the purpose of the file (which can be used to determine line types),
+  for example PATTERN_TO_PURPOSE['*.cmake'] == 'project'
+
+**NOTE** that currently some of those rules are built in into the
+`languages_exceptions()` function.
+
+Example usage:
+--------------
+  >>> from diffannotator.languages import Languages
+  >>> LANGUAGES = Languages()
+  >>> LANGUAGES.annotate("src/main.cpp")
+  {'language': 'C++', 'type': 'programming', 'purpose': 'programming'}
+
+This module is used by the diff-annotate script, with sources in annotate.py
+source code file.
+"""
 import logging
 import os
 from collections import defaultdict

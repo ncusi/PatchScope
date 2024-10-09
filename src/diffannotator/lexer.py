@@ -1,3 +1,29 @@
+# -*- coding: utf-8-unix -*-
+"""Contains code to run lexer, turning code into sequence of tokens
+
+This sequence of tokens is then used by other modules and scripts to determine
+the type of line (for example, line changed by the commit or a patch): does
+it contain only documentation (only comments or docstrings, possibly with
+whitespace), or does it contain at least some code.
+
+Currently, the only lexer supported is from Pygments (Python syntax highligter)
+https://pygments.org/
+
+Example usage:
+--------------
+  >>> from pathlib import Path
+  >>> from diffannotator.lexer import Lexer
+  >>> LEXER = Lexer()
+  >>> file_path = Path('tests/test_code_fragments/example_line_callback_func.py')
+  >>> tokens_list = LEXER.lex(file_path.name, file_path.read_text())
+  >>> LEXER.lexers
+  {'.py': <pygments.lexers.PythonLexer>}
+  >>> tokens_list[:3]
+  [(0, Token.Keyword, 'def'), (3, Token.Text, ' '), (4, Token.Name.Function, 'detect_all_whitespace_line')]
+
+This module is used by the diff-annotate script, with sources in annotate.py
+source code file.
+"""
 import logging
 from pathlib import Path
 from typing import Dict, Tuple, Iterable
