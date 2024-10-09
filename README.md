@@ -263,6 +263,15 @@ Web applications that demonstrate some MSR tool:
   has [web app visualizing the dataset](https://nfsaavedra.github.io/gitbug-java).
   No source code for the web app; it seems to be in JavaScript
   using Angular, with the help of Chart.js and diff2html.
+- [Defects4J Dissection](https://program-repair.org/defects4j-dissection/#!/)
+  is an open-source web app that presents data to help researchers and practitioners
+  to better understand the [Defects4J bug dataset](https://github.com/rjust/defects4j).
+  Includes table view (the default) and [charts](https://program-repair.org/defects4j-dissection/charts.html).
+  It is the open-science appendix of
+  _"[Dissection of a bug dataset: anatomy of 395 patches from Defects4J](https://arxiv.org/abs/1801.06393)"_ paper.
+  [Written in Python and JavaScript](https://github.com/program-repair/defects4j-dissection/),
+  under MIT license.
+
 
 ## Contributing
 
