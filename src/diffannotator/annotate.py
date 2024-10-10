@@ -1,5 +1,38 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
+"""Usage: python -m diffannotator.annotate [<common-options>] <subcommand> <options>
 
+Annotate existing dataset (that is, patch files in subdirectories corresponding to bugs),
+or selected subset of commits (of changes in selectes subset of commits) in a given repository.
+
+The result of annotation is saved in JSON files, one per patch / commit.
+
+This script provides the following subcommands:
+
+- `diff-annotate patch [OPTIONS] PATCH_FILE RESULT_JSON`:
+  annotate a single PATCH_FILE, writing results to RESULT_JSON,
+- `diff-annotate dataset [OPTIONS] DATASETS...`:
+  annotate all bugs in provided DATASETS,
+- `diff-anotate from-repo [OPTIONS] REPO_PATH [REVISION_RANGE...]`:
+  create annotation data for commits from local Git repository
+  (with `REVISION_RANGE...` passed as arguments to the `git log` command);
+
+Example (after installing the 'diffannotator' package):
+    diff-annotate --help
+
+    diff-annotate --use-pylinguist patch \
+        tests/test_dataset/tqdm-1/c0dcf39b046d1b4ff6de14ac99ad9a1b10487512.diff \
+        c0dcf39b046d1b4ff6de14ac99ad9a1b10487512.json
+
+    diff-annotate dataset \
+        --output-prefix ~/example_annotations/bugsinpy-dataset/ \
+        /mnt/data/HaPy-Bug/raw_data/bugsinpy-dataset/
+
+    diff-annotate from-repo \
+        --output-dir=~/example_annotations/tensorflow/yong.tang/ \
+        ~/example_repositories/tensorflow/ \
+        --author=yong.tang.github@outlook.com
+"""
 import collections.abc
 from collections import defaultdict, deque, namedtuple, Counter
 import importlib.metadata
