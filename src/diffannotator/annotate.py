@@ -35,7 +35,6 @@ Example (after installing the 'diffannotator' package):
 """
 import collections.abc
 from collections import defaultdict, deque, namedtuple, Counter
-import importlib.metadata
 import inspect
 import json
 import logging
@@ -59,6 +58,7 @@ from typing_extensions import Annotated  # in typing since Python 3.9
 import yaml
 
 from . import languages
+from .config import get_version
 from .languages import Languages
 from .lexer import Lexer
 from .utils.git import GitRepo, ChangeSet
@@ -107,8 +107,6 @@ class LanguagesFromLinguist:
             "purpose": file_purpose,
         }
 
-
-__version__ = "0.1.0"
 
 # configure logging
 logger = logging.getLogger(__name__)
@@ -1690,26 +1688,6 @@ class BugDataset:
 # =========================================================================
 
 app = typer.Typer(no_args_is_help=True, add_completion=False)
-
-
-def get_version() -> str:
-    """Return version of this script
-
-    Use version from the 'diffannotator' package this script is from,
-    if possible, with fallback to global variable `__version__`.
-    Updates `__version__`.
-
-    :returns: version string
-    """
-    global __version__
-
-    if __package__:
-        try:
-            __version__ = importlib.metadata.version(__package__)
-        except importlib.metadata.PackageNotFoundError:
-            pass
-
-    return __version__
 
 
 def version_callback(value: bool):

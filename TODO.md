@@ -15,7 +15,7 @@
     - [x] 'LICENSE' (MIT License)
     - [ ] _maybe_ 'MANIFEST.in'
     - [x] separate repository on GitHub
-    - [ ] move `__version__` to `__init__.py`
+    - [x] move `__version__` to ~~`__init__.py`~~ `config.py`
          (see also ["version at runtime" in setuptools_scm docs](https://setuptools-scm.readthedocs.io/en/stable/usage/#version-at-runtime)
           and ["Single-sourcing the package version" in Python Packaging User Guide](https://packaging.python.org/en/latest/guides/single-sourcing-package-version/))
     - [ ] add `docs/` directory (for man pages, and maybe API documentation)
