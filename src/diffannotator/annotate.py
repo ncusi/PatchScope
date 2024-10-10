@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-
+from __future__ import annotations
 import collections.abc
 from collections import defaultdict, deque, namedtuple, Counter
 import importlib.metadata
@@ -13,8 +13,10 @@ import sys
 import time
 #import traceback  # replaced by exc_info (and possibly stack_info) when loging
 from textwrap import dedent
-from typing import List, Dict, Tuple, TypeVar, Optional, Union, Iterator, Literal
+from typing import List, Dict, Tuple, TypeVar, Optional, Union, Iterator, Literal, TYPE_CHECKING
 from typing import Iterable, Generator, Callable  # should be imported from collections.abc
+if TYPE_CHECKING:
+    from _typeshed import SupportsWrite
 
 from joblib import Parallel, delayed
 from pygments.token import Token
@@ -1464,7 +1466,7 @@ class Bug:
             else:
                 out_path = base_path / Path(patch_id).with_suffix('.json')
 
-            with out_path.open('w') as out_f:
+            with out_path.open('w') as out_f:  # type: SupportsWrite[str]
                 json.dump(patch_data, out_f)
 
 
@@ -2143,7 +2145,7 @@ def patch(patch_file: Annotated[Path, typer.Argument(exists=True, dir_okay=False
         result_json.parent.mkdir(parents=True, exist_ok=True)
 
     print(f"Saving results to '{result_json}' JSON file")
-    with result_json.open(mode='w') as result_f:
+    with result_json.open(mode='w') as result_f:  # type: SupportsWrite[str]
         json.dump(result, result_f, indent=4)
 
 
