@@ -2054,7 +2054,7 @@ def dataset(
             file_okay=False,
             dir_okay=True,
             readable=True,
-            writable=True,  # to save results
+            #writable=True,  # to save results... unless --output-prefix is used
         )
     ],
     output_prefix: Annotated[
@@ -2107,6 +2107,8 @@ def dataset(
           f"{Path('<dataset_directory>/<bug_directory>').joinpath(patches_dir, '<patch_file>.diff')}")
     print(f"Storing annotations in "
           f"{Path('<dataset_directory>/<bug_directory>').joinpath(annotations_dir, '<patch_file>.json')}")
+
+    # no need for tqdm, as there is usually only a few datasets, or even only one
     for dataset_dir in datasets:
         print(f"Processing dataset in directory '{dataset_dir}'{' with fanout' if uses_fanout else ''}")
         bugs = BugDataset.from_directory(dataset_dir,
@@ -2123,6 +2125,15 @@ def dataset(
             # ensure that directory exists
             print(f"Ensuring that output directory '{output_path}' exists")
             output_path.mkdir(parents=True, exist_ok=True)
+
+        else:
+            # with no --output-prefix, the dataset directory must be writable
+            if not dataset_dir.is_dir():
+                print(f"The '{dataset_dir}' is not directory, skipping")
+                continue
+            elif not os.access(dataset_dir, os.W_OK):
+                print(f"The '{dataset_dir}' is not writable, skipping processing it and saving to it")
+                continue
 
         print(f"Annotating patches and saving annotated data, for {len(bugs)} bugs")
         with logging_redirect_tqdm():
