@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+"""Test cases for 'src/diffannotator/lexer.py' module"""
 from textwrap import dedent
 
 from pygments.lexer import Lexer as PygmentsLexer

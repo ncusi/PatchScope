@@ -1,3 +1,8 @@
+# -*- coding: utf-8 -*-
+"""Test cases for all typer-based command line (CLI) scripts
+
+https://typer.tiangolo.com/tutorial/testing/
+"""
 import subprocess
 from pathlib import Path
 

@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+"""Test cases for 'src/diffannotator/languages.py' module"""
 import logging
 import pytest
 from pytest import LogCaptureFixture
