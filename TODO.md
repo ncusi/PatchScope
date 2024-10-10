@@ -1,13 +1,13 @@
 # TO DO List for Diff Annotator package
 
-- [ ] cleanup
+- [x] cleanup
     - [x] cleanup annotate.py
     - [x] test annotate.py code
     - [x] test annotate.py script
     - [x] cleanup languages.py
     - [x] cleanup lexer.py
-    - [x] _maybe_ move from [click][] to [typer][]
-    - [ ] add docstring for all files
+    - [x] move from [click][] to [typer][] for handling CLI parameters
+    - [x] add docstring for all files
 - [x] make it a separate package
     - [x] directory structure
     - [x] 'pyproject.toml' (and _optionally_ 'setup.py')
