@@ -396,6 +396,15 @@ def map_diff_to_lines_stats(annotation_file_basename: str,
     for filename, file_data in annotation_data.items():
         # DEBUG
         #print(f" {filename=}")
+        if not isinstance(file_data, dict):
+            # this is not changed file information, but sizes and spreads metrics
+            # for example 'n_files', which type is int, not dict
+            continue
+
+        if filename == 'commit_metadata' and 'purpose' not in file_data:
+            # this is not changed file information, but commit metadata
+            continue
+
         # NOTE: each file should be present only once for given patch/commit
         if filename in result:
             print(f"Warning: '{filename}' file present more than once in '{annotation_file_basename}'")
