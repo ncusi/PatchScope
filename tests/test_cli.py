@@ -4,6 +4,7 @@
 https://typer.tiangolo.com/tutorial/testing/
 """
 import subprocess
+import traceback
 from pathlib import Path
 
 import pytest
@@ -27,8 +28,14 @@ def test_annotate_patch(tmp_path: Path):
 
     result = runner.invoke(annotate_app, ["patch", f"{file_path}", f"{save_path}"])
 
+    # TODO: extract this common code into conftest.py, maybe as a pytest plugin
     if result.exit_code != 0:
         print(result.stdout)
+    if result.exception:
+        print(f"Exception: {result.exception}")
+        print("Traceback:")
+        # or `result.exc_info[2]` instead of `result.exception.__traceback__`
+        traceback.print_tb(result.exception.__traceback__)
 
     assert result.exit_code == 0, \
         "app runs 'patch' subcommand without errors"
@@ -45,6 +52,11 @@ def test_annotate_dataset(tmp_path: Path):
 
     if result.exit_code != 0:
         print(result.stdout)
+    if result.exception:
+        print(f"Exception: {result.exception}")
+        print("Traceback:")
+        # or `result.exc_info[2]` instead of `result.exception.__traceback__`
+        traceback.print_tb(result.exception.__traceback__)
 
     assert result.exit_code == 0, \
         "app runs 'dataset' subcommand without errors"
@@ -62,6 +74,11 @@ def test_annotate_dataset_with_fanout(tmp_path: Path):
 
     if result.exit_code != 0:
         print(result.stdout)
+    if result.exception:
+        print(f"Exception: {result.exception}")
+        print("Traceback:")
+        # or `result.exc_info[2]` instead of `result.exception.__traceback__`
+        traceback.print_tb(result.exception.__traceback__)
 
     assert result.exit_code == 0, \
         "app runs 'dataset' subcommand without errors"
@@ -90,6 +107,11 @@ def test_annotate_from_repo(tmp_path: Path):
 
     if result.exit_code != 0:
         print(result.stdout)
+    if result.exception:
+        print(f"Exception: {result.exception}")
+        print("Traceback:")
+        # or `result.exc_info[2]` instead of `result.exception.__traceback__`
+        traceback.print_tb(result.exception.__traceback__)
 
     assert result.exit_code == 0, \
         "app runs 'from-repo' subcommand without errors"
@@ -111,6 +133,11 @@ def test_annotate_from_repo(tmp_path: Path):
 
     if result.exit_code != 0:
         print(result.stdout)
+    if result.exception:
+        print(f"Exception: {result.exception}")
+        print("Traceback:")
+        # or `result.exc_info[2]` instead of `result.exception.__traceback__`
+        traceback.print_tb(result.exception.__traceback__)
 
     assert result.exit_code == 0, \
         "app runs 'from-repo --with-fanout' subcommand without errors"
@@ -131,6 +158,11 @@ def test_annotate_from_repo_parallel(tmp_path: Path, example_repo: GitRepo):
 
     if result.exit_code != 0:
         print(result.stdout)
+    if result.exception:
+        print(f"Exception: {result.exception}")
+        print("Traceback:")
+        # or `result.exc_info[2]` instead of `result.exception.__traceback__`
+        traceback.print_tb(result.exception.__traceback__)
 
     assert result.exit_code == 0, \
         "app runs 'from-repo --n_jobs=2' subcommand without errors"
@@ -148,6 +180,11 @@ def test_annotate_patch_with_line_callback(tmp_path: Path):
 
     if result.exit_code != 0:
         print(result.stdout)
+    if result.exception:
+        print(f"Exception: {result.exception}")
+        print("Traceback:")
+        # or `result.exc_info[2]` instead of `result.exception.__traceback__`
+        traceback.print_tb(result.exception.__traceback__)
 
     assert result.exit_code == 0, \
         "app runs 'patch' subcommand with a no-op line str callback without errors"
@@ -164,6 +201,11 @@ def test_annotate_patch_with_line_callback(tmp_path: Path):
 
     if result.exit_code != 0:
         print(result.stdout)
+    if result.exception:
+        print(f"Exception: {result.exception}")
+        print("Traceback:")
+        # or `result.exc_info[2]` instead of `result.exception.__traceback__`
+        traceback.print_tb(result.exception.__traceback__)
 
     assert result.exit_code == 0, \
         "app runs 'patch' subcommand with line callback from file defining body without errors"
@@ -177,6 +219,11 @@ def test_annotate_patch_with_line_callback(tmp_path: Path):
 
     if result.exit_code != 0:
         print(result.stdout)
+    if result.exception:
+        print(f"Exception: {result.exception}")
+        print("Traceback:")
+        # or `result.exc_info[2]` instead of `result.exception.__traceback__`
+        traceback.print_tb(result.exception.__traceback__)
 
     assert result.exit_code == 0, \
         "app runs 'patch' subcommand with line callback from file defining function without errors"
@@ -195,6 +242,11 @@ def test_annotate_patch_with_purpose_to_annotation(tmp_path: Path):
 
     if result.exit_code != 0:
         print(result.stdout)
+    if result.exception:
+        print(f"Exception: {result.exception}")
+        print("Traceback:")
+        # or `result.exc_info[2]` instead of `result.exception.__traceback__`
+        traceback.print_tb(result.exception.__traceback__)
 
     assert result.exit_code == 0, \
         "app runs 'patch' subcommand with a --purpose-to-annotation without errors"
@@ -219,6 +271,11 @@ def test_annotate_patch_with_pattern_to_purpose(tmp_path: Path, caplog: pytest.L
 
     if result.exit_code != 0:
         print(result.stdout)
+    if result.exception:
+        print(f"Exception: {result.exception}")
+        print("Traceback:")
+        # or `result.exc_info[2]` instead of `result.exception.__traceback__`
+        traceback.print_tb(result.exception.__traceback__)
 
     separator = " has purpose "
     assert result.exit_code == 0, \
@@ -244,6 +301,11 @@ def test_annotate_patch_with_ext_to_language(tmp_path: Path, caplog: pytest.LogC
 
     if result.exit_code != 0:
         print(result.stdout)
+    if result.exception:
+        print(f"Exception: {result.exception}")
+        print("Traceback:")
+        # or `result.exc_info[2]` instead of `result.exception.__traceback__`
+        traceback.print_tb(result.exception.__traceback__)
 
     assert result.exit_code == 0, \
         "app runs 'patch' subcommand with a --ext-to-language without errors"
@@ -258,6 +320,11 @@ def test_annotate_patch_with_ext_to_language(tmp_path: Path, caplog: pytest.LogC
 
     if result.exit_code != 0:
         print(result.stdout)
+    if result.exception:
+        print(f"Exception: {result.exception}")
+        print("Traceback:")
+        # or `result.exc_info[2]` instead of `result.exception.__traceback__`
+        traceback.print_tb(result.exception.__traceback__)
     #print(f"{caplog.messages=}")
     #print(f"{caplog.records=}")
     #print(f"{caplog.record_tuples=}")
@@ -282,6 +349,11 @@ def test_annotate_patch_with_filename_to_language(tmp_path: Path, caplog: pytest
 
     if result.exit_code != 0:
         print(result.stdout)
+    if result.exception:
+        print(f"Exception: {result.exception}")
+        print("Traceback:")
+        # or `result.exc_info[2]` instead of `result.exception.__traceback__`
+        traceback.print_tb(result.exception.__traceback__)
 
     assert result.exit_code == 0, \
         "app runs 'patch' subcommand with a --filename-to-language without errors"
@@ -296,6 +368,11 @@ def test_annotate_patch_with_filename_to_language(tmp_path: Path, caplog: pytest
 
     if result.exit_code != 0:
         print(result.stdout)
+    if result.exception:
+        print(f"Exception: {result.exception}")
+        print("Traceback:")
+        # or `result.exc_info[2]` instead of `result.exception.__traceback__`
+        traceback.print_tb(result.exception.__traceback__)
 
     assert result.exit_code == 0, \
         "app runs 'patch' subcommand with special cases of --filename-to-language without errors"
@@ -327,6 +404,11 @@ def test_generate_patches(tmp_path: Path):
 
     if result.exit_code != 0:
         print(result.stdout)
+    if result.exception:
+        print(f"Exception: {result.exception}")
+        print("Traceback:")
+        # or `result.exc_info[2]` instead of `result.exception.__traceback__`
+        traceback.print_tb(result.exception.__traceback__)
 
     assert result.exit_code == 0, \
         "generate app runs without errors"
@@ -358,6 +440,11 @@ def test_generate_patches_with_fanout(tmp_path: Path):
 
     if result.exit_code != 0:
         print(result.stdout)
+    if result.exception:
+        print(f"Exception: {result.exception}")
+        print("Traceback:")
+        # or `result.exc_info[2]` instead of `result.exception.__traceback__`
+        traceback.print_tb(result.exception.__traceback__)
 
     assert result.exit_code == 0, \
         "generate app runs without errors"
@@ -404,6 +491,11 @@ def test_gather_data(tmp_path: Path):
 
     if result.exit_code != 0:
         print(result.stdout)
+    if result.exception:
+        print(f"Exception: {result.exception}")
+        print("Traceback:")
+        # or `result.exc_info[2]` instead of `result.exception.__traceback__`
+        traceback.print_tb(result.exception.__traceback__)
 
     assert result.exit_code == 0, \
         "annotate app runs 'dataset' subcommand on structured dataset without errors"
@@ -429,6 +521,11 @@ def test_gather_data(tmp_path: Path):
 
     if result.exit_code != 0:
         print(result.stdout)
+    if result.exception:
+        print(f"Exception: {result.exception}")
+        print("Traceback:")
+        # or `result.exc_info[2]` instead of `result.exception.__traceback__`
+        traceback.print_tb(result.exception.__traceback__)
 
     assert result.exit_code == 0, \
         "gather app runs 'purpose-counter' subcommand on generated annotations without errors"
@@ -453,6 +550,11 @@ def test_gather_data(tmp_path: Path):
 
     if result.exit_code != 0:
         print(result.stdout)
+    if result.exception:
+        print(f"Exception: {result.exception}")
+        print("Traceback:")
+        # or `result.exc_info[2]` instead of `result.exception.__traceback__`
+        traceback.print_tb(result.exception.__traceback__)
 
     assert result.exit_code == 0, \
         "gather app runs 'purpose-per-file' subcommand on generated annotations without errors"
@@ -478,6 +580,11 @@ def test_gather_data(tmp_path: Path):
 
     if result.exit_code != 0:
         print(result.stdout)
+    if result.exception:
+        print(f"Exception: {result.exception}")
+        print("Traceback:")
+        # or `result.exc_info[2]` instead of `result.exception.__traceback__`
+        traceback.print_tb(result.exception.__traceback__)
 
     assert result.exit_code == 0, \
         "gather app runs 'lines-stats' subcommand on generated annotations without errors"
@@ -506,6 +613,11 @@ def test_gather_data(tmp_path: Path):
     #print(result.stdout)
     if result.exit_code != 0:
         print(result.stdout)
+    if result.exception:
+        print(f"Exception: {result.exception}")
+        print("Traceback:")
+        # or `result.exc_info[2]` instead of `result.exception.__traceback__`
+        traceback.print_tb(result.exception.__traceback__)
 
     assert result.exit_code == 0, \
         "gather app runs 'timeline' subcommand on generated annotations without errors"
