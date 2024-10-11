@@ -18,6 +18,9 @@ def test_Languages(caplog: LogCaptureFixture):
     if not languages.EXT_TO_LANGUAGES:
         pytest.skip("Something wrong: languages.EXT_TO_LANGUAGES is empty")
 
+    if not languages.FILENAME_TO_LANGUAGES:
+        pytest.skip("Something wrong: languages.FILENAME_TO_LANGUAGES is empty")
+
     actual = langs.annotate("src/main.cpp")
     expected = {'language': 'C++', 'type': 'programming', 'purpose': 'programming'}
     assert actual == expected, "for programming language"
@@ -25,6 +28,10 @@ def test_Languages(caplog: LogCaptureFixture):
     actual = langs.annotate('INSTALL')
     expected = {'language': 'Text', 'type': 'prose', 'purpose': 'documentation'}
     assert actual == expected, "for 'INSTALL' file (no extension)"
+
+    actual = langs.annotate('ChangeLog')
+    expected = {'language': 'Text', 'type': 'prose', 'purpose': 'documentation'}
+    assert actual == expected, "for 'ChangeLog' file (no extension), via FILENAME_TO_LANGUAGES"
 
     actual = langs.annotate('README.md')
     expected = {'language': 'Markdown', 'type': 'prose', 'purpose': 'documentation'}
