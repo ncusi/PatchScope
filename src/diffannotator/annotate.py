@@ -25,7 +25,7 @@ Example (after installing the 'diffannotator' package):
         c0dcf39b046d1b4ff6de14ac99ad9a1b10487512.json
 
     diff-annotate dataset \
-        --output-prefix ~/example_annotations/bugsinpy-dataset/ \
+        --output-prefix ~/example_annotations/ \
         /mnt/data/HaPy-Bug/raw_data/bugsinpy-dataset/
 
     diff-annotate from-repo \
@@ -2203,8 +2203,11 @@ def dataset(
     """
     print(f"Expecting patches   in "
           f"{Path('<dataset_directory>/<bug_directory>').joinpath(patches_dir, '<patch_file>.diff')}")
-    print(f"Storing annotations in "
-          f"{Path('<dataset_directory>/<bug_directory>').joinpath(annotations_dir, '<patch_file>.json')}")
+    print( "Storing annotations in ", end="")
+    if output_prefix is None:
+        print(Path('<dataset_directory>/<bug_directory>').joinpath(annotations_dir, '<patch_file>.json'))
+    else:
+        print(Path('<output_prefix>/<dataset_dir>/<bug_directory>').joinpath(annotations_dir, '<patch_file>.json'))
 
     # no need for tqdm, as there is usually only a few datasets, or even only one
     for dataset_dir in datasets:
