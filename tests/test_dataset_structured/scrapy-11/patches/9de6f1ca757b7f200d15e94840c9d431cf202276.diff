@@ -1,0 +1,46 @@
+diff --git a/scrapy/utils/gz.py b/scrapy/utils/gz.py
+index afc7ed128..73c2eb73b 100644
+--- a/scrapy/utils/gz.py
++++ b/scrapy/utils/gz.py
+@@ -43,7 +43,7 @@ def gunzip(data):
+             # contains the whole page content
+             if output or getattr(f, 'extrabuf', None):
+                 try:
+-                    output += f.extrabuf
++                    output += f.extrabuf[-f.extrasize:]
+                 finally:
+                     break
+             else:
+diff --git a/tests/sample_data/compressed/unexpected-eof-output.txt b/tests/sample_data/compressed/unexpected-eof-output.txt
+new file mode 100644
+index 000000000..3b201255f
+Binary files /dev/null and b/tests/sample_data/compressed/unexpected-eof-output.txt differ
+diff --git a/tests/sample_data/compressed/unexpected-eof.gz b/tests/sample_data/compressed/unexpected-eof.gz
+new file mode 100644
+index 000000000..96211e432
+Binary files /dev/null and b/tests/sample_data/compressed/unexpected-eof.gz differ
+diff --git a/tests/test_utils_gz.py b/tests/test_utils_gz.py
+index 2b47bf8da..7148185f4 100644
+--- a/tests/test_utils_gz.py
++++ b/tests/test_utils_gz.py
+@@ -1,6 +1,8 @@
+ import unittest
+ from os.path import join
+ 
++from w3lib.encoding import html_to_unicode
++
+ from scrapy.utils.gz import gunzip, is_gzipped
+ from scrapy.http import Response, Headers
+ from tests import tests_datadir
+@@ -66,3 +68,11 @@ class GunzipTest(unittest.TestCase):
+         hdrs = Headers({"Content-Type": "application/x-gzip;charset=utf-8"})
+         r1 = Response("http://www.example.com", headers=hdrs)
+         self.assertTrue(is_gzipped(r1))
++
++    def test_gunzip_illegal_eof(self):
++        with open(join(SAMPLEDIR, 'unexpected-eof.gz'), 'rb') as f:
++            text = html_to_unicode('charset=cp1252', gunzip(f.read()))[1]
++            with open(join(SAMPLEDIR, 'unexpected-eof-output.txt'), 'rb') as o:
++                expected_text = o.read().decode("utf-8")
++                self.assertEqual(len(text), len(expected_text))
++                self.assertEqual(text, expected_text)

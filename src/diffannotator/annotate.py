@@ -770,6 +770,9 @@ class AnnotatedPatchedFile:
             not interrupted by context line (also called "chunks"),
             as 'n_groups'
           - number of modified files, as 'n_files' (always 1)
+          - number of modified binary files, as 'n_binary_files' (either 0 or 1);
+            for those files there cannot beno information about "lines",
+            like the number of hunks, groups (chunks), etc.
           - sum of distances in context lines between groups (chunks)
             inside hunk, for all hunks in patched file, as 'spread_inner'
           - sum of distances in lines between groups (chunks) for
@@ -779,6 +782,15 @@ class AnnotatedPatchedFile:
         :return: Counter with different sizes and different spreads
             of the given changed file
         """
+        # Handle the case where there are no hunks of changed lines,
+        # for the case of change to the binary file:
+        #   Binary files /dev/null and b/foo.gz differ
+        if len(self.patched_file) == 0:
+            return Counter({
+                'n_files': 1,
+                'n_binary_files': 1,
+            })
+
         result = Counter({
             'n_files': 1,
             'hunk_span_src':

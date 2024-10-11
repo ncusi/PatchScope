@@ -484,6 +484,30 @@ def test_AnnotatedPatchedFile(line_type):
         "AnnotatedHunk.process() with source and AnnotatedPatchedFile.hunk_tokens_for_type() give the same tokens"
 
 
+def test_AnnotatedPatchSet_binary_files_differ():
+    # .......................................................................
+    # patch with binary files
+    file_path = 'tests/test_dataset_structured/scrapy-11/patches/9de6f1ca757b7f200d15e94840c9d431cf202276.diff'
+
+    patch_set = AnnotatedPatchSet.from_filename(file_path,
+                                                missing_ok=False, ignore_diff_parse_errors=False)
+
+    sizes_and_spreads = patch_set.compute_sizes_and_spreads()
+    #print(f"{sizes_and_spreads=}")
+    assert sizes_and_spreads['n_binary_files'] == 2, 'changes to 2 binary files'
+    assert sizes_and_spreads['n_files'] == 4, "changes to 2 files"
+
+    result = patch_set.process()
+    #print(f"{result=}")
+    for pm in ['+', '-']:
+        assert pm not in result['/dev/null'], \
+            f"no '{pm}' lines for /dev/null"
+        assert pm not in result['tests/sample_data/compressed/unexpected-eof-output.txt'], \
+            f"no '{pm}' lines for binary file with *.txt extension"
+        assert pm not in result['tests/sample_data/compressed/unexpected-eof.gz'], \
+            f"no '{pm}' lines for binary file with *.gz extension"
+
+
 def test_Bug_from_dataset():
     # code patch
     file_path = Path('tests/test_dataset/tqdm-1/c0dcf39b046d1b4ff6de14ac99ad9a1b10487512.diff')
