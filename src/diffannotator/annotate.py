@@ -2209,6 +2209,13 @@ def dataset(
     else:
         print(Path('<output_prefix>/<dataset_dir>/<bug_directory>').joinpath(annotations_dir, '<patch_file>.json'))
 
+    # TODO: consider doing the same when expanding `output_dir` in `from_repo()`
+    if output_prefix != output_prefix.expanduser():
+        print(f"Expanding '{output_prefix}' to", end=" ")
+        # expand ~ and ~user constructs
+        output_prefix = output_prefix.expanduser()
+        print(f"'{output_prefix}'")
+
     # no need for tqdm, as there is usually only a few datasets, or even only one
     for dataset_dir in datasets:
         print(f"Processing dataset in directory '{dataset_dir}'{' with fanout' if uses_fanout else ''}")
