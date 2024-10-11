@@ -130,7 +130,12 @@ class PurposeCounterResults:
         file_purposes = Counter()
         added_line_purposes = Counter()
         removed_line_purposes = Counter()
+
         for change_file in data:
+            if not isinstance(data[change_file], dict):
+                # this is not changed file information, but sizes and spreads metrics
+                # for example 'n_files', which type is int, not dict
+                continue
             if 'purpose' not in data[change_file] and change_file == 'commit_metadata':
                 # this is not changed file information, but commit metadata
                 continue
@@ -336,6 +341,10 @@ def map_diff_to_purpose_dict(_diff_file_path: str, data: dict) -> dict:
     """
     result = {}
     for change_file in data:
+        if not isinstance(data[change_file], dict):
+            # this is not changed file information, but sizes and spreads metrics
+            # for example 'n_files', which type is int, not dict
+            continue
         if 'purpose' not in data[change_file] and change_file == 'commit_metadata':
             # this is not changed file information, but commit metadata
             continue
@@ -495,6 +504,11 @@ def map_diff_to_timeline(annotation_file_basename: str,
     for filename, file_data in annotation_data.items():
         # NOTE: each file should be present only once for given patch/commit
 
+        if not isinstance(file_data, dict):
+            # this is not changed file information, but sizes and spreads metrics
+            # for example 'n_files', which type is int, not dict
+            continue
+
         if filename == 'commit_metadata':
             # this might be changed file information, but commit metadata
             for metadata_key in ('author', 'committer'):
@@ -512,6 +526,7 @@ def map_diff_to_timeline(annotation_file_basename: str,
                 # commit metadata, skip processing it as a file
                 continue
             else:
+                # TODO: use logging
                 print(f"  warning: found file named 'commit_metadata' in {annotation_file_basename}")
 
         result['file_names'] += 1
