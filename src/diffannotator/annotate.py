@@ -1,8 +1,40 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
+"""Usage: python -m diffannotator.annotate [<common-options>] <subcommand> <options>
 
+Annotate existing dataset (that is, patch files in subdirectories corresponding to bugs),
+or selected subset of commits (of changes in selectes subset of commits) in a given repository.
+
+The result of annotation is saved in JSON files, one per patch / commit.
+
+This script provides the following subcommands:
+
+- `diff-annotate patch [OPTIONS] PATCH_FILE RESULT_JSON`:
+  annotate a single PATCH_FILE, writing results to RESULT_JSON,
+- `diff-annotate dataset [OPTIONS] DATASETS...`:
+  annotate all bugs in provided DATASETS,
+- `diff-anotate from-repo [OPTIONS] REPO_PATH [REVISION_RANGE...]`:
+  create annotation data for commits from local Git repository
+  (with `REVISION_RANGE...` passed as arguments to the `git log` command);
+
+Example (after installing the 'diffannotator' package):
+    diff-annotate --help
+
+    diff-annotate --use-pylinguist patch \
+        tests/test_dataset/tqdm-1/c0dcf39b046d1b4ff6de14ac99ad9a1b10487512.diff \
+        c0dcf39b046d1b4ff6de14ac99ad9a1b10487512.json
+
+    diff-annotate dataset \
+        --output-prefix ~/example_annotations/bugsinpy-dataset/ \
+        /mnt/data/HaPy-Bug/raw_data/bugsinpy-dataset/
+
+    diff-annotate from-repo \
+        --output-dir=~/example_annotations/tensorflow/yong.tang/ \
+        ~/example_repositories/tensorflow/ \
+        --author=yong.tang.github@outlook.com
+"""
 import collections.abc
 from collections import defaultdict, deque, namedtuple, Counter
-import importlib.metadata
 import inspect
 import json
 import logging
@@ -26,6 +58,7 @@ from typing_extensions import Annotated  # in typing since Python 3.9
 import yaml
 
 from . import languages
+from .config import get_version
 from .languages import Languages
 from .lexer import Lexer
 from .utils.git import GitRepo, ChangeSet
@@ -74,8 +107,6 @@ class LanguagesFromLinguist:
             "purpose": file_purpose,
         }
 
-
-__version__ = "0.1.0"
 
 # configure logging
 logger = logging.getLogger(__name__)
@@ -1657,26 +1688,6 @@ class BugDataset:
 # =========================================================================
 
 app = typer.Typer(no_args_is_help=True, add_completion=False)
-
-
-def get_version() -> str:
-    """Return version of this script
-
-    Use version from the 'diffannotator' package this script is from,
-    if possible, with fallback to global variable `__version__`.
-    Updates `__version__`.
-
-    :returns: version string
-    """
-    global __version__
-
-    if __package__:
-        try:
-            __version__ = importlib.metadata.version(__package__)
-        except importlib.metadata.PackageNotFoundError:
-            pass
-
-    return __version__
 
 
 def version_callback(value: bool):

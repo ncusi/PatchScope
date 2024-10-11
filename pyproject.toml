@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "diffannotator"
-version = "0.1.0"
+# 'version' is now defined dynamically
 description = "Annotate files and lines of diffs (patches) with their purpose and type"
 readme = "README.md"
 keywords = [
@@ -33,7 +33,7 @@ classifiers = [
 ]
 # joblib requires Python 3.8+
 requires-python = ">= 3.8"  # vermin --eval-annotations --backport typing --backport typing_extensions .
-dynamic = ["dependencies"]
+dynamic = ["dependencies", "version"]
 
 [project.scripts]
 diff-generate = "diffannotator.generate_patches:app"
@@ -46,6 +46,7 @@ homepage = "https://github.com/ncusi/python-diff-annotator"
 
 [tool.setuptools.dynamic]
 dependencies = {file = ["requirements.txt"]}
+version = {attr = "diffannotator.config.__version__"}
 
 # Currently, when specifying `optional-dependencies` dynamically, all the
 # groups must be specified dynamically; one can not specify some of them

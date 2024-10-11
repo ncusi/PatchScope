@@ -1,13 +1,13 @@
 # TO DO List for Diff Annotator package
 
-- [ ] cleanup
+- [x] cleanup
     - [x] cleanup annotate.py
     - [x] test annotate.py code
     - [x] test annotate.py script
     - [x] cleanup languages.py
     - [x] cleanup lexer.py
-    - [x] _maybe_ move from [click][] to [typer][]
-    - [ ] add docstring for all files
+    - [x] move from [click][] to [typer][] for handling CLI parameters
+    - [x] add docstring for all files
 - [x] make it a separate package
     - [x] directory structure
     - [x] 'pyproject.toml' (and _optionally_ 'setup.py')
@@ -15,7 +15,7 @@
     - [x] 'LICENSE' (MIT License)
     - [ ] _maybe_ 'MANIFEST.in'
     - [x] separate repository on GitHub
-    - [ ] move `__version__` to `__init__.py`
+    - [x] move `__version__` to ~~`__init__.py`~~ `config.py`
          (see also ["version at runtime" in setuptools_scm docs](https://setuptools-scm.readthedocs.io/en/stable/usage/#version-at-runtime)
           and ["Single-sourcing the package version" in Python Packaging User Guide](https://packaging.python.org/en/latest/guides/single-sourcing-package-version/))
     - [ ] add `docs/` directory (for man pages, and maybe API documentation)

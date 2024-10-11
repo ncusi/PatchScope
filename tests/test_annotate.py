@@ -1,12 +1,14 @@
+# -*- coding: utf-8 -*-
+"""Test cases for 'src/diffannotator/annotate.py' module"""
 import copy
 import re
 from pathlib import Path
 from textwrap import dedent
 
-from pygments.lexers import CLexer
-from pygments.token import Token
 import pytest
 import unidiff
+from pygments.lexers import CLexer
+from pygments.token import Token
 
 from diffannotator.annotate import (split_multiline_lex_tokens, line_ends_idx,
                                     group_tokens_by_line, front_fill_gaps, deep_update,

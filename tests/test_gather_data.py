@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+"""Test cases for 'src/diffannotator/gather_data.py' module"""
 from collections import Counter
 from pathlib import Path
 

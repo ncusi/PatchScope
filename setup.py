@@ -9,7 +9,25 @@ Notes:
         and other packaging-related tools (setup.py is more reliable on those scenarios).
 
 Suggested by https://setuptools.pypa.io/en/latest/userguide/pyproject_config.html
+with addition from https://packaging.python.org/en/latest/guides/single-sourcing-package-version/
 """
+import codecs
+import os.path
 from setuptools import setup
 
-setup()
+def read_file(rel_path: str) -> str:
+    here = os.path.abspath(os.path.dirname(__file__))
+    with codecs.open(os.path.join(here, rel_path), 'r') as fp:
+        return fp.read()
+
+def get_version_from_file(rel_path: str) -> str:
+    for line in read_file(rel_path).splitlines():
+        if line.startswith('__version__'):
+            delimiter = '"' if '"' in line else "'"
+            return line.split(delimiter)[1]
+    else:
+        raise RuntimeError(f"Unable to find version string in '{rel_path}'.")
+
+setup(
+    version=get_version_from_file("src/diffannotator/config.py")
+)

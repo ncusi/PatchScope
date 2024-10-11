@@ -1,3 +1,12 @@
+"""conftest.py: local per-directory plugins / per-directory configuration
+
+It is used in thiis project to provide variables and fixtures common
+to all the tests in 'tests/' directory.
+
+https://docs.pytest.org/en/stable/how-to/writing_plugins.html#pluginorder
+https://docs.pytest.org/en/stable/how-to/writing_plugins.html#localplugin
+https://docs.pytest.org/en/stable/reference/fixtures.html#conftest-py-sharing-fixtures-across-multiple-files
+"""
 import os
 import subprocess
 from pathlib import Path
