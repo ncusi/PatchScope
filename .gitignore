@@ -150,6 +150,9 @@ dmypy.json
 # pytype static type analyzer
 .pytype/
 
+# pylsp (python-lsp-server)
+.virtual_documents
+
 # Cython debug symbols
 cython_debug/
 
