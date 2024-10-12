@@ -1,6 +1,11 @@
 # Jupyter and various related tool
 jupyterlab
+# Dashboard tools
+panel
+pyviz-comms   # https://panel.holoviz.org/how_to/notebook/notebook.html
+watchfiles
 # Packages used by notebooks
+hvplot
 matplotlib
 seaborn
 numpy
