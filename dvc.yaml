@@ -1,0 +1,22 @@
+vars:
+  # where to clone Git repositories (should be external directory)
+  - repos_dir: ~/example_repositories
+  # list of Git repositories to clone, and their URLs
+  - repos:
+      - name: tensorflow
+        url: https://github.com/tensorflow/tensorflow.git
+stages:
+  clone:
+    foreach: ${repos}
+    do:
+      desc: 'Clone ${item.name} repository from ${item.url}'
+      cmd:
+        - >-
+          if [ -d ${repos_dir}/${item.name} ]; then
+             echo 'Repository ${item.name} already cloned, skipping';
+          else
+             git clone ${item.url} ${repos_dir}/${item.name};
+          fi
+        - echo ${item.url} >data/examples/${item.name}.url
+      outs:
+        - data/examples/${item.name}.url
