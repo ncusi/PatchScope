@@ -89,3 +89,18 @@ stages:
         - src/diffannotator/gather_data.py
       outs:
         - data/examples/stats/${item.name}.lines-stats.json
+
+  timeline:
+    foreach: ${repos}
+    do:
+      desc: 'Running `diff-gather-stats timeline ...` on ${item.name} repo'
+      cmd: >-
+        diff-gather-stats --annotations-dir=''
+        timeline
+        data/examples/stats/${item.name}.timeline.json
+        data/examples/annotations/${item.name}/
+      deps:
+        - data/examples/annotations/${item.name}
+        - src/diffannotator/gather_data.py
+      outs:
+        - data/examples/stats/${item.name}.timeline.json
