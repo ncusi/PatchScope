@@ -59,3 +59,18 @@ stages:
         - src/diffannotator/gather_data.py
       outs:
         - data/examples/stats/${item.name}.purpose-counter.json
+
+  purpose-per-file:
+    foreach: ${repos}
+    do:
+      desc: 'Running `diff-gather-stats purpose-per-file ...` on ${item.name} repo'
+      cmd: >-
+        diff-gather-stats --annotations-dir=''
+        purpose-per-file
+        data/examples/stats/${item.name}.purpose-per-file.json
+        data/examples/annotations/${item.name}/
+      deps:
+        - data/examples/annotations/${item.name}
+        - src/diffannotator/gather_data.py
+      outs:
+        - data/examples/stats/${item.name}.purpose-per-file.json
