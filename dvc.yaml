@@ -5,6 +5,15 @@ vars:
   - repos:
       - name: tensorflow
         url: https://github.com/tensorflow/tensorflow.git
+  # repositories, and authors in those repositories, to analyze/annotate
+  - authors:
+      - repo: tensorflow
+        nick: ezhulenev
+        author: ezhulenev@google.com
+      - repo: tensorflow
+        nick: yong.tang
+        author: yong.tang.github@outlook.com
+
 stages:
   clone:
     foreach: ${repos}
@@ -20,3 +29,18 @@ stages:
         - echo ${item.url} >data/examples/${item.name}.url
       outs:
         - data/examples/${item.name}.url
+
+  annotate:
+    foreach: ${authors}
+    do:
+      desc: 'Generating annotations for ${item.nick} from-repo ${item.repo}'
+      cmd: >-
+        diff-annotate from-repo
+        --output-dir=data/examples/annotations/${item.repo}/${item.nick}/
+        ${repos_dir}/${item.repo}
+        --author=${item.author}
+      deps:
+        - src/diffannotator/annotate.py
+        - data/examples/${item.repo}.url
+      outs:
+        - data/examples/annotations/${item.repo}/${item.nick}/
