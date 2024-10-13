@@ -1,0 +1,148 @@
+schema: '2.0'
+stages:
+  clone@0:
+    cmd:
+    - "if [ -d ~/example_repositories/tensorflow ]; then\n   echo 'Repository tensorflow
+      already cloned, skipping';\nelse\n   git clone https://github.com/tensorflow/tensorflow.git
+      ~/example_repositories/tensorflow;\nfi"
+    - echo https://github.com/tensorflow/tensorflow.git >data/examples/tensorflow.url
+    outs:
+    - path: data/examples/tensorflow.url
+      hash: md5
+      md5: a11cc814a323d1cc021b7aad39314b11
+      size: 45
+  annotate@0:
+    cmd: diff-annotate from-repo --output-dir=data/examples/annotations/tensorflow/ezhulenev/
+      ~/example_repositories/tensorflow --author=ezhulenev@google.com
+    deps:
+    - path: data/examples/tensorflow.url
+      hash: md5
+      md5: a11cc814a323d1cc021b7aad39314b11
+      size: 45
+    - path: src/diffannotator/annotate.py
+      hash: md5
+      md5: 42ee9628cff44e6da84ab023c9a859ef
+      size: 106368
+      isexec: true
+    outs:
+    - path: data/examples/annotations/tensorflow/ezhulenev/
+      hash: md5
+      md5: ecc0ac9b49f91f5998f21df95d59833e.dir
+      size: 131323218
+      nfiles: 1896
+  annotate@1:
+    cmd: diff-annotate from-repo --output-dir=data/examples/annotations/tensorflow/yong.tang/
+      ~/example_repositories/tensorflow --author=yong.tang.github@outlook.com
+    deps:
+    - path: data/examples/tensorflow.url
+      hash: md5
+      md5: a11cc814a323d1cc021b7aad39314b11
+      size: 45
+    - path: src/diffannotator/annotate.py
+      hash: md5
+      md5: 42ee9628cff44e6da84ab023c9a859ef
+      size: 106368
+      isexec: true
+    outs:
+    - path: data/examples/annotations/tensorflow/yong.tang/
+      hash: md5
+      md5: eeb7ef0a16ffd6413b00855146976d77.dir
+      size: 23710265
+      nfiles: 1448
+  purpose-counter@0:
+    cmd: diff-gather-stats --annotations-dir='' purpose-counter --output=data/examples/stats/tensorflow.purpose-counter.json
+      data/examples/annotations/tensorflow/
+    deps:
+    - path: data/examples/annotations/tensorflow
+      hash: md5
+      md5: c681b59e22826cae96adceb21056705c.dir
+      size: 155033505
+      nfiles: 3345
+    - path: src/diffannotator/gather_data.py
+      hash: md5
+      md5: 1bc7fa46659ab1c587c5356fcafdc740
+      size: 33477
+      isexec: true
+    outs:
+    - path: data/examples/stats/tensorflow.purpose-counter.json
+      hash: md5
+      md5: 9824e35025786afc4b706b87eed4bf9e
+      size: 361975
+  purpose-per-file@0:
+    cmd: diff-gather-stats --annotations-dir='' purpose-per-file data/examples/stats/tensorflow.purpose-per-file.json
+      data/examples/annotations/tensorflow/
+    deps:
+    - path: data/examples/annotations/tensorflow
+      hash: md5
+      md5: c681b59e22826cae96adceb21056705c.dir
+      size: 155033505
+      nfiles: 3345
+    - path: src/diffannotator/gather_data.py
+      hash: md5
+      md5: 1bc7fa46659ab1c587c5356fcafdc740
+      size: 33477
+      isexec: true
+    outs:
+    - path: data/examples/stats/tensorflow.purpose-per-file.json
+      hash: md5
+      md5: ce57ac351f2a7bcf71817adb37188bf8
+      size: 1858243
+  lines-stats@0:
+    cmd: diff-gather-stats --annotations-dir='' lines-stats data/examples/stats/tensorflow.lines-stats.json
+      data/examples/annotations/tensorflow/
+    deps:
+    - path: data/examples/annotations/tensorflow
+      hash: md5
+      md5: c681b59e22826cae96adceb21056705c.dir
+      size: 155033505
+      nfiles: 3345
+    - path: src/diffannotator/gather_data.py
+      hash: md5
+      md5: 1bc7fa46659ab1c587c5356fcafdc740
+      size: 33477
+      isexec: true
+    outs:
+    - path: data/examples/stats/tensorflow.lines-stats.json
+      hash: md5
+      md5: 199faacf0758e839b1ca4c211c0ca9b4
+      size: 9187790
+  timeline@0:
+    cmd: diff-gather-stats --annotations-dir='' timeline data/examples/stats/tensorflow.timeline.json
+      data/examples/annotations/tensorflow/
+    deps:
+    - path: data/examples/annotations/tensorflow
+      hash: md5
+      md5: c681b59e22826cae96adceb21056705c.dir
+      size: 155033505
+      nfiles: 3345
+    - path: src/diffannotator/gather_data.py
+      hash: md5
+      md5: 1bc7fa46659ab1c587c5356fcafdc740
+      size: 33477
+      isexec: true
+    outs:
+    - path: data/examples/stats/tensorflow.timeline.json
+      hash: md5
+      md5: 9ad4cf7c9a98d6b69fa689de14789be4
+      size: 3249686
+  timeline.purpose-to-type@0:
+    cmd: diff-gather-stats --annotations-dir='' timeline --purpose-to-annotation=data
+      --purpose-to-annotation=documentation --purpose-to-annotation=markup --purpose-to-annotation=other
+      --purpose-to-annotation=project --purpose-to-annotation=test data/examples/stats/tensorflow.timeline.purpose-to-type.json
+      data/examples/annotations/tensorflow/
+    deps:
+    - path: data/examples/annotations/tensorflow
+      hash: md5
+      md5: c681b59e22826cae96adceb21056705c.dir
+      size: 155033505
+      nfiles: 3345
+    - path: src/diffannotator/gather_data.py
+      hash: md5
+      md5: 1bc7fa46659ab1c587c5356fcafdc740
+      size: 33477
+      isexec: true
+    outs:
+    - path: data/examples/stats/tensorflow.timeline.purpose-to-type.json
+      hash: md5
+      md5: 008c3b4f3da6f019952ea9a73f165d4d
+      size: 3319706
