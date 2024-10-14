@@ -76,6 +76,35 @@ Each script and subcommand supports the `--help` option.
 
 ## Examples and demos
 
+This repository also includes some examples demonstrating how this
+project works, and what it can be used for.
+
+### First time setup (for generating examples)
+
+You can set up the environment for using this project, following
+the recommended practices (described in the _"[Development](#development)"_
+section of this document), by running the [`examples-init.bash`](examples-init.bash) Bash script,
+and following its instructions.
+
+Note that this script assumes that it is run on Linux, or Linux-like
+system.  For other operating systems, you are probably better following
+the steps described in this document manually.
+
+This script includes the configuration section at the beginning of it;
+you can change parameters to better fit your environment:
+- `DVCSTORE_DIR` - directory with local dvc remote
+- `PYTHON` - Python 3.x executable (before activating virtual environment)
+
+
+This project uses [DVC](https://dvc.org/) (Data Version Control) tool
+to track annotations and metrics data, and version this data.  It allows
+to store large files and large directories outside of Git repository,
+while still have them to be version controlled.  They can be stored locally,
+or in the cloud.
+
+The [`examples-init.bash`](examples-init.bash) script also configures local DVC storage.
+
+
 ### Jupyter Notebooks
 
 The `notebooks/` directory contains Jupyter Notebooks with data exploration,

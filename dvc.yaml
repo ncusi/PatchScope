@@ -1,0 +1,127 @@
+vars:
+  # where to clone Git repositories (should be external directory)
+  - repos_dir: ~/example_repositories
+  # list of Git repositories to clone, and their URLs
+  - repos:
+      - name: tensorflow
+        url: https://github.com/tensorflow/tensorflow.git
+  # repositories, and authors in those repositories, to analyze/annotate
+  - authors:
+      - repo: tensorflow
+        nick: ezhulenev
+        author: ezhulenev@google.com
+      - repo: tensorflow
+        nick: yong.tang
+        author: yong.tang.github@outlook.com
+
+stages:
+  clone:
+    foreach: ${repos}
+    do:
+      desc: 'Clone ${item.name} repository from ${item.url}'
+      cmd:
+        - >-
+          if [ -d ${repos_dir}/${item.name} ]; then
+             echo 'Repository ${item.name} already cloned, skipping';
+          else
+             git clone ${item.url} ${repos_dir}/${item.name};
+          fi
+        - echo ${item.url} >data/examples/${item.name}.url
+      outs:
+        - data/examples/${item.name}.url
+
+  annotate:
+    foreach: ${authors}
+    do:
+      desc: 'Generating annotations for ${item.nick} from-repo ${item.repo}'
+      cmd: >-
+        diff-annotate from-repo
+        --output-dir=data/examples/annotations/${item.repo}/${item.nick}/
+        ${repos_dir}/${item.repo}
+        --author=${item.author}
+      deps:
+        - src/diffannotator/annotate.py
+        - data/examples/${item.repo}.url
+      outs:
+        - data/examples/annotations/${item.repo}/${item.nick}/
+
+  purpose-counter:
+    foreach: ${repos}
+    do:
+      desc: 'Running `diff-gather-stats purpose-counter ...` on ${item.name} repo'
+      cmd: >-
+        diff-gather-stats --annotations-dir=''
+        purpose-counter
+        --output=data/examples/stats/${item.name}.purpose-counter.json
+        data/examples/annotations/${item.name}/
+      deps:
+        - data/examples/annotations/${item.name}
+        - src/diffannotator/gather_data.py
+      outs:
+        - data/examples/stats/${item.name}.purpose-counter.json
+
+  purpose-per-file:
+    foreach: ${repos}
+    do:
+      desc: 'Running `diff-gather-stats purpose-per-file ...` on ${item.name} repo'
+      cmd: >-
+        diff-gather-stats --annotations-dir=''
+        purpose-per-file
+        data/examples/stats/${item.name}.purpose-per-file.json
+        data/examples/annotations/${item.name}/
+      deps:
+        - data/examples/annotations/${item.name}
+        - src/diffannotator/gather_data.py
+      outs:
+        - data/examples/stats/${item.name}.purpose-per-file.json
+
+  lines-stats:
+    foreach: ${repos}
+    do:
+      desc: 'Running `diff-gather-stats lines-stats ...` on ${item.name} repo'
+      cmd: >-
+        diff-gather-stats --annotations-dir=''
+        lines-stats
+        data/examples/stats/${item.name}.lines-stats.json
+        data/examples/annotations/${item.name}/
+      deps:
+        - data/examples/annotations/${item.name}
+        - src/diffannotator/gather_data.py
+      outs:
+        - data/examples/stats/${item.name}.lines-stats.json
+
+  timeline:
+    foreach: ${repos}
+    do:
+      desc: 'Running `diff-gather-stats timeline ...` on ${item.name} repo'
+      cmd: >-
+        diff-gather-stats --annotations-dir=''
+        timeline
+        data/examples/stats/${item.name}.timeline.json
+        data/examples/annotations/${item.name}/
+      deps:
+        - data/examples/annotations/${item.name}
+        - src/diffannotator/gather_data.py
+      outs:
+        - data/examples/stats/${item.name}.timeline.json
+
+  timeline.purpose-to-type:
+    foreach: ${repos}
+    do:
+      desc: 'Running `diff-gather-stats timeline --purpose-to-annotation...` on ${item.name} repo'
+      cmd: >-
+        diff-gather-stats --annotations-dir=''
+        timeline
+        --purpose-to-annotation=data
+        --purpose-to-annotation=documentation
+        --purpose-to-annotation=markup
+        --purpose-to-annotation=other
+        --purpose-to-annotation=project
+        --purpose-to-annotation=test
+        data/examples/stats/${item.name}.timeline.purpose-to-type.json
+        data/examples/annotations/${item.name}/
+      deps:
+        - data/examples/annotations/${item.name}
+        - src/diffannotator/gather_data.py
+      outs:
+        - data/examples/stats/${item.name}.timeline.purpose-to-type.json
