@@ -60,8 +60,8 @@ stages:
       nfiles: 3345
     - path: src/diffannotator/gather_data.py
       hash: md5
-      md5: 1bc7fa46659ab1c587c5356fcafdc740
-      size: 33477
+      md5: d1d18d78d0ed7107e5d229e62d6447b8
+      size: 34103
       isexec: true
     outs:
     - path: data/examples/stats/tensorflow.purpose-counter.json
@@ -79,8 +79,8 @@ stages:
       nfiles: 3345
     - path: src/diffannotator/gather_data.py
       hash: md5
-      md5: 1bc7fa46659ab1c587c5356fcafdc740
-      size: 33477
+      md5: d1d18d78d0ed7107e5d229e62d6447b8
+      size: 34103
       isexec: true
     outs:
     - path: data/examples/stats/tensorflow.purpose-per-file.json
@@ -98,8 +98,8 @@ stages:
       nfiles: 3345
     - path: src/diffannotator/gather_data.py
       hash: md5
-      md5: 1bc7fa46659ab1c587c5356fcafdc740
-      size: 33477
+      md5: d1d18d78d0ed7107e5d229e62d6447b8
+      size: 34103
       isexec: true
     outs:
     - path: data/examples/stats/tensorflow.lines-stats.json
@@ -117,14 +117,14 @@ stages:
       nfiles: 3345
     - path: src/diffannotator/gather_data.py
       hash: md5
-      md5: 1bc7fa46659ab1c587c5356fcafdc740
-      size: 33477
+      md5: d1d18d78d0ed7107e5d229e62d6447b8
+      size: 34103
       isexec: true
     outs:
     - path: data/examples/stats/tensorflow.timeline.json
       hash: md5
-      md5: 9ad4cf7c9a98d6b69fa689de14789be4
-      size: 3249686
+      md5: 3cda5aa3e753e371959b801599c6be45
+      size: 4838243
   timeline.purpose-to-type@0:
     cmd: diff-gather-stats --annotations-dir='' timeline --purpose-to-annotation=data
       --purpose-to-annotation=documentation --purpose-to-annotation=markup --purpose-to-annotation=other
@@ -138,11 +138,11 @@ stages:
       nfiles: 3345
     - path: src/diffannotator/gather_data.py
       hash: md5
-      md5: 1bc7fa46659ab1c587c5356fcafdc740
-      size: 33477
+      md5: d1d18d78d0ed7107e5d229e62d6447b8
+      size: 34103
       isexec: true
     outs:
     - path: data/examples/stats/tensorflow.timeline.purpose-to-type.json
       hash: md5
-      md5: 008c3b4f3da6f019952ea9a73f165d4d
-      size: 3319706
+      md5: 4295c75df1865b4c6ed6e9d81a6cae64
+      size: 4908263

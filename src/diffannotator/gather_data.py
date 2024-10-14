@@ -481,6 +481,24 @@ def map_diff_to_timeline(annotation_file_basename: str,
     #       "tz_info": "-0500"
     #     },
     #   },
+    #
+    #   "n_files": 1,
+    #   "hunk_span_src": 108,
+    #   "hunk_span_dst": 114,
+    #   "hunk_spread_src": 82,
+    #   "hunk_spread_dst": 82,
+    #   "n_hunks": 3,
+    #   "n_lines_added": 9,
+    #   "n_lines_removed": 3,
+    #   "n_lines_all": 38,
+    #   "n_mod": 2,
+    #   "n_add": 7,
+    #   "n_rem": 1,
+    #   "n_groups": 5,
+    #   "patch_size": 10,
+    #   "groups_spread": 100,
+    #   "spread_inner": 8,
+    #
     #   "third_party/xla/xla/service/gpu/ir_emitter_unnested.cc": {
     #     "language": "C++",
     #     "type": "programming",
@@ -516,6 +534,9 @@ def map_diff_to_timeline(annotation_file_basename: str,
         if not isinstance(file_data, dict):
             # this is not changed file information, but sizes and spreads metrics
             # for example 'n_files', which type is int, not dict
+            # TODO: include this information for other (sub)commands
+            per_commit_info[f"diff.{filename}"] = file_data
+            # no further analysis, no aggregation of  per-file data
             continue
 
         if filename == 'commit_metadata':
