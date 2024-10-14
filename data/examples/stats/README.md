@@ -9,8 +9,31 @@ the [`/dvc.yaml`](../../../dvc.yaml) file) with the `dvc repro` command.
 Using DVC pipeline makes it possible to regenerate only those files
 that need it, and re-run all stages that need it.
 
+Here is the graph of DVC pipeline stages, as Mermaid flowchart:
+```mermaid
+flowchart LR
+        node1["annotate@{0.a,0.b}"]
+        node3["clone@0"]
+        node4["purpose-counter@0"]
+        node5["purpose-per-file@0"]
+        node6["lines-stats@0"]
+        node7["timeline@0"]
+        node8["timeline.purpose-to-type@0"]
+        node1-->node4
+        node1-->node5
+        node1-->node6
+        node1-->node7
+        node1-->node8
+        node3-->node1
+```
+Variables in the DAG of DVC stages above:
+- 0: tensorflow repository
+    - 0.a: ezhulenev@google.com author in tensorflow repository
+    - 0.b: yong.tang.github@outlook.com author in tensorflow repository
+
 Those files are being analyzed by Jupyter notebooks in the
-[`/notebooks/`](../../../notebooks) directory.
+[`/notebooks/`](../../../notebooks) directory,
+see [`/notebooks/README.md`](../../../notebooks/README.md).
 
 
 ## Projects and repositories
