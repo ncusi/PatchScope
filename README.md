@@ -267,6 +267,34 @@ Visualizations for a specific repository:
 
 Web applications that demonstrate some MSR tool:
 
+- GitHub offers GitHub Insights for repositories
+  (see for example [Contributors to qtile/qtile](https://github.com/qtile/qtile/graphs/contributors)).
+  This includes the following subpages:
+    - _**Pulse**_ (with configurable period of 1 month, 1 week, 3 days, 24 hours)
+      shows information about pull requests and issues, and summary of changes as text
+      (_N_ authors pushed _X_ commits to master, and _Y_ to all branches.
+      On master, _M_ files were changed ad there had been _A_ additions and _D_ deletions).
+    - _**Contributions**_ per week to master, excluding merge commits
+      {as smoothed (!) line/area plot}, for whole project,
+      and for up to 100 authors (with configurable period of all, last month, last 3 months,
+      last 6 months, last 12 months, last 24 months; with configurable type of contributions:
+      commits, additions, deletions).  For each author we also have summary of their
+      contributions as text (_N_ commits, _A_ ++, _D_ --).
+    - _**Commits**_ shows two plots: bar plot of commits per week over time
+      for the last year {without any explanation, except for information shown on mouse hover},
+      and line plot with days of the week on x-axis {no explanation, no information on hover (!)}.
+      No configuration.
+    - _**Code frequency**_ over the history of the project: additions and deletions per week
+      (where additions use green solid lines, and deletions use red dashed lines and are plotted
+      upside-down).  No configuration.
+    - other pages related to GitHub specifically, or the project as whole but not its history
+      (like _Community Standards_, _Dependency graph_, _Forks_, or _Action Usage Metrics_).
+- GitHub also offers Developer Overview, which among others include the following chart:
+    - _N_ contributions in last year / in YYYY, showing _**heatmap**_ using 5-color discrete colormap,
+      with year worth of weeks on x-axis, and day of the week (Sun to Sat) on the y-axis.
+      You can switch between the years with a "radio button" (though there is no 'last year' entry).
+      Contributions are timestamped according to Coordinated Universal Time (UTC)
+      rather than contributor's local time zone.
 - [Assayo](https://github.com/bakhirev/assayo) has a
   [homepage with demo](https://assayo.online/) where you can
   provide the output of given Git CLI command in your repo
@@ -279,7 +307,7 @@ Web applications that demonstrate some MSR tool:
   to visualize: `vuejs/vue` and `realm/realm-java`.
   Written in JavaScript with React, D3, dagre.
 - [GitVision](https://github.com/gaspardIV/gitvision), a 3D repository
-  graph visualization tool, has [live demo](https://gitvis.web.app/)
+  graph visualization tool, has a [live demo](https://gitvis.web.app/)
   with visualization for more than 20 repositories (ranging from tiny
   to large), and where you can visualize your own repository by
   uploading the result of running the [GitVision script](https://github.com/GaspardIV/gitvision/tree/main/tool).
