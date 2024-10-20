@@ -2,10 +2,13 @@
 jupyterlab
 # Dashboard tools
 panel
+ipywidgets
+ipywidgets_bokeh
 pyviz-comms   # https://panel.holoviz.org/how_to/notebook/notebook.html
 watchfiles
 # Packages used by notebooks
 hvplot
+ipympl
 matplotlib
 seaborn
 numpy

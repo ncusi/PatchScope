@@ -52,7 +52,7 @@
       currently uses [logging][] module from standard library.
     - [ ] limit information logged to console to ERROR or higher, or CRITICAL only
     - [ ] _maybe_ if consider using [colorlog][] for colored log on console
-    - [ ] _maybe_ allow structured JSON logging (e.g. if log file name ends with *.json)
+    - [ ] _maybe_ allow structured JSON logging (e.g. if log file name ends with \*.json)
           with [python-json-logger][]
     - [ ] use `logger.exception()` in exception handlers, in place of `logger.error()`
     - [ ] _maybe_ consider using alternative tools:
@@ -65,7 +65,7 @@
 
 ## TO DO List for `diff-generate` script
 
-This script can be used to generate patches (*.patch and *.diff files)
+This script can be used to generate patches (\*.patch and \*.diff files)
 from a given repository, in the format suitable for later analysis:
 annotating with `diff-annotate`, and computing statistics with `diff-gather-stats`.
 
@@ -123,6 +123,9 @@ The result of annotation is saved in JSON files, one per patch / commit.
     - [x] computing patch/diff size and spread, following
           _"[Dissection of a bug dataset: Anatomy of 395 patches from Defects4J][dissection-defects4j-paper]"_
           (and extending it) - independent implementation
+        - [ ] check if the **bug** of added, removed, and modified lines
+              not matching with the number of - and + lines in unified diff
+              is here, or with the `diff-gather-stats` step
         - [x] _patch size_ counting added ('+'), removed ('-'), and **modified** ('!') lines,
               with simplified changed lines detection:<br>
               "Lines are considered modified when sequences of removed lines are straight followed by added lines
@@ -143,11 +146,11 @@ The result of annotation is saved in JSON files, one per patch / commit.
               (Java code, Ant build system, with Perl wrappers - for Java code only)
     - [ ] retrieving and adding commit metadata
         - [x] from Git repository - for 'from-repo'
-        - [ ] from *.message files - for 'dataset' (see BugsInPy, HaPy-Bugs)
-        - [x] from `git log -p` generated *.diff files - for 'dataset'
+        - [ ] from \*.message files - for 'dataset' (see BugsInPy, HaPy-Bugs)
+        - [x] from `git log -p` generated \*.diff files - for 'dataset'
         - [ ] from `git format-patch` generated \*.patch/\*.diff files - for 'dataset'
         - [ ] from Git (or GitHub) repository provided via CLI option - for 'dataset'
-    - [ ] configuration file (*.toml, *.yaml, *.json, *.ini, *.cfg, or *.py);<br>
+    - [ ] configuration file (\*.toml, \*.yaml, \*.json, \*.ini, \*.cfg, or \*.py);<br>
       maybe using [Hydra][] (see [_Using Typer and Hydra together_][3]),
       maybe using [typer-config][] (e.g. `my-typer-app --config config.yml`),
       maybe using [Dynaconf][],
@@ -269,6 +272,7 @@ data.
     - [ ] `lines-stats` subcommand
       - [ ] fix handling of `'commit_metadata'` field (skip it)
     - [ ] `timeline` subcommand
+      - [ ] check and fix (if needed) **bug** with 'diff.n\_add' etc. not matching '+:count'
       - [ ] _maybe_ create pandas.DataFrame and save as Parquet, Feather, HDF5, or pickle
       - [ ] _maybe_ resample / groupby (see `notebooks/`)
       - [ ] print information about results of `--purpose-to-annotation`
@@ -294,7 +298,7 @@ data.
       or [termtables](https://pypi.org/project/termtables/).  Possibilities:
       - pure Python: horizontal bar, created by repeating a character N times, like in
         [How to Create Stunning Graphs in the Terminal with Python](https://medium.com/@SrvZ/how-to-create-stunning-graphs-in-the-terminal-with-python-2adf9d012131)
-      - [terminalplot](https://github.com/kressi/terminalplot) - only XY plot with '*', minimalistic
+      - [terminalplot](https://github.com/kressi/terminalplot) - only XY plot with '\*', minimalistic
       - [asciichartpy](https://pypi.org/project/asciichartpy/) - only XY plot, somewhat configurable, uses Node.js [asciichart](https://github.com/kroitor/asciichart)
       - [uniplot](https://github.com/olavolav/uniplot) - XY plots using Unicode, fast, uses NumPy
       - [termplot](https://github.com/justnoise/termplot) - XY plots and histograms, somewhat flexible
@@ -304,6 +308,10 @@ data.
       - [termcharts](https://github.com/Abdur-RahmaanJ/termcharts/) - bar, pie, and doughnut charts, with [Rich][] compatibility
       - [plotext](https://github.com/piccolomo/plotext) - scatter, line, bar, histogram and date-time plots (including candlestick), with support for error bars and confusion matrices
       - [matplotlib-sixel](https://github.com/koppa/matplotlib-sixel) - a matplotlib backend which outputs sixel graphics onto the terminal (`matplotlib.use('module://matplotlib-sixel')`)
+
+# Other TODOs
+
+- [`notebooks/panel/TODO.md`](./notebooks/panel/TODO.md)
 
 [click]: https://click.palletsprojects.com/
 [typer]: https://typer.tiangolo.com/
