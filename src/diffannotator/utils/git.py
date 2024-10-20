@@ -28,7 +28,7 @@ from enum import Enum
 from io import StringIO, BufferedReader, TextIOWrapper
 from pathlib import Path
 from typing import Optional, Union, TypeVar, Literal, overload, NamedTuple, TextIO
-from typing import Iterable, Iterator  # should be imported from collections.abc
+from collections.abc import Iterable, Iterator
 
 from unidiff import PatchSet, DEFAULT_ENCODING
 from unidiff.patch import Line as PatchLine

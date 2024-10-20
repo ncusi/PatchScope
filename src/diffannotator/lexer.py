@@ -26,7 +26,7 @@ source code file.
 """
 import logging
 from pathlib import Path
-from typing import Iterable
+from collections.abc import Iterable
 
 import pygments
 from pygments.lexer import Lexer as PygmentsLexer

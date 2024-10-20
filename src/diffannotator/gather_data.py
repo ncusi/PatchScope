@@ -56,8 +56,7 @@ from collections import Counter, defaultdict
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, Optional, TypeVar
-# NOTE: Callable should be imported from collections.abc for newer Python
-from typing import Callable
+from collections.abc import Callable
 
 import click
 import tqdm

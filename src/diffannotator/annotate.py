@@ -46,8 +46,8 @@ import sys
 import time
 #import traceback  # replaced by exc_info (and possibly stack_info) when loging
 from textwrap import dedent
-from typing import TypeVar, Optional, Union, Iterator, Literal, TYPE_CHECKING
-from typing import Iterable, Generator, Callable  # should be imported from collections.abc
+from typing import TypeVar, Optional, Union, Literal, TYPE_CHECKING
+from collections.abc import Iterable, Iterator, Generator, Callable
 if TYPE_CHECKING:
     from _typeshed import SupportsWrite
 
