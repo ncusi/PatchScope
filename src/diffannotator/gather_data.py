@@ -55,7 +55,7 @@ import os
 from collections import Counter, defaultdict
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Any, List, Tuple, Optional, TypeVar
+from typing import Any, Optional, TypeVar
 # NOTE: Callable should be imported from collections.abc for newer Python
 from typing import Callable
 
@@ -241,7 +241,7 @@ class AnnotatedBugDataset:
         :param dataset_dir: path to the dataset
         """
         self._path = Path(dataset_dir)
-        self.bugs: List[str] = []
+        self.bugs: list[str] = []
 
         try:
             self.bugs = [str(d.name) for d in self._path.iterdir()
@@ -629,7 +629,7 @@ def save_result(result: Any, result_json: Path) -> None:
 
 
 # TODO: consider making it common, and use the trick in other scripts
-def parse_colon_separated_pair(value: str) -> Tuple[str, str]:
+def parse_colon_separated_pair(value: str) -> tuple[str, str]:
     """Parse colon separated pair 'A:B' string into ('A', 'B') tuple
 
     As a shortcut, parse 'A' into ('A', 'A') tuple
@@ -685,7 +685,7 @@ def common(
 def purpose_counter(
     ctx: typer.Context,
     datasets: Annotated[
-        List[Path],
+        list[Path],
         typer.Argument(
             exists=True,
             file_okay=False,
@@ -744,7 +744,7 @@ def purpose_per_file(
         )
     ],
     datasets: Annotated[
-        List[Path],
+        list[Path],
         typer.Argument(
             exists=True,
             file_okay=False,
@@ -788,7 +788,7 @@ def lines_stats(
         )
     ],
     datasets: Annotated[
-        List[Path],
+        list[Path],
         typer.Argument(
             exists=True,
             file_okay=False,
@@ -833,7 +833,7 @@ def timeline(
         )
     ],
     datasets: Annotated[
-        List[Path],
+        list[Path],
         typer.Argument(
             exists=True,
             file_okay=False,
@@ -846,7 +846,7 @@ def timeline(
     # TODO: make it a common option, or share it with lines_stats()
     purpose_to_annotation: Annotated[
         # see https://github.com/fastapi/typer/issues/387#issuecomment-1927465075
-        Optional[List[click.Tuple]],
+        Optional[list[click.Tuple]],
         typer.Option(
             help="""Mapping from file PURPOSE to line type LINE_TYPE.
                     Each line of such file will be treated as if it had given type.
