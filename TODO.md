@@ -309,6 +309,10 @@ data.
       - [plotext](https://github.com/piccolomo/plotext) - scatter, line, bar, histogram and date-time plots (including candlestick), with support for error bars and confusion matrices
       - [matplotlib-sixel](https://github.com/koppa/matplotlib-sixel) - a matplotlib backend which outputs sixel graphics onto the terminal (`matplotlib.use('module://matplotlib-sixel')`)
 
+# Other TODOs
+
+- [`notebooks/panel/TODO.md`](./notebooks/panel/TODO.md)
+
 [click]: https://click.palletsprojects.com/
 [typer]: https://typer.tiangolo.com/
 [typer-config]: https://maxb2.github.io/typer-config/latest/
