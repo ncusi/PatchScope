@@ -31,8 +31,7 @@ classifiers = [
   "Operating System :: OS Independent",
   "Environment :: Console",
 ]
-# joblib requires Python 3.8+
-requires-python = ">= 3.8"  # vermin --eval-annotations --backport typing --backport typing_extensions .
+requires-python = ">= 3.9"  # vermin --eval-annotations --backport typing --backport typing_extensions .
 dynamic = ["dependencies", "version"]
 
 [project.scripts]

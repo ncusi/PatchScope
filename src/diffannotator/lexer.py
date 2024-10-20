@@ -26,7 +26,7 @@ source code file.
 """
 import logging
 from pathlib import Path
-from typing import Dict, Tuple, Iterable
+from collections.abc import Iterable
 
 import pygments
 from pygments.lexer import Lexer as PygmentsLexer
@@ -46,7 +46,7 @@ class Lexer(object):
 
     def __init__(self):
         """Construct the Lexer object, creating the holder for lexers"""
-        self.lexers: Dict[str, PygmentsLexer] = {}
+        self.lexers: dict[str, PygmentsLexer] = {}
 
     def get_lexer(self, filename: str) -> PygmentsLexer:
         """Get lexer suitable for file with given path
@@ -74,7 +74,7 @@ class Lexer(object):
 
         return lexer
 
-    def lex(self, filename: str, code: str) -> Iterable[Tuple]:
+    def lex(self, filename: str, code: str) -> Iterable[tuple]:
         """Run lexer on a fragment of code from file with given filename
 
         :param filename: path to file within the repository

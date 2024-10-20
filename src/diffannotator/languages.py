@@ -42,7 +42,7 @@ import logging
 import os
 from collections import defaultdict
 from pathlib import Path, PurePath
-from typing import List, TypeVar
+from typing import TypeVar
 
 import yaml
 
@@ -142,7 +142,7 @@ PATTERN_TO_PURPOSE = {
 }
 
 
-def languages_exceptions(path: str, lang: List[str]) -> List[str]:
+def languages_exceptions(path: str, lang: list[str]) -> list[str]:
     """Handle exceptions in determining language of a file
 
     :param path: file path in the repository

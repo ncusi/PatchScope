@@ -46,8 +46,8 @@ import sys
 import time
 #import traceback  # replaced by exc_info (and possibly stack_info) when loging
 from textwrap import dedent
-from typing import List, Dict, Tuple, TypeVar, Optional, Union, Iterator, Literal, TYPE_CHECKING
-from typing import Iterable, Generator, Callable  # should be imported from collections.abc
+from typing import TypeVar, Optional, Union, Literal, TYPE_CHECKING
+from collections.abc import Iterable, Iterator, Generator, Callable
 if TYPE_CHECKING:
     from _typeshed import SupportsWrite
 
@@ -116,7 +116,7 @@ logger = logging.getLogger(__name__)
 
 T = TypeVar('T')
 PathLike = TypeVar("PathLike", str, bytes, Path, os.PathLike)
-LineCallback = Callable[[Iterable[Tuple]], str]
+LineCallback = Callable[[Iterable[tuple]], str]
 OptionalLineCallback = Optional[LineCallback]
 
 PURPOSE_TO_ANNOTATION = {"documentation": "documentation"}
@@ -129,7 +129,7 @@ LEXER = Lexer()
 compute_patch_sizes_and_spreads: bool = True
 
 
-def line_ends_idx(text: str) -> List[int]:
+def line_ends_idx(text: str) -> list[int]:
     """Return position+1 for each newline in text
 
     This way each line can be extracted with text[pos[i-1]:pos[i]].
@@ -175,7 +175,7 @@ def split_multiline_lex_tokens(tokens_unprocessed: Iterable[T]) -> Generator[T, 
                 running_count += len(line)
 
 
-def group_tokens_by_line(code: str, tokens: Iterable[T]) -> Dict[int, List[T]]:
+def group_tokens_by_line(code: str, tokens: Iterable[T]) -> dict[int, list[T]]:
     """Group tokens by line in code
 
     For each line in the source `code`, find all `tokens` that belong
@@ -210,7 +210,7 @@ def group_tokens_by_line(code: str, tokens: Iterable[T]) -> Dict[int, List[T]]:
     return line_tokens
 
 
-def front_fill_gaps(data: Dict[int, T]) -> Dict[int, T]:
+def front_fill_gaps(data: dict[int, T]) -> dict[int, T]:
     """Fill any gaps in `data` keys with previous value
 
     >>> front_fill_gaps({1: '1', 3: '3'})
@@ -273,7 +273,7 @@ def clean_text(text: str) -> str:
     return ret
 
 
-def line_is_comment(tokens_list: Iterable[Tuple]) -> bool:
+def line_is_comment(tokens_list: Iterable[tuple]) -> bool:
     """Given results of parsing line, find if it is comment
 
     :param tokens_list: An iterable of (index, token_type, text_fragment) tuples,
@@ -413,7 +413,7 @@ class AnnotatedPatchSet:
         :rtype: dict[str, dict[str, dict | list | str]]
         """
         i: Optional[int] = None
-        patch_annotations: Dict[str, Dict[str, Union[str, dict]]] = {}
+        patch_annotations: dict[str, dict[str, Union[str, dict]]] = {}
 
         try:
             # once per changeset
@@ -523,7 +523,7 @@ class AnnotatedPatchedFile:
 
         :param patched_file: patched file data parsed from unified diff
         """
-        self.patch_data: Dict[str, Dict] = defaultdict(lambda: defaultdict(list))
+        self.patch_data: dict[str, dict] = defaultdict(lambda: defaultdict(list))
 
         # save original diffutils.PatchedFile
         self.patched_file: unidiff.PatchedFile = patched_file
@@ -549,8 +549,8 @@ class AnnotatedPatchedFile:
         self.source: Optional[str] = None
         self.target: Optional[str] = None
         # cache to hold the result of lexing pre-image/post-image
-        self.source_tokens: Optional[Dict[int, List[tuple]]] = None
-        self.target_tokens: Optional[Dict[int, List[tuple]]] = None
+        self.source_tokens: Optional[dict[int, list[tuple]]] = None
+        self.target_tokens: Optional[dict[int, list[tuple]]] = None
 
     # builder pattern
     def add_sources(self, src: str, dst: str) -> 'AnnotatedPatchedFile':
@@ -624,7 +624,7 @@ class AnnotatedPatchedFile:
         else:
             raise ValueError(f"value must be '-' or '+', got {line_type!r}")
 
-    def tokens_for_type(self, line_type: Literal['-','+']) -> Optional[Dict[int, List[tuple]]]:
+    def tokens_for_type(self, line_type: Literal['-','+']) -> Optional[dict[int, list[tuple]]]:
         """Run lexer on a pre-image or post-image contents, if available
 
         Returns (cached) result of lexing pre-image for `line_type` '-',
@@ -674,7 +674,7 @@ class AnnotatedPatchedFile:
         return tokens_group
 
     def tokens_range_for_type(self, line_type: Literal['-','+'],
-                              start_line: int, length: int) -> Optional[Dict[int, List[tuple]]]:
+                              start_line: int, length: int) -> Optional[dict[int, list[tuple]]]:
         """Lexing results for given range of lines, or None if no pre-/post-image
 
         The pre-image and post-image contents of patched file should / can
@@ -707,7 +707,7 @@ class AnnotatedPatchedFile:
         }
 
     def hunk_tokens_for_type(self, line_type: Literal['-','+'],
-                             hunk: Union[unidiff.Hunk, 'AnnotatedHunk']) -> Optional[Dict[int, List[tuple]]]:
+                             hunk: Union[unidiff.Hunk, 'AnnotatedHunk']) -> Optional[dict[int, list[tuple]]]:
         """Lexing results for removed ('-')/added ('+') lines in hunk, if possible
 
         The pre-image and post-image contents of patched file should / can
@@ -922,7 +922,7 @@ class AnnotatedHunk:
 
         self.patch_data = defaultdict(lambda: defaultdict(list))
 
-    def tokens_for_type(self, line_type: Literal['-','+']) -> Optional[Dict[int, List[tuple]]]:
+    def tokens_for_type(self, line_type: Literal['-','+']) -> Optional[dict[int, list[tuple]]]:
         """Lexing results for removed ('-')/added ('+') lines in hunk, if possible
 
         Passes work to `AnnotatedPatchedFile.hunk_tokens_for_type` method
@@ -936,7 +936,7 @@ class AnnotatedHunk:
         """
         return self.patched_file.hunk_tokens_for_type(line_type, self.hunk)
 
-    def compute_sizes_and_spreads(self) -> Tuple[Counter, dict]:
+    def compute_sizes_and_spreads(self) -> tuple[Counter, dict]:
         """Compute hunk sizes and inner-hunk spread
 
         Computes the following metrics:
@@ -1215,7 +1215,7 @@ class AnnotatedHunk:
 
     def add_line_annotation(self, line_no: int, source_file: str, target_file: str,
                             change_type: str, line_annotation: str, purpose: str,
-                            tokens: List[Tuple]) -> None:
+                            tokens: list[tuple]) -> None:
         """Add line annotations for a given line in a hunk
 
         :param line_no: line number (line index) in a diff hunk body, 0-based
@@ -1383,7 +1383,7 @@ class Bug:
             it, `patch_set` should be changes in repo for commit `patch_id`
         :return: Bug object instance
         """
-        patch_annotations: Dict[str, Dict[str, Union[str, dict]]] = {}
+        patch_annotations: dict[str, dict[str, Union[str, dict]]] = {}
         i = 0
 
         src_commit: Optional[str] = None
@@ -1566,9 +1566,9 @@ class BugDataset:
         present only when creating `BugDataset` object from Git repo commits.
     """
 
-    def __init__(self, bug_ids: List[str],
+    def __init__(self, bug_ids: list[str],
                  dataset_path: Optional[PathLike] = None,
-                 patches_dict: Optional[Dict[str, unidiff.PatchSet]] = None,
+                 patches_dict: Optional[dict[str, unidiff.PatchSet]] = None,
                  patches_dir: str = Bug.DEFAULT_PATCHES_DIR,
                  annotations_dir: str = Bug.DEFAULT_ANNOTATIONS_DIR,
                  repo: Optional[GitRepo] = None,
@@ -1758,8 +1758,8 @@ def version_callback(value: bool):
 
 
 def to_simple_mapping_callback(ctx: typer.Context, param: typer.CallbackParam,
-                               values: Optional[List[str]],
-                               mapping: Dict[str, str],
+                               values: Optional[list[str]],
+                               mapping: dict[str, str],
                                allow_simplified: bool = False):
     """Update given to simple `mapping` with '<key>:<value>'s
 
@@ -1808,7 +1808,7 @@ def to_simple_mapping_callback(ctx: typer.Context, param: typer.CallbackParam,
 
 
 def purpose_to_annotation_callback(ctx: typer.Context, param: typer.CallbackParam,
-                                   values: Optional[List[str]]) -> List[str]:
+                                   values: Optional[list[str]]) -> list[str]:
     """Update purpose to annotation mapping with '<key>:<value>'s"""
     return to_simple_mapping_callback(ctx, param, values,
                                       mapping=PURPOSE_TO_ANNOTATION,
@@ -1816,7 +1816,7 @@ def purpose_to_annotation_callback(ctx: typer.Context, param: typer.CallbackPara
 
 
 def pattern_to_purpose_callback(ctx: typer.Context, param: typer.CallbackParam,
-                                values: Optional[List[str]]) -> List[str]:
+                                values: Optional[list[str]]) -> list[str]:
     """Update pattern to purpose mapping with '<key>:<value>'s"""
     return to_simple_mapping_callback(ctx, param, values,
                                       mapping=languages.PATTERN_TO_PURPOSE,
@@ -1825,8 +1825,8 @@ def pattern_to_purpose_callback(ctx: typer.Context, param: typer.CallbackParam,
 
 # TODO: reduce code duplication (there is some similar code in purpose_to_annotation_callback)
 def to_language_mapping_callback(ctx: typer.Context, param: typer.CallbackParam,
-                                 values: Optional[List[str]],
-                                 mapping: Dict[str, List[str]]) -> List[str]:
+                                 values: Optional[list[str]],
+                                 mapping: dict[str, list[str]]) -> list[str]:
     """To create callback for providing to language mapping with '<key>:<value>'s
 
     If there is no ':' (colon) separating key from value,
@@ -1869,14 +1869,14 @@ def to_language_mapping_callback(ctx: typer.Context, param: typer.CallbackParam,
 
 
 def extension_to_language_callback(ctx: typer.Context, param: typer.CallbackParam,
-                                   values: Optional[List[str]]) -> List[str]:
+                                   values: Optional[list[str]]) -> list[str]:
     """Update extension to language mapping with '<key>:<value>'s"""
     return to_language_mapping_callback(ctx, param, values,
                                         mapping=languages.EXT_TO_LANGUAGES)
 
 
 def filename_to_language_callback(ctx: typer.Context, param: typer.CallbackParam,
-                                  values: Optional[List[str]]) -> List[str]:
+                                  values: Optional[list[str]]) -> list[str]:
     """Update filename to language mapping with '<key>:<value>'s"""
     return to_language_mapping_callback(ctx, param, values,
                                         mapping=languages.FILENAME_TO_LANGUAGES)
@@ -1980,7 +1980,7 @@ def common(
         typer.Option(help="Compute patch size and spread metrics")
     ] = True,
     ext_to_language: Annotated[
-        Optional[List[str]],
+        Optional[list[str]],
         typer.Option(
             help="Mapping from extension to file language. Empty value resets mapping.",
             metavar="EXT:LANGUAGE",
@@ -1991,7 +1991,7 @@ def common(
         )
     ] = None,
     filename_to_language: Annotated[
-        Optional[List[str]],
+        Optional[list[str]],
         typer.Option(
             help="Mapping from filename to file language. Empty value resets mapping.",
             metavar="FILENAME:LANGUAGE",
@@ -1999,7 +1999,7 @@ def common(
         )
     ] = None,
     purpose_to_annotation: Annotated[
-        Optional[List[str]],
+        Optional[list[str]],
         typer.Option(
             help="Mapping from file purpose to line annotation. Empty value resets mapping.",
             metavar="PURPOSE:ANNOTATION",
@@ -2007,7 +2007,7 @@ def common(
         )
     ] = None,
     pattern_to_purpose: Annotated[
-        Optional[List[str]],
+        Optional[list[str]],
         typer.Option(
             help="Mapping from pattern to match file path, to that file purpose. Empty value resets mapping.",
             metavar="PATTERN:PURPOSE",
@@ -2015,7 +2015,7 @@ def common(
         )
     ] = None,
     line_callback: Annotated[
-        Optional[Callable[[Iterable[Tuple]], str]],
+        Optional[Callable[[Iterable[tuple]], str]],
         typer.Option(
             help="Body for `line_callback(tokens)` callback function." + \
                  "  See documentation and examples.",
@@ -2146,7 +2146,7 @@ def common(
 @app.command()
 def dataset(
     datasets: Annotated[
-        List[Path],
+        list[Path],
         typer.Argument(
             exists=True,
             file_okay=False,
