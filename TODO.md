@@ -123,6 +123,9 @@ The result of annotation is saved in JSON files, one per patch / commit.
     - [x] computing patch/diff size and spread, following
           _"[Dissection of a bug dataset: Anatomy of 395 patches from Defects4J][dissection-defects4j-paper]"_
           (and extending it) - independent implementation
+        - [ ] check if the **bug** of added, removed, and modified lines
+              not matching with the number of - and + lines in unified diff
+              is here, or with the `diff-gather-stats` step
         - [x] _patch size_ counting added ('+'), removed ('-'), and **modified** ('!') lines,
               with simplified changed lines detection:<br>
               "Lines are considered modified when sequences of removed lines are straight followed by added lines
@@ -269,6 +272,7 @@ data.
     - [ ] `lines-stats` subcommand
       - [ ] fix handling of `'commit_metadata'` field (skip it)
     - [ ] `timeline` subcommand
+      - [ ] check and fix (if needed) **bug** with 'diff.n\_add' etc. not matching '+:count'
       - [ ] _maybe_ create pandas.DataFrame and save as Parquet, Feather, HDF5, or pickle
       - [ ] _maybe_ resample / groupby (see `notebooks/`)
       - [ ] print information about results of `--purpose-to-annotation`
