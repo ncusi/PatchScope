@@ -445,7 +445,7 @@ def decode_c_quoted_str(text: str) -> str:
         if escaped:
             raise ValueError(f'Unfinished escape sequence when parsing "{text}"')
 
-        text = buf.decode()
+        text = buf.decode(errors=ENCODING_ERRORS)
 
     return text
 
@@ -1023,7 +1023,7 @@ class GitRepo:
             encoding = GitRepo.default_file_encoding
 
         process = self._file_contents_process(commit, path)
-        result = process.stdout.read().decode(encoding)
+        result = process.stdout.read().decode(encoding=encoding, errors=self.encoding_errors)
         # NOTE: does not handle errors correctly yet
         process.stdout.close()  # to avoid ResourceWarning: unclosed file <_io.BufferedReader name=3>
         process.wait()  # to avoid ResourceWarning: subprocess NNN is still running
@@ -1133,7 +1133,7 @@ class GitRepo:
         ]
         process = subprocess.run(cmd, capture_output=True, check=True)
         return _parse_commit_text(
-            process.stdout.decode(GitRepo.log_encoding),
+            process.stdout.decode(GitRepo.log_encoding, errors=self.encoding_errors),
             # next parameters depend on the git command used
             with_parents_line=True, indented_body=True
         )
@@ -1161,7 +1161,7 @@ class GitRepo:
         ]
         process = subprocess.Popen(cmd, stdout=subprocess.PIPE)
         # this should be US-ASCII hexadecimal identifier
-        result = process.stdout.read().decode('latin-1').strip()
+        result = process.stdout.read().decode('latin1').strip()
         # NOTE: does not handle errors correctly yet
 
         process.stdout.close()  # to avoid ResourceWarning: unclosed file <_io.BufferedReader name=3>
@@ -1378,7 +1378,7 @@ class GitRepo:
         process = subprocess.run(cmd, capture_output=True, check=True)
         try:
             # try to return text
-            return process.stdout.decode(GitRepo.log_encoding).splitlines()
+            return process.stdout.decode(GitRepo.log_encoding, errors=self.encoding_errors).splitlines()
         except UnicodeDecodeError:
             # if not possible, return bytes
             return process.stdout.splitlines()
