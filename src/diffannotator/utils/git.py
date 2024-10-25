@@ -426,6 +426,7 @@ class GitRepo:
     default_file_encoding = 'utf8'
     log_encoding = 'utf8'
     fallback_encoding = 'latin1'  # must be 8-bit encoding
+    encoding_errors = 'backslashreplace'
     # see 346245a1bb ("hard-code the empty tree object", 2008-02-13)
     # https://github.com/git/git/commit/346245a1bb6272dd370ba2f7b9bf86d3df5fed9a
     # https://github.com/git/git/commit/e1ccd7e2b1cae8d7dab4686cddbd923fb6c46953
@@ -575,7 +576,7 @@ class GitRepo:
 
         process = subprocess.run(cmd,
                                  capture_output=True, check=True,
-                                 encoding='utf-8')
+                                 encoding='utf-8', errors=self.encoding_errors)
         # MAYBE: better checks for process.returncode, and examine process.stderr
         if process.returncode == 0:
             return process.stdout
@@ -916,6 +917,7 @@ class GitRepo:
             stdout=subprocess.PIPE,
             stderr=subprocess.DEVNULL,
             encoding='utf-8',
+            errors=self.encoding_errors,
             text=True,
         )
 
@@ -1182,7 +1184,9 @@ class GitRepo:
         try:
             # Using '--quiet' means that the command would not issue an error message
             # but exit with non-zero status silently if HEAD is not a symbolic ref, but detached HEAD
-            process = subprocess.run(cmd, capture_output=True, check=True, text=True)
+            process = subprocess.run(cmd,
+                                     capture_output=True, check=True,
+                                     text=True, errors=self.encoding_errors)
         except subprocess.CalledProcessError:
             return None
 
@@ -1205,7 +1209,9 @@ class GitRepo:
         try:
             # Using '--quiet' means that the command would not issue an error message
             # but exit with non-zero status silently if `ref` is not a symbolic ref
-            process = subprocess.run(cmd, capture_output=True, check=True, text=True)
+            process = subprocess.run(cmd,
+                                     capture_output=True, check=True,
+                                     text=True, errors=self.encoding_errors)
         except subprocess.CalledProcessError:
             return None
 
@@ -1258,7 +1264,9 @@ class GitRepo:
             '--format=%(refname)',  # we only need list of refs that fulfill the condition mentioned above
             *ref_pattern
         ]
-        process = subprocess.run(cmd, capture_output=True, check=True, text=True)
+        process = subprocess.run(cmd,
+                                 capture_output=True, check=True,
+                                 text=True, errors=self.encoding_errors)
         return process.stdout.splitlines()
 
     def count_commits(self,
@@ -1293,7 +1301,9 @@ class GitRepo:
             cmd.extend(['--not', until_commit, f'--ancestry-path={until_commit}', '--boundary'])
         if first_parent:
             cmd.append('--first-parent')
-        process = subprocess.run(cmd, capture_output=True, check=True, encoding='utf8')
+        process = subprocess.run(cmd,
+                                 capture_output=True, check=True,
+                                 encoding='utf-8', errors=self.encoding_errors)
 
         return int(process.stdout)
 
@@ -1347,7 +1357,9 @@ class GitRepo:
             'rev-list', '--max-parents=0',  # gives all root commits
             str(start_from),
         ]
-        process = subprocess.run(cmd, capture_output=True, check=True, text=True)
+        process = subprocess.run(cmd,
+                                 capture_output=True, check=True,
+                                 text=True, errors=self.encoding_errors)
         return process.stdout.splitlines()
 
     def get_config(self, name: str, value_type: Optional[str] = None) -> Union[str, None]:
@@ -1373,7 +1385,9 @@ class GitRepo:
             cmd.append(f"--type={value_type}")
 
         try:
-            process = subprocess.run(cmd, capture_output=True, check=True, text=True)
+            process = subprocess.run(cmd,
+                                     capture_output=True, check=True,
+                                     text=True, errors=self.encoding_errors)
             return process.stdout.strip()
         except subprocess.CalledProcessError as err:
             # This command will fail with non-zero status upon error. Some exit codes are:
