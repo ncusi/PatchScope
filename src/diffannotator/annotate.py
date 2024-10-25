@@ -98,6 +98,8 @@ class LanguagesFromLinguist:
         :return: metadata about language, file type, and purpose of file
         """
         langs = LinguistLanguage.find_by_filename(path)
+        if len(langs) > 1:
+            logger.warning(f"LanguagesFromLinguist: Filename collision in filenames_lang for '{path}': {langs}")
         language = langs[0]
 
         language_name = language.name
