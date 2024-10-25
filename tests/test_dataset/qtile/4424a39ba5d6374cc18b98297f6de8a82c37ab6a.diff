@@ -1,0 +1,175 @@
+diff --git a/bin/qtile-cmd b/bin/qtile-cmd
+deleted file mode 100755
+index a2136ee6f3..0000000000
+--- a/bin/qtile-cmd
++++ /dev/null
+@@ -1,12 +0,0 @@
+-#!/usr/bin/env python3
+-
+-import os
+-import sys
+-
+-this_dir = os.path.dirname(__file__)
+-base_dir = os.path.abspath(os.path.join(this_dir, ".."))
+-sys.path.insert(0, base_dir)
+-
+-if __name__ == '__main__':
+-    from libqtile.scripts import qtile_cmd
+-    qtile_cmd.main()
+diff --git a/libqtile/scripts/qtile_cmd.py b/libqtile/scripts/cmd_obj.py
+old mode 100755
+new mode 100644
+similarity index 92%
+rename from libqtile/scripts/qtile_cmd.py
+rename to libqtile/scripts/cmd_obj.py
+index 56c70df2f6..3d4e95072c
+--- a/libqtile/scripts/qtile_cmd.py
++++ b/libqtile/scripts/cmd_obj.py
+@@ -164,35 +164,8 @@ def print_base_objects() -> None:
+     print("\n".join(actions))
+ 
+ 
+-def main() -> None:
++def cmd_obj(args) -> None:
+     "Runs tool according to specified arguments."
+-    description = 'Simple tool to expose qtile.command functionality to shell.'
+-    epilog = textwrap.dedent('''\
+-    Examples:
+-     qtile-cmd
+-     qtile-cmd -o cmd
+-     qtile-cmd -o cmd -f prev_layout -i
+-     qtile-cmd -o cmd -f prev_layout -a 3 # prev_layout on group 3
+-     qtile-cmd -o group 3 -f focus_back''')
+-    fmt = argparse.RawDescriptionHelpFormatter
+-
+-    parser = argparse.ArgumentParser(description=description, epilog=epilog,
+-                                     formatter_class=fmt)
+-    parser.add_argument('--object', '-o', dest='obj_spec', nargs='+',
+-                        help='Specify path to object (space separated).  '
+-                             'If no --function flag display available commands.  '
+-                             'Use `cmd` to specify root command.')
+-    parser.add_argument('--function', '-f', default="help",
+-                        help='Select function to execute.')
+-    parser.add_argument('--args', '-a', nargs='+', default=[],
+-                        help='Set arguments supplied to function.')
+-    parser.add_argument('--info', '-i', action='store_true',
+-                        help='With both --object and --function args prints documentation for function.')
+-    parser.add_argument(
+-        "--socket", "-s",
+-        help='Path of the Qtile IPC socket.'
+-    )
+-    args = parser.parse_args()
+ 
+     if args.obj_spec:
+         sock_file = args.socket or find_sockfile()
+@@ -214,5 +187,29 @@ def main() -> None:
+         sys.exit(1)
+ 
+ 
+-if __name__ == "__main__":
+-    main()
++def add_subcommand(subparsers):
++    epilog = textwrap.dedent('''\
++    Examples:
++     qtile cmd-obj
++     qtile cmd-obj -o cmd
++     qtile cmd-obj -o cmd -f prev_layout -i
++     qtile cmd-obj -o cmd -f prev_layout -a 3 # prev_layout on group 3
++     qtile cmd-obj -o group 3 -f focus_back''')
++    description = 'qtile.command functionality exposed to the shell.'
++    parser = subparsers.add_parser("cmd-obj", help=description, epilog=epilog,
++                                   formatter_class=argparse.RawDescriptionHelpFormatter)
++    parser.add_argument('--object', '-o', dest='obj_spec', nargs='+',
++                        help='Specify path to object (space separated).  '
++                             'If no --function flag display available commands.  '
++                             'Use `cmd` to specify root command.')
++    parser.add_argument('--function', '-f', default="help",
++                        help='Select function to execute.')
++    parser.add_argument('--args', '-a', nargs='+', default=[],
++                        help='Set arguments supplied to function.')
++    parser.add_argument('--info', '-i', action='store_true',
++                        help='With both --object and --function args prints documentation for function.')
++    parser.add_argument(
++        "--socket", "-s",
++        help='Path of the Qtile IPC socket.'
++    )
++    parser.set_defaults(func=cmd_obj)
+diff --git a/libqtile/scripts/main.py b/libqtile/scripts/main.py
+index ffd2314fb3..f0a15671fd 100644
+--- a/libqtile/scripts/main.py
++++ b/libqtile/scripts/main.py
+@@ -1,7 +1,7 @@
+ import argparse
+ import sys
+ 
+-from libqtile.scripts import run_cmd, shell, start, top
++from libqtile.scripts import cmd_obj, run_cmd, shell, start, top
+ 
+ try:
+     import pkg_resources
+@@ -26,6 +26,7 @@ def main():
+     shell.add_subcommand(subparsers)
+     top.add_subcommand(subparsers)
+     run_cmd.add_subcommand(subparsers)
++    cmd_obj.add_subcommand(subparsers)
+ 
+     # backward compat hack: `qtile` with no args (or non-subcommand args)
+     # should default to `qtile start`. it seems impolite for commands to do
+diff --git a/scripts/dqtile-cmd b/scripts/dqtile-cmd
+index b133f3c0ee..ace056a31e 100755
+--- a/scripts/dqtile-cmd
++++ b/scripts/dqtile-cmd
+@@ -7,7 +7,7 @@ usage() {
+ 
+     "
+ 
+-    qtile-cmd -h | sed "s/qtile-cmd/dqtile-cmd/"
++    qtile cmd-obj -h | sed "s/qtile cmd-obj/dqtile-cmd/"
+ 
+ 
+     echo "
+@@ -21,7 +21,7 @@ case $1 in
+     --force-dmenu) FORCE_DMENU=1; shift;;
+ esac
+ 
+-action=$(qtile-cmd $@)
++action=$(qtile cmd-obj $@)
+ 
+ # Path to menu application
+ if [[ -n $(command -v rofi) ]]  && [[ -z "$FORCE_DMENU" ]]; then
+@@ -45,7 +45,7 @@ action=$(echo "$action"| cut -f 1 |  sed -e 's/ *$//g')
+ if [ "$action_info" -eq "10" ]; then
+     # only run when -f is present (then -i makes sense)
+     if [[ $action == *"-f"* ]]; then
+-        info=$(qtile-cmd $action -i)
++        info=$(qtile cmd-obj $action -i)
+         action=$($menu -mesg "$global_mesg<b>Help</b>$info" -filter "$action -a ")
+     fi;
+ fi;
+diff --git a/setup.cfg b/setup.cfg
+index 81a3f39845..b0851c0b29 100644
+--- a/setup.cfg
++++ b/setup.cfg
+@@ -59,7 +59,6 @@ share/man/man1 =
+ [options.entry_points]
+ console_scripts =
+   qtile = libqtile.scripts.main:main
+-  qtile-cmd = libqtile.scripts.qtile_cmd:main
+ 
+ [options.extras_require]
+ doc =
+diff --git a/test/test_qtile_cmd.py b/test/test_qtile_cmd.py
+index bbfcf129e2..6f537e3238 100644
+--- a/test/test_qtile_cmd.py
++++ b/test/test_qtile_cmd.py
+@@ -69,8 +69,8 @@ class ServerConfig(Config):
+ 
+ 
+ def run_qtile_cmd(args):
+-    cmd = os.path.join(os.path.dirname(__file__), '..', 'bin', 'qtile-cmd')
+-    argv = [cmd]
++    cmd = os.path.join(os.path.dirname(__file__), '..', 'bin', 'qtile')
++    argv = [cmd, "cmd-obj"]
+     argv.extend(args.split())
+     pipe = subprocess.Popen(argv, stdout=subprocess.PIPE)
+     output, _ = pipe.communicate()

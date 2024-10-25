@@ -568,7 +568,7 @@ def test_Bug_from_changeset():
     # see tests/test_utils_git.py::test_ChangeSet_from_filename
     commit_id = 'c0dcf39b046d1b4ff6de14ac99ad9a1b10487512'
     filename_diff = f'tests/test_dataset/tqdm-1/{commit_id}.diff_with_raw'
-    changeset = ChangeSet.from_filename(filename_diff)
+    changeset = ChangeSet.from_filename(filename_diff, newline='\r\n')
 
     bug = Bug.from_patchset(patch_id=commit_id, patch_set=changeset)
     assert [commit_id] == list(bug.patches.keys()), \

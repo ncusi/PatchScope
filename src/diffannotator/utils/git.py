@@ -40,6 +40,8 @@ logger = logging.getLogger(__name__)
 # TODO: move to __init__.py (it is common to all scripts)
 PathLike = TypeVar("PathLike", str, bytes, Path, os.PathLike)
 
+ENCODING_ERRORS= 'backslashreplace'
+
 
 class DiffSide(Enum):
     """Enum to be used for `side` parameter of `GitRepo.list_changed_files`"""
@@ -77,7 +79,7 @@ class ChangeSet(PatchSet):
     # https://git-scm.com/docs/hash-function-transition
 
     def __init__(self, patch_source: Union[StringIO, TextIO, str], commit_id: str,
-                 prev: Optional[str] = None,
+                 prev: Optional[str] = None, newline: Optional[str] = '\n',
                  *args, **kwargs):
         """ChangeSet class constructor
 
@@ -85,6 +87,9 @@ class ChangeSet(PatchSet):
         :param commit_id: oid of the "after" commit (tree-ish) for the change
         :param prev: previous state, when ChangeSet is generated with .unidiff(),
             or `None` it the change corresponds to a commit (assumed first-parent)
+        :param newline: determines how to parse newline characters from the stream,
+            and how the stream was opened (one of None i.e. universal newline,
+            '', '\n', '\r', and '\r\n' - same as `open`)
         :param args: passed to PatchSet constructor
         :param kwargs: passed to PatchSet constructor (recommended);
             PatchSet uses `encoding` (str) and `metadata_only` (bool): :raw-html:`<br />`
@@ -93,6 +98,17 @@ class ChangeSet(PatchSet):
             (i.e. hunks without content) which is around 2.5-6 times faster;
             it will still validate the diff metadata consistency and get counts
         """
+        # with universal newline you don't need to do translation, because it is already done
+        # with '\n' as newline you don't need to do translation, because it has correct EOLs
+        # this means that `newline` can be '\r' or '\r\n'
+        if newline is not None and newline != '\n':
+            # TODO: create a proper wrapper around io.StringIO.readline()
+            if isinstance(patch_source, StringIO):
+                patch_source = patch_source.getvalue()
+            elif isinstance(patch_source, TextIOWrapper):
+                patch_source = patch_source.read()
+            patch_source = StringIO(patch_source.replace(newline, '\n'))
+
         super().__init__(patch_source, *args, **kwargs)
         self.commit_id = commit_id
         self.prev = prev
@@ -120,8 +136,19 @@ class ChangeSet(PatchSet):
     # override
     @classmethod
     def from_filename(cls, filename: Union[str, Path], encoding: str = DEFAULT_ENCODING,
-                      errors: Optional[str] = None, newline: Optional[str] = None) -> 'ChangeSet':
-        """Return a PatchSet instance given a diff filename."""
+                      errors: Optional[str] = ENCODING_ERRORS, newline: Optional[str] = '\n') -> 'ChangeSet':
+        """Return a ChangeSet instance given a diff filename.
+
+        :param filename: path to a diff file with the patch to parse
+        :param encoding: the name of the encoding used to decode or encode
+            the diff file
+        :param errors: specifies how encoding and decoding errors are to be
+            handled (one of None, 'strict', 'ignore', 'replace', 'backslashreplace',
+            or 'surrogateescape' - same as `open`)
+        :param newline: determines how to parse newline characters from the stream
+            (one of None, '', '\n', '\r', and '\r\n' - same as `open`)
+        :return: instance of ChangeSet class
+        """
         # NOTE: unconditional `file_path = Path(filename)` would also work
         if isinstance(filename, Path):
             file_path = filename
@@ -137,7 +164,7 @@ class ChangeSet(PatchSet):
 
         # slightly modified contents of PatchSet.from_filename() alternate constructor
         with file_path.open(mode='r', encoding=encoding, errors=errors, newline=newline) as fp:
-            obj = cls(fp, commit_id=commit_id)  # PatchSet.from_filename() has type mismatch
+            obj = cls(fp, commit_id=commit_id, newline=newline)  # PatchSet.from_filename() has type mismatch
 
         # adjust commit_id if we were able to retrieve commit metadata from file
         if commit_id != '' and obj.commit_metadata is not None:
@@ -201,6 +228,9 @@ def _parse_commit_text(commit_text: str, with_parents_line: bool = True,
     """
     # based on `parse_commit_text` from gitweb/gitweb.perl in git project
     # NOTE: cannot use .splitlines() here
+    if '\r\n' in commit_text:
+        # in case commit_text came from a patch file with CRLF line endings
+        commit_text = commit_text.replace('\r\n', '\n')
     commit_lines = commit_text.split('\n')[:-1]  # remove trailing '' after last '\n'
 
     if not commit_lines:
@@ -415,7 +445,7 @@ def decode_c_quoted_str(text: str) -> str:
         if escaped:
             raise ValueError(f'Unfinished escape sequence when parsing "{text}"')
 
-        text = buf.decode()
+        text = buf.decode(errors=ENCODING_ERRORS)
 
     return text
 
@@ -426,6 +456,7 @@ class GitRepo:
     default_file_encoding = 'utf8'
     log_encoding = 'utf8'
     fallback_encoding = 'latin1'  # must be 8-bit encoding
+    encoding_errors = ENCODING_ERRORS
     # see 346245a1bb ("hard-code the empty tree object", 2008-02-13)
     # https://github.com/git/git/commit/346245a1bb6272dd370ba2f7b9bf86d3df5fed9a
     # https://github.com/git/git/commit/e1ccd7e2b1cae8d7dab4686cddbd923fb6c46953
@@ -573,14 +604,16 @@ class GitRepo:
         else:
             cmd.extend(revision_range)
 
+        # NOTE: specifying `encoding` or `errors` turns on `text` == `universal_newlines`
+        # and you cannot say `text=False` and/or `universal_newlines=False` to turn it off
+        # The output of the `git format-patch` command can contain embedded `\r` (CR)
         process = subprocess.run(cmd,
-                                 capture_output=True, check=True,
-                                 encoding='utf-8')
+                                 capture_output=True, check=True)
         # MAYBE: better checks for process.returncode, and examine process.stderr
         if process.returncode == 0:
-            return process.stdout
+            return process.stdout.decode(encoding='utf-8', errors=self.encoding_errors)
         else:
-            return process.stderr
+            return process.stderr.decode(encoding='utf-8', errors=self.encoding_errors)
 
     def list_files(self, commit: str = 'HEAD') -> list[str]:
         """Retrieve list of files at given revision in a repository
@@ -910,19 +943,25 @@ class GitRepo:
         ## DEBUG (TODO: switch to logger.debug())
         #print(f"{cmd=}")
 
+        # NOTE: specifying `encoding` or `errors` turns on `text` == `universal_newlines`
+        # and you cannot say `text=False` and/or `universal_newlines=False` to turn it off
+        # The output of the `git log -p` command can contain embedded `\r` (CR)
         process = subprocess.Popen(
             cmd,
-            bufsize=1,  # line buffered
+            #bufsize=1,  # line buffered
             stdout=subprocess.PIPE,
-            stderr=subprocess.DEVNULL,
-            encoding='utf-8',
-            text=True,
+            stderr=subprocess.DEVNULL,  # TODO: consider capturing stderr
         )
 
         commit_data = StringIO()
         commit_id: Optional[str] = None
-        while process.poll() is None:
-            log_p_line = process.stdout.readline()
+        # if we are waiting on the process, readline can return empty line
+        # if the process ends, we can still have lines in buffer
+        while (log_p_line_raw := process.stdout.readline()) or process.poll() is None:
+            log_p_line = log_p_line_raw.decode(
+                encoding='utf-8',
+                errors=self.encoding_errors,
+            )
             if log_p_line:
                 if not commit_id and log_p_line[0] != '\0':
                     # first line in output
@@ -984,7 +1023,7 @@ class GitRepo:
             encoding = GitRepo.default_file_encoding
 
         process = self._file_contents_process(commit, path)
-        result = process.stdout.read().decode(encoding)
+        result = process.stdout.read().decode(encoding=encoding, errors=self.encoding_errors)
         # NOTE: does not handle errors correctly yet
         process.stdout.close()  # to avoid ResourceWarning: unclosed file <_io.BufferedReader name=3>
         process.wait()  # to avoid ResourceWarning: subprocess NNN is still running
@@ -1094,7 +1133,7 @@ class GitRepo:
         ]
         process = subprocess.run(cmd, capture_output=True, check=True)
         return _parse_commit_text(
-            process.stdout.decode(GitRepo.log_encoding),
+            process.stdout.decode(GitRepo.log_encoding, errors=self.encoding_errors),
             # next parameters depend on the git command used
             with_parents_line=True, indented_body=True
         )
@@ -1122,7 +1161,7 @@ class GitRepo:
         ]
         process = subprocess.Popen(cmd, stdout=subprocess.PIPE)
         # this should be US-ASCII hexadecimal identifier
-        result = process.stdout.read().decode('latin-1').strip()
+        result = process.stdout.read().decode('latin1').strip()
         # NOTE: does not handle errors correctly yet
 
         process.stdout.close()  # to avoid ResourceWarning: unclosed file <_io.BufferedReader name=3>
@@ -1182,7 +1221,11 @@ class GitRepo:
         try:
             # Using '--quiet' means that the command would not issue an error message
             # but exit with non-zero status silently if HEAD is not a symbolic ref, but detached HEAD
-            process = subprocess.run(cmd, capture_output=True, check=True, text=True)
+            process = subprocess.run(cmd,
+                                     capture_output=True, check=True,
+                                     # branch names cannot contain '\r' (CR) character,
+                                     # see https://git-scm.com/docs/git-check-ref-format
+                                     text=True, errors=self.encoding_errors)
         except subprocess.CalledProcessError:
             return None
 
@@ -1205,7 +1248,11 @@ class GitRepo:
         try:
             # Using '--quiet' means that the command would not issue an error message
             # but exit with non-zero status silently if `ref` is not a symbolic ref
-            process = subprocess.run(cmd, capture_output=True, check=True, text=True)
+            process = subprocess.run(cmd,
+                                     capture_output=True, check=True,
+                                     # branch names and symbolic refereces cannot contain '\r' (CR),
+                                     # see https://git-scm.com/docs/git-check-ref-format
+                                     text=True, errors=self.encoding_errors)
         except subprocess.CalledProcessError:
             return None
 
@@ -1258,7 +1305,11 @@ class GitRepo:
             '--format=%(refname)',  # we only need list of refs that fulfill the condition mentioned above
             *ref_pattern
         ]
-        process = subprocess.run(cmd, capture_output=True, check=True, text=True)
+        process = subprocess.run(cmd,
+                                 capture_output=True, check=True,
+                                 # branch and other refs names cannot contain '\r' (CR),
+                                 # see https://git-scm.com/docs/git-check-ref-format
+                                 text=True, errors=self.encoding_errors)
         return process.stdout.splitlines()
 
     def count_commits(self,
@@ -1293,7 +1344,10 @@ class GitRepo:
             cmd.extend(['--not', until_commit, f'--ancestry-path={until_commit}', '--boundary'])
         if first_parent:
             cmd.append('--first-parent')
-        process = subprocess.run(cmd, capture_output=True, check=True, encoding='utf8')
+        process = subprocess.run(cmd,
+                                 capture_output=True, check=True,
+                                 # `git rev-list --count <start>` returns a number, no '\r' possible
+                                 encoding='utf-8', errors=self.encoding_errors)
 
         return int(process.stdout)
 
@@ -1324,7 +1378,7 @@ class GitRepo:
         process = subprocess.run(cmd, capture_output=True, check=True)
         try:
             # try to return text
-            return process.stdout.decode(GitRepo.log_encoding).splitlines()
+            return process.stdout.decode(GitRepo.log_encoding, errors=self.encoding_errors).splitlines()
         except UnicodeDecodeError:
             # if not possible, return bytes
             return process.stdout.splitlines()
@@ -1347,7 +1401,11 @@ class GitRepo:
             'rev-list', '--max-parents=0',  # gives all root commits
             str(start_from),
         ]
-        process = subprocess.run(cmd, capture_output=True, check=True, text=True)
+        process = subprocess.run(cmd,
+                                 capture_output=True, check=True,
+                                 # the Git command above returns list of commit identifiers
+                                 # separated by newlines, therefore no '\r' in output possible
+                                 text=True, errors=self.encoding_errors)
         return process.stdout.splitlines()
 
     def get_config(self, name: str, value_type: Optional[str] = None) -> Union[str, None]:
@@ -1373,8 +1431,10 @@ class GitRepo:
             cmd.append(f"--type={value_type}")
 
         try:
-            process = subprocess.run(cmd, capture_output=True, check=True, text=True)
-            return process.stdout.strip()
+            process = subprocess.run(cmd,
+                                     capture_output=True, check=True)
+            return process.stdout.decode(errors=self.encoding_errors).strip()
+
         except subprocess.CalledProcessError as err:
             # This command will fail with non-zero status upon error. Some exit codes are:
             # - The section or key is invalid (ret=1),

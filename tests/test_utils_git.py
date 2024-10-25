@@ -356,3 +356,11 @@ def test_ChangeSet_from_filename():
     # NOTE: this depends on the test file used!
     assert changeset_diff_full.commit_metadata['message'].count('\n') == 1, \
         "The commit message has exactly one line, ending in '\\n'"
+
+
+def test_ChangeSet_from_patch_file_with_cr():
+    diff_filename = 'tests/test_dataset/qtile/4424a39ba5d6374cc18b98297f6de8a82c37ab6a.diff'
+
+    ChangeSet.from_filename(diff_filename)
+
+    # there were no exceptions
