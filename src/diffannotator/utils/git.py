@@ -40,6 +40,8 @@ logger = logging.getLogger(__name__)
 # TODO: move to __init__.py (it is common to all scripts)
 PathLike = TypeVar("PathLike", str, bytes, Path, os.PathLike)
 
+ENCODING_ERRORS= 'backslashreplace'
+
 
 class DiffSide(Enum):
     """Enum to be used for `side` parameter of `GitRepo.list_changed_files`"""
@@ -120,7 +122,7 @@ class ChangeSet(PatchSet):
     # override
     @classmethod
     def from_filename(cls, filename: Union[str, Path], encoding: str = DEFAULT_ENCODING,
-                      errors: Optional[str] = None, newline: Optional[str] = None) -> 'ChangeSet':
+                      errors: Optional[str] = ENCODING_ERRORS, newline: Optional[str] = None) -> 'ChangeSet':
         """Return a PatchSet instance given a diff filename."""
         # NOTE: unconditional `file_path = Path(filename)` would also work
         if isinstance(filename, Path):
@@ -426,7 +428,7 @@ class GitRepo:
     default_file_encoding = 'utf8'
     log_encoding = 'utf8'
     fallback_encoding = 'latin1'  # must be 8-bit encoding
-    encoding_errors = 'backslashreplace'
+    encoding_errors = ENCODING_ERRORS
     # see 346245a1bb ("hard-code the empty tree object", 2008-02-13)
     # https://github.com/git/git/commit/346245a1bb6272dd370ba2f7b9bf86d3df5fed9a
     # https://github.com/git/git/commit/e1ccd7e2b1cae8d7dab4686cddbd923fb6c46953
