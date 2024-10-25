@@ -5,14 +5,20 @@ vars:
   - repos:
       - name: tensorflow
         url: https://github.com/tensorflow/tensorflow.git
+      - name: qtile
+        url: https://github.com/qtile/qtile.git
   # repositories, and authors in those repositories, to analyze/annotate
   - authors:
       - repo: tensorflow
         nick: ezhulenev
-        author: ezhulenev@google.com
+        args: --author=ezhulenev@google.com
       - repo: tensorflow
         nick: yong.tang
-        author: yong.tang.github@outlook.com
+        args: --author=yong.tang.github@outlook.com
+      - repo: qtile
+        nick: all_authors-no_merges
+        # --max-parents=1 is the same as --no-merges
+        args: --max-parents=1
 
 stages:
   clone:
@@ -38,7 +44,7 @@ stages:
         diff-annotate from-repo
         --output-dir=data/examples/annotations/${item.repo}/${item.nick}/
         ${repos_dir}/${item.repo}
-        --author=${item.author}
+        ${item.args}
       deps:
         - src/diffannotator/annotate.py
         - data/examples/${item.repo}.url
