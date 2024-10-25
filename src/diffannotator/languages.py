@@ -60,16 +60,22 @@ FILENAME_TO_LANGUAGES = {
             "AUTHORS",
             "COPYING",
             "ChangeLog",
+            "CHANGELOG",
             "INSTALL",
             "NEWS",
             "PACKAGERS",
             "README",
             "THANKS",
             "TODO",
+
+            # no parser for file in Pygments
+            "MANIFEST.in",
         ]
     },
     "Makefile": ["Makefile"],
     "configure.ac": ["M4Sugar"],
+    "flake.lock": ["JSON"],
+    ".pylintrc": ["INI"],
 }
 
 
@@ -116,18 +122,29 @@ PATTERN_TO_PURPOSE = {
             "composer.json",  # Composer (PHP)
             "conanfile.py",  # Conan (C++)
             "conanfile.txt",  # Conan (C++)
+            "flake.lock",  # Nix
+            "flake.nix",  # Nix, though .nix is 'programming' type
             "go.mod",  # Go
             "info/index.json",  # Conda (Python)
             "ivy.xml",  # Ivy (Java / JVM)
             "manifest",  # generic
+            "MANIFEST.in",  # generic, used to be used by Python packaging
             "meson.build",  # Meson (C, C++, Objective-C, Java,...)
             "package.json",  # npm (Node.js)
             "pom.xml",  # Maven (Java / JVM)
             "project.clj",  # Leiningen (Clojure)
             "pyproject.toml",  # Python
+            ".pylintrc",  # Python linter configuration
             "requirements.txt",  # pip (Python)
             "setup.cfg",  # Python
             "vcpkg.json",  # vcpkg (C++)
+        ]
+    },
+    **{
+        pattern: "project"  # or "version control", or ".ignore"
+        for pattern in [
+            ".gitignore",
+            ".hgignore",
         ]
     },
     **{
@@ -163,6 +180,10 @@ def languages_exceptions(path: str, lang: list[str]) -> list[str]:
 
     if "M4" in lang:
         return ["M4"]
+
+    # there are multiple entries for the '.spec' extension
+    if path.startswith("rpm/") and path.endswith(".spec"):
+        return ["RPM Spec"]
 
     return lang
 
