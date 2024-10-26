@@ -1436,55 +1436,13 @@ class Bug:
             it, `patch_set` should be changes in repo for commit `patch_id`
         :return: Bug object instance
         """
-        patch_annotations: dict[str, dict[str, Union[str, dict]]] = {}
-        i = 0
-
-        src_commit: Optional[str] = None
-        dst_commit: Optional[str] = None
-        if repo is not None and patch_id is not None:
-            if repo.is_valid_commit(patch_id):
-                dst_commit = patch_id
-            if repo.is_valid_commit(f"{patch_id}^"):
-                src_commit = f"{patch_id}^"
-
-        # add commit metadata to annotations, if available
-        if isinstance(patch_set, ChangeSet):
-            commit_metadata = {'id': patch_set.commit_id}
-            if patch_set.commit_metadata is not None:
-                commit_metadata.update(patch_set.commit_metadata)
-            patch_annotations['commit_metadata'] = commit_metadata
-
-        try:
-            # based on original annotate_single_diff() function code
-            # for each changed file
-            patched_file: unidiff.PatchedFile
-            for i, patched_file in enumerate(patch_set, start=1):
-                # create AnnotatedPatchedFile object from i-th changed file in patchset
-                annotated_patch_file = AnnotatedPatchedFile(patched_file)
-                # add sources, if available from repo
-                src: Optional[str] = None
-                dst: Optional[str] = None
-                if repo is not None:
-                    # we need real name, not prefixed with "a/" or "b/" name unidiff.PatchedFile provides
-                    if src_commit is not None and annotated_patch_file.source_file != "/dev/null":
-                        src = repo.file_contents(src_commit, annotated_patch_file.source_file)
-                    if dst_commit is not None and annotated_patch_file.target_file != "/dev/null":
-                        dst = repo.file_contents(dst_commit, annotated_patch_file.target_file)
-                annotated_patch_file.add_sources(src=src, dst=dst)
-                # add annotations from i-th changed file
-                patch_annotations.update(annotated_patch_file.process())
-                if sizes_and_spreads:
-                    patch_annotations.update(annotated_patch_file.compute_sizes_and_spreads())
-
-        except Exception as ex:
-            #print(f"Error processing PatchSet {patch_set!r} at {i} patched file: {ex!r}")
-            #traceback.print_tb(ex.__traceback__)
-            logger.error(msg=f"Error processing PatchSet {patch_set!r} at {i} patched file",
-                         exc_info=True)
-            # raise ex
+        annotated_patch = AnnotatedPatchSet(patch_set=patch_set, repo=repo)
+        patch_annotations = annotated_patch.process(
+            sizes_and_spreads=sizes_and_spreads,
+        )
 
         if patch_id is None:
-            patch_id = getattr(patch_set, 'commit_id', repr(patch_set))
+            patch_id = annotated_patch.commit_id
 
         return Bug({patch_id: patch_annotations})
 
