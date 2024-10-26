@@ -435,20 +435,45 @@ class AnnotatedPatchSet:
         i: Optional[int] = None
         patch_annotations: dict[str, dict[str, Union[str, dict]]] = {}
 
-        try:
-            # once per changeset
-            # TODO/DOING: extract common code
-            # TODO: make '' into a constant, like UNKNOWN_ID, reducing duplication
-            if isinstance(self.patch_set, ChangeSet) and self.patch_set.commit_id != '':
-                commit_metadata = {'id': self.patch_set.commit_id}
-                if self.patch_set.commit_metadata is not None:
-                    commit_metadata.update(self.patch_set.commit_metadata)
-                patch_annotations['commit_metadata'] = commit_metadata
+        # once per changeset: extracting the commit id and commit metadata
+        patch_id: Optional[str] = None
+        # TODO: make '' into a constant, like UNKNOWN_ID, reducing duplication
+        if isinstance(self.patch_set, ChangeSet) and self.patch_set.commit_id != '':
+            patch_id = self.patch_set.commit_id
+            commit_metadata = {'id': patch_id}
+            if self.patch_set.commit_metadata is not None:
+                commit_metadata.update(self.patch_set.commit_metadata)
+            patch_annotations['commit_metadata'] = commit_metadata
 
+        # helpers to get contents of pre-image and post-image files
+        src_commit: Optional[str] = None
+        dst_commit: Optional[str] = None
+        if self.repo is not None and patch_id is not None:
+            if self.repo.is_valid_commit(patch_id):
+                dst_commit = patch_id
+            if self.repo.is_valid_commit(f"{patch_id}^"):
+                src_commit = f"{patch_id}^"
+
+        # TODO?: Consider moving the try ... catch ... inside the loop
+        try:
             # for each changed file
             patched_file: unidiff.PatchedFile
             for i, patched_file in enumerate(self.patch_set, start=1):
+                # create AnnotatedPatchedFile object from i-th changed file in patchset
                 annotated_patch_file = AnnotatedPatchedFile(patched_file)
+
+                # add sources, if repo is available, and they are available from repo
+                src: Optional[str] = None
+                dst: Optional[str] = None
+                if self.repo is not None:
+                    # we need real name, not prefixed with "a/" or "b/" name unidiff.PatchedFile provides
+                    if src_commit is not None and annotated_patch_file.source_file != "/dev/null":
+                        src = self.repo.file_contents(src_commit, annotated_patch_file.source_file)
+                    if dst_commit is not None and annotated_patch_file.target_file != "/dev/null":
+                        dst = self.repo.file_contents(dst_commit, annotated_patch_file.target_file)
+                annotated_patch_file.add_sources(src=src, dst=dst)
+
+                # add annotations from i-th changed file
                 patch_annotations.update(annotated_patch_file.process())
 
             if sizes_and_spreads:
