@@ -306,14 +306,32 @@ def line_is_comment(tokens_list: Iterable[tuple]) -> bool:
 class AnnotatedPatchSet:
     """Annotations for whole patch / diff
 
-    :ivar: patch_set: original unidiff.PatchSet or diffannotator.git.ChangeSet"""
-    def __init__(self, patch_set: unidiff.PatchSet):
+    :ivar patch_set: original unidiff.PatchSet or diffannotator.git.ChangeSet
+    :ivar repo: optionally, the repository diffannotator.git.ChangeSet came from"""
+    def __init__(self,
+                 patch_set: Union[ChangeSet, unidiff.PatchSet],
+                 repo: Optional[GitRepo] = None):
         """Initialize AnnotatedPatchSet with unidiff.PatchSet (or derived class)
 
         :param patch_set: parsed unified diff (if unidiff.PatchSet),
             or parsed commit changes and parsed commit metadata (if ChangeSet)
+        :param repo: the Git repository the `patch_set` (ChangeSet)
+            came from
         """
         self.patch_set = patch_set
+        self.repo = repo
+
+    # builder pattern
+    def add_repo(self, repo: GitRepo) -> 'AnnotatedPatchSet':
+        """Add the Git repository the patch (supposedly) came from
+
+        **NOTE:** Modifies self, and returns modified object.
+
+        :param repo: the Git repository connected to self / the patchset
+        :return: changed object, to enable flow/builder pattern
+        """
+        self.repo = repo
+        return self
 
     @classmethod
     def from_filename(cls, filename: Union[str, Path], encoding: str = unidiff.DEFAULT_ENCODING,
@@ -428,6 +446,7 @@ class AnnotatedPatchSet:
                 patch_annotations['commit_metadata'] = commit_metadata
 
             # for each changed file
+            patched_file: unidiff.PatchedFile
             for i, patched_file in enumerate(self.patch_set, start=1):
                 annotated_patch_file = AnnotatedPatchedFile(patched_file)
                 patch_annotations.update(annotated_patch_file.process())
@@ -1404,7 +1423,8 @@ class Bug:
             patch_annotations['commit_metadata'] = commit_metadata
 
         try:
-            # based on annotate_single_diff() function code
+            # based on original annotate_single_diff() function code
+            # for each changed file
             patched_file: unidiff.PatchedFile
             for i, patched_file in enumerate(patch_set, start=1):
                 # create AnnotatedPatchedFile object from i-th changed file in patchset
@@ -1413,7 +1433,7 @@ class Bug:
                 src: Optional[str] = None
                 dst: Optional[str] = None
                 if repo is not None:
-                    # we need real name, not prefixed with "a/" or "b/" name in unidiff.PatchedFile
+                    # we need real name, not prefixed with "a/" or "b/" name unidiff.PatchedFile provides
                     if src_commit is not None and annotated_patch_file.source_file != "/dev/null":
                         src = repo.file_contents(src_commit, annotated_patch_file.source_file)
                     if dst_commit is not None and annotated_patch_file.target_file != "/dev/null":
