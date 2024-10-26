@@ -333,6 +333,13 @@ class AnnotatedPatchSet:
         self.repo = repo
         return self
 
+    @property
+    def commit_id(self) -> Optional[str]:
+        if isinstance(self.patch_set, ChangeSet):
+            return self.patch_set.commit_id
+        else:
+            return getattr(self.patch_set, 'commit_id', None)
+
     @classmethod
     def from_filename(cls, filename: Union[str, Path], encoding: str = unidiff.DEFAULT_ENCODING,
                       errors: Optional[str] = None, newline: Optional[str] = None,
