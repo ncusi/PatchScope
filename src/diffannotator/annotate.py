@@ -481,10 +481,12 @@ class AnnotatedPatchSet:
                 annotated_patch_file.add_sources(src=src, dst=dst)
 
                 # add annotations from i-th changed file
-                patch_annotations.update(annotated_patch_file.process())
+                if 'changes' not in patch_annotations:
+                    patch_annotations['changes'] = {}
+                patch_annotations['changes'].update(annotated_patch_file.process())
 
             if sizes_and_spreads:
-                patch_annotations.update(self.compute_sizes_and_spreads())
+                patch_annotations['diff_metadata'] = self.compute_sizes_and_spreads()
 
         except Exception as ex:
             #print(f"Error processing patch {self.patch_set!r}, at file no {i}: {ex!r}")

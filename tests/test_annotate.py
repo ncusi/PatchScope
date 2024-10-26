@@ -754,7 +754,7 @@ def test_BugDataset_from_repo(tmp_path: Path):
     assert bugs.bug_ids == list(bugs._patches.keys()), \
         "there is 1-to-1 correspondence between bug ids and keys to patch data"
 
-    annotated_data = list(bugs.iter_bugs())
+    annotated_data = list(bugs.iter_bugs(sizes_and_spreads=True))
 
     assert len(annotated_data) == 3, \
         "we got 3 annotated bugs we expected from `git log -3 HEAD`"
@@ -764,6 +764,17 @@ def test_BugDataset_from_repo(tmp_path: Path):
     assert all([len(bug.patches) == 1 and list(bug.patches.items())[0][0] == bug_id
                 for bug_id, bug in zip(bugs.bug_ids, annotated_data)]), \
         "all bugs remember their ids correctly"
+
+    #from rich.pretty import pprint  # OR: from pprint import pprint
+    #for patch_data in annotated_data:
+    #    pprint(patch_data.patches, max_length=12)
+
+    for i, annotated_patch_data in enumerate(annotated_data, start=1):
+        bug_patches = list(annotated_patch_data.patches.values())[0]  # dict with single key, we want value
+        if len(bug_patches['changes']) > 1:
+            pytest.xfail("Computing diff metadata with changes to multiple files doesn't work yet")
+        assert len(bug_patches['changes']) == bug_patches['diff_metadata']['n_files'], \
+            f"number of files matches between 'changes' and 'diff_metadata' for patchset № {i}"
 
 
 def test_line_callback_trivial():
