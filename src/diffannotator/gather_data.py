@@ -64,6 +64,7 @@ import typer
 from typing_extensions import Annotated
 
 from .annotate import Bug
+from .config import JSONFormat
 
 
 # configure logging
@@ -75,21 +76,42 @@ T = TypeVar('T')  # Declare type variable "T" to use in typing
 app = typer.Typer(no_args_is_help=True, add_completion=False)
 
 
-def _is_commit_metadata(key: str, value: dict) -> bool:
+def _is_commit_metadata(key: str, value: dict,
+                        data_format: JSONFormat = JSONFormat.V1_5) -> bool:
     """Detect commit metadata instead of changed file information"""
-    return key == 'commit_metadata' and 'purpose' not in value
+    # NOTE: switch to structured case statement when minimal versio gets bumped to Python 3.10
+    if data_format == JSONFormat.V1:
+        # there is no commit metadata in this format
+        return False
+    elif data_format == JSONFormat.V1_5:
+        # there can be changed file named 'commit_metadata'
+        return key == 'commit_metadata' and 'purpose' not in value
+    elif data_format == JSONFormat.V2:
+        # changes are stored at separate 'changes' key, no mixing possible
+        return key == 'commit_metadata'
 
 
-def _is_diff_metadata(_key: str, value: dict) -> bool:
+def _is_diff_metadata(key: str, value: dict,
+                      data_format: JSONFormat = JSONFormat.V1_5) -> bool:
     """Detect sizes and spreads metrics, instead of changed file information"""
-    # for example 'n_files', which type is int, not dict
-    return not isinstance(value, dict)
+    if data_format == JSONFormat.V1:
+        # there is no diff metadata in this format
+        return False
+    elif data_format == JSONFormat.V1_5:
+        # diff metadata was gathered using Counter, then embedded in dict
+        # for example diff metadata includes 'n_files', which type is int, not dict
+        return not isinstance(value, dict)
+    elif data_format == JSONFormat.V2:
+        # diff metadata is stored under separate key, no mixing possible
+        return key == 'diff_metadata'
 
 
-def _maybe_changes(key: str, value: dict) -> Optional[dict]:
+def _maybe_changes(key: str, value: dict,
+                   data_format: JSONFormat = JSONFormat.V1_5) -> Optional[dict]:
     """Extract changed file information, return None if it's something else"""
     return None \
-        if _is_commit_metadata(key, value) or _is_diff_metadata(key, value) \
+        if (_is_commit_metadata(key, value, data_format) or
+            _is_diff_metadata(key, value, data_format)) \
         else value
 
 
