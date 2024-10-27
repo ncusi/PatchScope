@@ -55,7 +55,7 @@ import os
 from collections import Counter, defaultdict
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Any, Optional, TypeVar
+from typing import Any, Optional, Union, TypeVar
 from collections.abc import Callable
 
 import click
@@ -91,19 +91,25 @@ def _is_commit_metadata(key: str, value: dict,
         return key == 'commit_metadata'
 
 
-def _is_diff_metadata(key: str, value: dict,
-                      data_format: JSONFormat = JSONFormat.V1_5) -> bool:
+def _maybe_diff_metadata(key: str, value: Union[dict, int],
+                         data_format: JSONFormat = JSONFormat.V1_5) -> Optional[dict]:
     """Detect sizes and spreads metrics, instead of changed file information"""
     if data_format == JSONFormat.V1:
         # there is no diff metadata in this format
-        return False
+        return None
     elif data_format == JSONFormat.V1_5:
         # diff metadata was gathered using Counter, then embedded in dict
         # for example diff metadata includes 'n_files', which type is int, not dict
-        return not isinstance(value, dict)
+        return None if isinstance(value, dict) else {key: value}
     elif data_format == JSONFormat.V2:
         # diff metadata is stored under separate key, no mixing possible
-        return key == 'diff_metadata'
+        # Counter saved in a JSON file doesn't preserve type, and is read as dict
+        return None if key != 'diff_metadata' else value
+
+
+def _is_diff_metadata(key: str, value: dict,
+                      data_format: JSONFormat = JSONFormat.V1_5) -> bool:
+    return _maybe_diff_metadata(key, value, data_format=data_format) is not None
 
 
 def _maybe_changes(key: str, value: dict,
@@ -563,13 +569,19 @@ def map_diff_to_timeline(annotation_file_basename: str,
     for filename, file_data in annotation_data.items():
         # NOTE: each file should be present only once for given patch/commit
 
-        if _is_diff_metadata(filename, file_data):
-            per_commit_info[f"diff.{filename}"] = file_data
+        diff_metadata = _maybe_diff_metadata(filename, file_data)
+        if diff_metadata is not None:
+            key: str
+            count: int
+            for key, count in diff_metadata.items():
+                per_commit_info[f"diff.{key}"] = count
+
             # no further analysis, no aggregation of  per-file data
             continue
 
         if filename == 'commit_metadata':
             # this might be changed file information, but commit metadata mixed in
+            # at least for v1.5 annotations file format (file schema version)
             for metadata_key in ('author', 'committer'):
                 if metadata_key not in file_data:
                     continue
