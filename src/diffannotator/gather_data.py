@@ -55,8 +55,10 @@ import os
 from collections import Counter, defaultdict
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Any, Optional, TypeVar
+from typing import Any, Optional, TypeVar, TYPE_CHECKING
 from collections.abc import Callable
+if TYPE_CHECKING:
+    from _typeshed import SupportsWrite
 
 import click
 import tqdm
@@ -623,7 +625,7 @@ def save_result(result: Any, result_json: Path) -> None:
         print(f"- creating '{parent_dir}' directory")
         parent_dir.mkdir(parents=True, exist_ok=True)  # exist_ok=True for race condition
 
-    with result_json.open(mode='w') as result_f:
+    with result_json.open(mode='w') as result_f:  # type: SupportsWrite[str]
         json.dump(result, result_f, indent=4)
 
 
@@ -646,13 +648,15 @@ def parse_colon_separated_pair(value: str) -> tuple[str, str]:
     :param value: string with colon-separated values, 'KEY:VALUE',
         or stringwithout colon, 'STR'
     :return: 2-element tuple with KEY and VALUE: ('KEY', 'VALUE'),
-        or ('STR', 'STR') if `str` does not include ':'
+        or 2-element tuple ('STR', 'STR') if `str` does not include ':'
     """
-    result = value.split(sep=':', maxsplit=2)
+    result = tuple(value.split(sep=':', maxsplit=2))  # type is Union[tuple[str], tuple[str, str]]
     if len(result) == 1:  # len it is always > 0
+        # type of result variable is tuple[str]
         result = result * 2
 
-    return tuple(result)
+    # noinspection PyTypeChecker
+    return result  # type: tuple[str, str]
 
 
 # implementing options common to all subcommands
