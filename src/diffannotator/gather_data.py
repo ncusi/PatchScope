@@ -75,6 +75,24 @@ T = TypeVar('T')  # Declare type variable "T" to use in typing
 app = typer.Typer(no_args_is_help=True, add_completion=False)
 
 
+def _is_commit_metadata(key: str, value: dict) -> bool:
+    """Detect commit metadata instead of changed file information"""
+    return key == 'commit_metadata' and 'purpose' not in value
+
+
+def _is_diff_metadata(_key: str, value: dict) -> bool:
+    """Detect sizes and spreads metrics, instead of changed file information"""
+    # for example 'n_files', which type is int, not dict
+    return not isinstance(value, dict)
+
+
+def _maybe_changes(key: str, value: dict) -> Optional[dict]:
+    """Extract changed file information, return None if it's something else"""
+    return None \
+        if _is_commit_metadata(key, value) or _is_diff_metadata(key, value) \
+        else value
+
+
 class PurposeCounterResults:
     """Override this datastructure to gather results"""
 
@@ -131,13 +149,11 @@ class PurposeCounterResults:
         removed_line_purposes = Counter()
 
         for change_file, change_data in data.items():
-            if not isinstance(change_data, dict):
-                # this is not changed file information, but sizes and spreads metrics
-                # for example 'n_files', which type is int, not dict
+            change_data = _maybe_changes(change_file, change_data)
+            if change_data is None:
+                # this is not changed file information
                 continue
-            if 'purpose' not in change_data and change_file == 'commit_metadata':
-                # this is not changed file information, but commit metadata
-                continue
+
             # TODO: log info / debug
             #print(change_file)
             #print(data[change_file]['purpose'])
@@ -342,12 +358,9 @@ def map_diff_to_purpose_dict(_diff_file_path: str, data: dict) -> dict:
     """
     result = {}
     for change_file, change_data in data.items():
-        if not isinstance(change_data, dict):
-            # this is not changed file information, but sizes and spreads metrics
-            # for example 'n_files', which type is int, not dict
-            continue
-        if 'purpose' not in change_data and change_file == 'commit_metadata':
-            # this is not changed file information, but commit metadata
+        change_data = _maybe_changes(change_file, change_data)
+        if change_data is None:
+            # this is not changed file information
             continue
 
         #print(change_file)
@@ -397,13 +410,9 @@ def map_diff_to_lines_stats(annotation_file_basename: str,
     for filename, file_data in annotation_data.items():
         # DEBUG
         #print(f" {filename=}")
-        if not isinstance(file_data, dict):
-            # this is not changed file information, but sizes and spreads metrics
-            # for example 'n_files', which type is int, not dict
-            continue
-
-        if filename == 'commit_metadata' and 'purpose' not in file_data:
-            # this is not changed file information, but commit metadata
+        file_data = _maybe_changes(filename, file_data)
+        if file_data is None:
+            # this is not changed file information
             continue
 
         # NOTE: each file should be present only once for given patch/commit
@@ -532,16 +541,13 @@ def map_diff_to_timeline(annotation_file_basename: str,
     for filename, file_data in annotation_data.items():
         # NOTE: each file should be present only once for given patch/commit
 
-        if not isinstance(file_data, dict):
-            # this is not changed file information, but sizes and spreads metrics
-            # for example 'n_files', which type is int, not dict
-            # TODO: include this information for other (sub)commands
+        if _is_diff_metadata(filename, file_data):
             per_commit_info[f"diff.{filename}"] = file_data
             # no further analysis, no aggregation of  per-file data
             continue
 
         if filename == 'commit_metadata':
-            # this might be changed file information, but commit metadata
+            # this might be changed file information, but commit metadata mixed in
             for metadata_key in ('author', 'committer'):
                 if metadata_key not in file_data:
                     continue
@@ -559,6 +565,9 @@ def map_diff_to_timeline(annotation_file_basename: str,
             else:
                 # TODO: use logging
                 print(f"  warning: found file named 'commit_metadata' in {annotation_file_basename}")
+
+        # currently it should be a no-op... for V1 data
+        file_data = _maybe_changes(filename, file_data)
 
         result['file_names'] += 1
 
@@ -677,6 +686,7 @@ def common(
         return
 
     # pass to subcommands via context
+    # TODO: use this technique for other scripts
     ctx.obj = SimpleNamespace(
         annotations_dir=annotations_dir,
     )
