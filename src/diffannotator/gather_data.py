@@ -171,6 +171,8 @@ class AnnotatedFile:
         :param bug_mapper: function to map bug to datastructure
         :return: resulting datastructure
         """
+        if self._path.suffix != '.json':
+            logger.warning(f"Unknown annotation file format for '{self._path}'")
         with self._path.open('r') as json_file:
             data = json.load(json_file)
             return bug_mapper(str(self._path), data, **mapper_kwargs)
