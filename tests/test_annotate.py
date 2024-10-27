@@ -722,7 +722,7 @@ def test_Bug_save(tmp_path: Path):
         "there is only one file saved in save directory"
     assert len(list(save_path.glob("*.json"))) == 1, \
         "there is only one JSON file saved in save directory"
-    assert save_path.joinpath('c1c4afe60b1355a6c0e83577791a0423f37a3324.json').is_file(), \
+    assert save_path.joinpath('c1c4afe60b1355a6c0e83577791a0423f37a3324.v2.json').is_file(), \
         "this JSON file has expected filename"
 
 
@@ -731,7 +731,7 @@ def test_Bug_save_with_fanout(tmp_path: Path):
     bug.save(tmp_path, fan_out=True)
 
     save_path = tmp_path.joinpath('keras-10', Bug.DEFAULT_ANNOTATIONS_DIR)
-    assert save_path.joinpath('c1', 'c4afe60b1355a6c0e83577791a0423f37a3324.json').is_file(), \
+    assert save_path.joinpath('c1', 'c4afe60b1355a6c0e83577791a0423f37a3324.v2.json').is_file(), \
         "JSON file was saved with fan-out"
 
 
