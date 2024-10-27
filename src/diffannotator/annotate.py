@@ -415,7 +415,7 @@ class AnnotatedPatchSet:
         :rtype: dict[str, dict[str, dict | list | str]]
         """
         i: Optional[int] = None
-        patch_annotations: dict[str, dict[str, Union[str, dict]]] = {}
+        patch_annotations: dict[str, Union[dict[str, Union[str, dict]], Counter]] = {}
 
         try:
             # once per changeset
@@ -1550,7 +1550,7 @@ class Bug:
             else:
                 out_path = base_path / Path(patch_id).with_suffix('.json')
 
-            with out_path.open('w') as out_f:  # type: SupportsWrite[str]
+            with out_path.open(mode='wt') as out_f:  # type: SupportsWrite[str]
                 json.dump(patch_data, out_f)
 
 
@@ -2270,7 +2270,7 @@ def patch(patch_file: Annotated[Path, typer.Argument(exists=True, dir_okay=False
         result_json.parent.mkdir(parents=True, exist_ok=True)
 
     print(f"Saving results to '{result_json}' JSON file")
-    with result_json.open(mode='w') as result_f:  # type: SupportsWrite[str]
+    with result_json.open(mode='wt') as result_f:  # type: SupportsWrite[str]
         json.dump(result, result_f, indent=4)
 
 
