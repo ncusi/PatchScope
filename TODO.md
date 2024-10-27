@@ -128,9 +128,6 @@ The result of annotation is saved in JSON files, one per patch / commit.
     - [x] computing patch/diff size and spread, following
           _"[Dissection of a bug dataset: Anatomy of 395 patches from Defects4J][dissection-defects4j-paper]"_
           (and extending it) - independent implementation
-        - [ ] check if the **bug** of added, removed, and modified lines
-              not matching with the number of - and + lines in unified diff
-              is here, or with the `diff-gather-stats` step
         - [x] _patch size_ counting added ('+'), removed ('-'), and **modified** ('!') lines,
               with simplified changed lines detection:<br>
               "Lines are considered modified when sequences of removed lines are straight followed by added lines

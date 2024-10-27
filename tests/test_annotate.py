@@ -383,6 +383,43 @@ def test_misc_patchsets_sizes_and_spreads():
     #pprint(result)
     assert result['n_files'] == 12, "there were 12 changed files in patch"
 
+    file_path = 'tests/test_dataset/tensorflow/87de301db14745ab920d7e32b53d926236a4f2af.diff'
+    patch_set = AnnotatedPatchSet.from_filename(file_path, encoding='utf-8')
+    diff_metadata = patch_set.compute_sizes_and_spreads()
+    changes_data  = patch_set.process(sizes_and_spreads=False)['changes']
+
+    assert len(changes_data) == diff_metadata['n_files'] + diff_metadata['n_file_renames'], \
+        f"number of files matches between 'changes' and 'diff_metadata' for {file_path}"
+
+    # TODO: extract this common-ish code
+    total_m = total_p = 0
+    for file_name, file_data in changes_data.items():
+        for data_key, data_value in file_data.items():
+            if data_key == '-':
+                total_m += len(data_value)
+            elif data_key == '+':
+                total_p += len(data_value)
+
+        ## DEBUG
+        #print(f"{file_name!r}: {total_m=}, {total_p=}")
+
+    ## DEBUG
+    #print(f"TOTAL: {total_m=}, {total_p=}, {total_p+total_m=}")
+    #print(f"META:  "
+    #      f"'n_rem'={diff_metadata['n_rem']}, 2*'n_mod'={2*diff_metadata['n_mod']}, 'n_add'={diff_metadata['n_add']}")
+    #print(f"META:  "
+    #      f"'n_rem'+'n_mod'={diff_metadata['n_rem'] + diff_metadata['n_mod']}, ",
+    #      f"'n_mod'+'n_add'={diff_metadata['n_mod'] + diff_metadata['n_add']}")
+    #print(f"META:  "
+    #      f"'n_rem'+2*'n_mod'+'n_add'={diff_metadata['n_rem'] + 2*diff_metadata['n_mod'] + diff_metadata['n_add']}")
+
+    assert total_m == diff_metadata['n_rem'] + diff_metadata['n_mod'], \
+        f"number of '-' lines matches between 'changes' and 'diff_metadata' in {file_path}"
+    assert total_p == diff_metadata['n_add'] + diff_metadata['n_mod'], \
+        f"number of '+' lines matches between 'changes' and 'diff_metadata' in {file_path}"
+    assert total_m + total_p == diff_metadata['n_rem'] + 2*diff_metadata['n_mod'] + diff_metadata['n_add'], \
+        f"number of -/+ lines matches between 'changes' and 'diff_metadata' in {file_path}"
+
 
 @pytest.mark.parametrize("line_type", [unidiff.LINE_TYPE_REMOVED, unidiff.LINE_TYPE_ADDED])
 def test_AnnotatedPatchedFile(line_type):
