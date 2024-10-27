@@ -130,24 +130,24 @@ class PurposeCounterResults:
         added_line_purposes = Counter()
         removed_line_purposes = Counter()
 
-        for change_file in data:
-            if not isinstance(data[change_file], dict):
+        for change_file, change_data in data.items():
+            if not isinstance(change_data, dict):
                 # this is not changed file information, but sizes and spreads metrics
                 # for example 'n_files', which type is int, not dict
                 continue
-            if 'purpose' not in data[change_file] and change_file == 'commit_metadata':
+            if 'purpose' not in change_data and change_file == 'commit_metadata':
                 # this is not changed file information, but commit metadata
                 continue
             # TODO: log info / debug
             #print(change_file)
             #print(data[change_file]['purpose'])
-            file_purposes[data[change_file]['purpose']] += 1
-            if '+' in data[change_file]:
-                added_lines = data[change_file]['+']
+            file_purposes[change_data['purpose']] += 1
+            if '+' in change_data:
+                added_lines = change_data['+']
                 for added_line in added_lines:
                     added_line_purposes[added_line['purpose']] += 1
-            if '-' in data[change_file]:
-                removed_lines = data[change_file]['-']
+            if '-' in change_data:
+                removed_lines = change_data['-']
                 for removed_line in removed_lines:
                     removed_line_purposes[removed_line['purpose']] += 1
         return PurposeCounterResults([file_path], file_purposes, added_line_purposes, removed_line_purposes)
@@ -341,20 +341,20 @@ def map_diff_to_purpose_dict(_diff_file_path: str, data: dict) -> dict:
     :return: dictionary with file purposes
     """
     result = {}
-    for change_file in data:
-        if not isinstance(data[change_file], dict):
+    for change_file, change_data in data.items():
+        if not isinstance(change_data, dict):
             # this is not changed file information, but sizes and spreads metrics
             # for example 'n_files', which type is int, not dict
             continue
-        if 'purpose' not in data[change_file] and change_file == 'commit_metadata':
+        if 'purpose' not in change_data and change_file == 'commit_metadata':
             # this is not changed file information, but commit metadata
             continue
 
         #print(change_file)
-        #print(data[change_file]['purpose'])
+        #print(change_data['purpose'])
         if change_file not in result:
             result[change_file] = []
-        result[change_file].append(data[change_file]['purpose'])
+        result[change_file].append(change_data['purpose'])
 
     #print(f"{_diff_file_path}:{result=}")
     return result
