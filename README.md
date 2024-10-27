@@ -102,8 +102,33 @@ to store large files and large directories outside of Git repository,
 while still have them to be version controlled.  They can be stored locally,
 or in the cloud.
 
-The [`examples-init.bash`](examples-init.bash) script also configures local DVC storage.
+The [`examples-init.bash`](examples-init.bash) script also configures
+local DVC storage (see the next subsection).
 
+### Data pipeline with DVC
+
+To provide reproducibility, and to make it possible to version data files
+separately from versioning the code, this project uses [DVC][] (Data Version Control)
+tool for its examples.
+
+_DVC pipelines_ are versioned using Git, and allow you to better organize projects
+and reproduce complete workflows and results at will.  The pipeline is defined
+in the [`dvc.yaml`](./dvc.yaml) file.
+
+You can re-run the whole pipeline, after installing DVC, with the `dvc repro`
+command.  It will run only those pipeline stages that needed it, by examining
+if stage dependencies (defined in `dvc.yaml`) changed.  The results are saved
+in _DVC cache_, and you can push them to _DVC remote_ with `dvc push`, if you have
+one configured (the `examples-init.bash` script from previous subsection
+configures DVC remote with storage on the local filesystem).
+
+<!-- TODO: add figure about how DVC works -->
+
+> In the future the example data for demos will be available also as DVC remote,
+> perhaps on [DAGsHub][], to be downloaded and used without the need to recompute it.
+
+[DVC]: https://dvc.org/ "Data Version Control · DVC"
+[DAGsHub]: https://dagshub.com/ "DagsHub: A Single Source of Truth for your AI Projects"
 
 ### Jupyter Notebooks
 
