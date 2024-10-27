@@ -766,6 +766,7 @@ def test_BugDataset_from_repo(tmp_path: Path):
                 for bug_id, bug in zip(bugs.bug_ids, annotated_data)]), \
         "all bugs remember their ids correctly"
 
+    ## DEBUG
     #from rich.pretty import pprint  # OR: from pprint import pprint
     #for patch_data in annotated_data:
     #    pprint(patch_data.patches, max_length=12)
@@ -775,6 +776,22 @@ def test_BugDataset_from_repo(tmp_path: Path):
         diff_metadata = bug_patches['diff_metadata']
         assert len(bug_patches['changes']) == diff_metadata['n_files'] + diff_metadata['n_file_renames'], \
             f"number of files matches between 'changes' and 'diff_metadata' for patchset № {i}"
+
+        total_p = total_m = 0
+        for file_data in bug_patches['changes'].values():
+            for data_key, data_value in file_data.items():
+                if data_key == '-':
+                    total_p += len(data_value)
+                elif data_key == '+':
+                    total_m += len(data_value)
+
+        ## DEBUG
+        #print(f"{i}: {annotated_patch_data.patches.keys()}")
+        #print(f"* {total_m=}, {total_p=}")
+        #print(f"* n_rem={diff_metadata['n_rem']}, 2*n_mod={2*diff_metadata['n_mod']}, n_add={diff_metadata['n_add']}")
+
+        assert total_m + total_p == diff_metadata['n_rem'] + 2*diff_metadata['n_mod'] + diff_metadata['n_add'], \
+            f"number of -/+ lines matches between 'changes' and 'diff_metadata' for patchset № {i}"
 
 
 def test_line_callback_trivial():
