@@ -61,7 +61,7 @@ from typing_extensions import Annotated  # in typing since Python 3.9
 import yaml
 
 from . import languages
-from .config import get_version
+from .config import get_version, JSONFormat, JSONFormatExt, guess_format_version
 from .languages import Languages
 from .lexer import Lexer
 from .utils.git import GitRepo, ChangeSet
@@ -440,7 +440,7 @@ class AnnotatedPatchSet:
         :rtype: dict[str, dict[str, dict | list | str]]
         """
         i: Optional[int] = None
-        patch_annotations: dict[str, dict[str, Union[str, dict]]] = {}
+        patch_annotations: dict[str, Union[dict[str, Union[str, dict]], Counter]] = {}
 
         # once per changeset: extracting the commit id and commit metadata
         patch_id: Optional[str] = None
@@ -1541,7 +1541,8 @@ class Bug:
 
         return patches_data
 
-    def save(self, annotate_dir: Optional[PathLike] = None, fan_out: bool = False):
+    def save(self, annotate_dir: Optional[PathLike] = None, fan_out: bool = False,
+             output_format_ext: JSONFormatExt = JSONFormatExt.V2):
         """Save annotated patches in JSON format
 
         :param annotate_dir: Separate dir to save annotations, optional.
@@ -1549,6 +1550,8 @@ class Bug:
         :param fan_out: Save annotated data in a fan-out directory,
             named after first 2 hexdigits of patch_id; the rest is used
             for the basename; splits patch_id.
+        :param output_format_ext: Extension used when saving the data;
+            should look like JSON, e.g. '.json', '.v2.json', etc.
         """
         if annotate_dir is not None:
             base_path = Path(annotate_dir)
@@ -1570,9 +1573,11 @@ class Bug:
             if fan_out:
                 base_path.joinpath(patch_id[:2]).mkdir(exist_ok=True)
                 offset = int('/' in patch_id)  #: for '12345' and '12/345' to both split into '12' / '345'
-                out_path = base_path / Path(patch_id[:2], patch_id[2+offset:]).with_suffix('.json')
+                out_path = base_path / Path(patch_id[:2], patch_id[2+offset:])\
+                    .with_suffix(output_format_ext.value)
             else:
-                out_path = base_path / Path(patch_id).with_suffix('.json')
+                out_path = base_path / Path(patch_id)\
+                    .with_suffix(output_format_ext.value)
 
             with out_path.open('w') as out_f:  # type: SupportsWrite[str]
                 json.dump(patch_data, out_f)
@@ -2294,6 +2299,8 @@ def patch(patch_file: Annotated[Path, typer.Argument(exists=True, dir_okay=False
         result_json.parent.mkdir(parents=True, exist_ok=True)
 
     print(f"Saving results to '{result_json}' JSON file")
+    if guess_format_version(result_json) != JSONFormat.V2:
+        print(f"  note that the file do not use expected {JSONFormatExt.V2.value!r} extension")
     with result_json.open(mode='w') as result_f:  # type: SupportsWrite[str]
         json.dump(result, result_f, indent=4)
 
