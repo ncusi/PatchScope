@@ -18,6 +18,9 @@
     - [x] move `__version__` to ~~`__init__.py`~~ `config.py`
          (see also ["version at runtime" in setuptools_scm docs](https://setuptools-scm.readthedocs.io/en/stable/usage/#version-at-runtime)
           and ["Single-sourcing the package version" in Python Packaging User Guide](https://packaging.python.org/en/latest/guides/single-sourcing-package-version/))
+    - [ ] use `packaging.version.Version` (as `key` function for sorting)
+          to find cases where `__version__` is newer than installed version
+          (in which case we are for sure in editable install mode)
     - [ ] add `docs/` directory (for man pages, and maybe API documentation)
       - [ ] use [MkDocs][] or [Material for MkDocs][mkdocs-material] for general documentation
       - [ ] generate API documentation using [mkdocstrings][]
