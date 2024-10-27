@@ -771,9 +771,8 @@ def test_BugDataset_from_repo(tmp_path: Path):
 
     for i, annotated_patch_data in enumerate(annotated_data, start=1):
         bug_patches = list(annotated_patch_data.patches.values())[0]  # dict with single key, we want value
-        if len(bug_patches['changes']) > 1:
-            pytest.xfail("Computing diff metadata with changes to multiple files doesn't work yet")
-        assert len(bug_patches['changes']) == bug_patches['diff_metadata']['n_files'], \
+        diff_metadata = bug_patches['diff_metadata']
+        assert len(bug_patches['changes']) == diff_metadata['n_files'] + diff_metadata['n_file_renames'], \
             f"number of files matches between 'changes' and 'diff_metadata' for patchset № {i}"
 
 

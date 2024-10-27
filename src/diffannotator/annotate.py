@@ -474,6 +474,8 @@ class AnnotatedPatchSet:
                 dst: Optional[str] = None
                 if self.repo is not None:
                     # we need real name, not prefixed with "a/" or "b/" name unidiff.PatchedFile provides
+                    # TODO?: use .is_added_file and .is_removed_file unidiff.PatchedFile properties, or
+                    # TODO?: or use unidiff.DEV_NULL / unidiff.constants.DEV_NULL
                     if src_commit is not None and annotated_patch_file.source_file != "/dev/null":
                         src = self.repo.file_contents(src_commit, annotated_patch_file.source_file)
                     if dst_commit is not None and annotated_patch_file.target_file != "/dev/null":
@@ -844,6 +846,10 @@ class AnnotatedPatchedFile:
             return Counter({
                 'n_files': 1,
                 'n_binary_files': 1,
+                # TODO?: Do not add if value is 0
+                'n_added_files': int(self.patched_file.is_added_file),
+                'n_removed_files': int(self.patched_file.is_removed_file),
+                'n_file_renames': int(self.patched_file.is_rename),
             })
 
         result = Counter({
@@ -857,6 +863,12 @@ class AnnotatedPatchedFile:
                 (self.patched_file[-1].target_start + self.patched_file[-1].target_length - 1
                  - self.patched_file[0].target_start),
         })
+        if self.patched_file.is_added_file:
+            result['n_added_files'] = 1
+        elif self.patched_file.is_removed_file:
+            result['n_removed_files'] = 1
+        elif self.patched_file.is_rename:
+            result['n_file_renames'] = 1
 
         #print(f"patched file: {self.patched_file!r}")
         prev_hunk_info: Optional[dict] = None
