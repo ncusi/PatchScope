@@ -274,7 +274,6 @@ data.
     - [ ] `lines-stats` subcommand
       - [ ] fix handling of `'commit_metadata'` field (skip it)
     - [ ] `timeline` subcommand
-      - [ ] check and fix (if needed) **bug** with 'diff.n\_add' etc. not matching '+:count'
       - [ ] _maybe_ create pandas.DataFrame and save as Parquet, Feather, HDF5, or pickle
       - [ ] _maybe_ resample / groupby (see `notebooks/`)
       - [ ] print information about results of `--purpose-to-annotation`
