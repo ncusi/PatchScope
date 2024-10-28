@@ -123,8 +123,8 @@ The result of annotation is saved in JSON files, one per patch / commit.
           - [ ] do not modify the global variable `PURPOSE_TO_ANNOTATION`,
             reuse the code from `diff-gather-stats timeline --purpose-to-annotation`
     - [ ] configurable line annotation based on tokens
-    - [ ] separate commit metadata, diff metadata (patch size and spread metrics),
-          and changes/diff (parsed), instead of having them intermixed together.
+    - [x] separate commit metadata, diff metadata (patch size and spread metrics),
+          and changes/diff (parsed), instead of having them intermixed together (in "v2" format).
     - [x] computing patch/diff size and spread, following
           _"[Dissection of a bug dataset: Anatomy of 395 patches from Defects4J][dissection-defects4j-paper]"_
           (and extending it) - independent implementation
