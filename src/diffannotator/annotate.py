@@ -1264,7 +1264,11 @@ class AnnotatedHunk:
 
                 line_annotation: Optional[str] = None
                 if AnnotatedPatchedFile.line_callback is not None:
-                    line_annotation = AnnotatedPatchedFile.line_callback(line_tokens)
+                    try:
+                        line_annotation = AnnotatedPatchedFile.line_callback(line_tokens)
+                    except:
+                        # TODO: log problems with line callback
+                        pass
                 if line_annotation is None:
                     line_annotation = 'documentation' if line_is_comment(line_tokens) else 'code'
 
