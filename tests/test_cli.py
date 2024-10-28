@@ -3,6 +3,7 @@
 
 https://typer.tiangolo.com/tutorial/testing/
 """
+import json
 import subprocess
 import traceback
 from pathlib import Path
@@ -14,6 +15,7 @@ from diffannotator.annotate import app as annotate_app, Bug
 from diffannotator.generate_patches import app as generate_app
 from diffannotator.gather_data import app as gather_app
 from diffannotator.utils.git import GitRepo
+from .conftest import count_pm_lines
 
 runner = CliRunner()
 
@@ -625,3 +627,121 @@ def test_gather_data(tmp_path: Path):
         "output 'timeline' file app was requested to use exists (it was created)"
     assert json_path.stat().st_size > 0, \
         "generated 'timeline' JSON file with results is not empty"
+
+
+def test_annotate_then_gather_data_sizes_and_spreads(tmp_path: Path):
+    """Use the example where previously -/+ counts didn't match n_rem, n_mod, n_add"""
+    # see notebooks/panel/01-timeline.ipynb at caa24f9f5941cdd497bdf046dab8b13f3e8e34d1
+    file_path = 'tests/test_dataset/tensorflow/87de301db14745ab920d7e32b53d926236a4f2af.diff'
+    basename = Path(file_path).stem
+    annotation_path = tmp_path.joinpath('tensorflow', basename[:7], basename).with_suffix('.v2.json')
+
+    ## DEBUG
+    #print(f"{tmp_path=}")
+    #print(f"{file_path=}")
+    #print(f"{basename=}")
+    #print(f"{annotation_path=}")
+
+    ### preparation: generating annotations
+
+    result = runner.invoke(annotate_app, [
+        # select subcommand
+        "patch",
+        # pass options and arguments to subcommand
+        f"{file_path}",  # PATCH_FILE
+        f"{annotation_path}",
+    ])
+
+    ## DEBUG
+    #print(result.stdout)
+
+    if result.exit_code != 0:
+        print(result.stdout)
+    if result.exception:
+        print(f"Exception: {result.exception}")
+        print("Traceback:")
+        # or `result.exc_info[2]` instead of `result.exception.__traceback__`
+        traceback.print_tb(result.exception.__traceback__)
+
+    # DEBUG
+    #print(json_path.read_text())
+
+    assert result.exit_code == 0, \
+        "'diff-annotate patch' runs on given *.diff file without errors"
+    assert annotation_path.exists(), \
+        "'diff-annotate patch' produced requested file"
+
+    annotation_data: dict = json.loads(annotation_path.read_text())
+
+    ## DEBUG
+    #from rich.pretty import pprint  # OR: from pprint import pprint
+    #pprint(annotation_data, max_length=12)  # max_length require rich.pprint
+    assert annotation_data['commit_metadata']['id'] == basename, \
+        "'diff-annotate patch' correctly extracted commit id from input file name"
+    assert 'changes' in annotation_data, \
+        "'diff-annotate patch' uses v2 file format for output"
+
+    # noinspection PyDictCreation
+    total = {}  # don't want to run count_pm_lines() twice
+    total['-'], total['+'] = count_pm_lines(annotation_data['changes'])
+
+    ### processing: generating timeline
+
+    # dataset_dir_annotations = 'tests/test_dataset_annotated'
+    timeline_path = annotation_path.with_suffix('.timeline.json')
+    result = runner.invoke(gather_app, [
+        # common arguments
+        "--annotations-dir=",
+        # select subcommand
+        "timeline",
+        # pass options and arguments to subcommand
+        f"{timeline_path}",  # FILE
+        f"{annotation_path.parent.parent}",  # DATASETS...
+    ])
+
+    ## DEBUG
+    #print(result.stdout)
+
+    if result.exit_code != 0:
+        print(result.stdout)
+    if result.exception:
+        print(f"Exception: {result.exception}")
+        print("Traceback:")
+        # or `result.exc_info[2]` instead of `result.exception.__traceback__`
+        traceback.print_tb(result.exception.__traceback__)
+
+    assert result.exit_code == 0, \
+        "'diff-gather-stats timeline' runs on generated annotations without errors"
+    assert timeline_path.exists() and timeline_path.is_file(), \
+        "'diff-gather-stats timeline' produces requested file"
+    assert timeline_path.stat().st_size > 0, \
+        "'diff-gather-stats timeline' produces non-empty file"
+
+    timeline_data: dict = json.loads(timeline_path.read_text())
+
+    ## DEBUG
+    #from rich.pretty import pprint  # OR: from pprint import pprint
+    #pprint(timeline_data, max_length=12)  # max_length require rich.pprint
+
+    # sanity checks
+    assert 'tensorflow' in timeline_data and len(timeline_data['tensorflow']) == 1, \
+        "'diff-gather-stats timeline' produced single-bug result for 'tensorflow' dataset"
+    assert timeline_data['tensorflow'][0]['bug_id'] == basename[:7], \
+        "'diff-gather-stats timeline' sets 'bug_id' to subdirectory name"
+    assert timeline_data['tensorflow'][0]['patch_id'] == annotation_path.name, \
+        "'diff-gather-stats timeline' sets 'bug_id' remembers name of annotation file"
+
+    # checking data extraction
+    assert (len(annotation_data['changes']) ==
+            annotation_data['diff_metadata']['n_files'] ==         # there were no renamed files
+            timeline_data['tensorflow'][0]['file_names'] ==
+            timeline_data['tensorflow'][0]['diff.n_files']), \
+        "all way of counting affected file names by the used 'diff-*' command matches"
+    for pm in ['-', '+']:
+        assert total[pm] == timeline_data['tensorflow'][0][f"{pm}:count"], \
+            f"'diff-gather-stats timeline' correctly computes '{pm}:count'"
+    for diff_size_metric in ['n_rem', 'n_mod', 'n_add']:
+        assert (getattr(annotation_data['diff_metadata'], diff_size_metric, 0) ==
+                getattr(timeline_data['tensorflow'][0], diff_size_metric, 0)), \
+            f"'diff-annotate patch' and 'diff-gather-stats timeline' match on '{diff_size_metric}'"
+    # NOTE: testing that -/+ counts match with 'n_rem', 'n_mod', 'n_add' are checked in different test
