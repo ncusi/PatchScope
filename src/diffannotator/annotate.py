@@ -1583,7 +1583,7 @@ class Bug:
                 out_path = base_path / Path(patch_id)\
                     .with_suffix(output_format_ext.value)
 
-            with out_path.open('w') as out_f:  # type: SupportsWrite[str]
+            with out_path.open(mode='wt') as out_f:  # type: SupportsWrite[str]
                 json.dump(patch_data, out_f)
 
 
@@ -2305,7 +2305,7 @@ def patch(patch_file: Annotated[Path, typer.Argument(exists=True, dir_okay=False
     print(f"Saving results to '{result_json}' JSON file")
     if guess_format_version(result_json) != JSONFormat.V2:
         print(f"  note that the file do not use expected {JSONFormatExt.V2.value!r} extension")
-    with result_json.open(mode='w') as result_f:  # type: SupportsWrite[str]
+    with result_json.open(mode='wt') as result_f:  # type: SupportsWrite[str]
         json.dump(result, result_f, indent=4)
 
 
