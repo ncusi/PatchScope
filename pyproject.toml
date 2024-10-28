@@ -58,7 +58,7 @@ version = {attr = "diffannotator.config.__version__"}
 [project.optional-dependencies]
 dev = ["pytest==8.3.3"]
 pylinguist = ["linguist@git+https://github.com/retanoj/linguist#egg=master"]
-examples = ["dvc==3.55.2"]
+examples = ["dvc==3.56.0"]
 
 [tool.setuptools]
 package-dir = {"" = "src"}
