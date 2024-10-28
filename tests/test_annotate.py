@@ -15,6 +15,7 @@ from diffannotator.annotate import (split_multiline_lex_tokens, line_ends_idx,
                                     clean_text, line_is_comment, annotate_single_diff,
                                     Bug, BugDataset, AnnotatedPatchedFile, AnnotatedHunk, AnnotatedPatchSet)
 from diffannotator.utils.git import GitRepo, DiffSide, ChangeSet
+from .conftest import count_pm_lines
 
 # Example code to be tokenized
 example_C_code = r'''
@@ -391,17 +392,7 @@ def test_misc_patchsets_sizes_and_spreads():
     assert len(changes_data) == diff_metadata['n_files'] + diff_metadata['n_file_renames'], \
         f"number of files matches between 'changes' and 'diff_metadata' for {file_path}"
 
-    # TODO: extract this common-ish code
-    total_m = total_p = 0
-    for file_name, file_data in changes_data.items():
-        for data_key, data_value in file_data.items():
-            if data_key == '-':
-                total_m += len(data_value)
-            elif data_key == '+':
-                total_p += len(data_value)
-
-        ## DEBUG
-        #print(f"{file_name!r}: {total_m=}, {total_p=}")
+    total_m, total_p = count_pm_lines(changes_data)
 
     ## DEBUG
     #print(f"TOTAL: {total_m=}, {total_p=}, {total_p+total_m=}")
@@ -814,13 +805,7 @@ def test_BugDataset_from_repo(tmp_path: Path):
         assert len(bug_patches['changes']) == diff_metadata['n_files'] + diff_metadata['n_file_renames'], \
             f"number of files matches between 'changes' and 'diff_metadata' for patchset № {i}"
 
-        total_p = total_m = 0
-        for file_data in bug_patches['changes'].values():
-            for data_key, data_value in file_data.items():
-                if data_key == '-':
-                    total_p += len(data_value)
-                elif data_key == '+':
-                    total_m += len(data_value)
+        total_m, total_p = count_pm_lines(bug_patches['changes'])
 
         ## DEBUG
         #print(f"{i}: {annotated_patch_data.patches.keys()}")
