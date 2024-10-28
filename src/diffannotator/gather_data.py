@@ -164,12 +164,14 @@ class PurposeCounterResults:
         return PurposeCounterResults([], Counter(), Counter(), Counter())
 
     @staticmethod
-    def create(file_path: str, data: dict) -> 'PurposeCounterResults':
+    def create(file_path: str, data: dict,
+               data_format: JSONFormat = JSONFormat.V1_5) -> 'PurposeCounterResults':
         """
         Override this function for single annotation handling
 
         :param file_path: path to processed file
         :param data: dictionary with annotations (file content)
+        :param data_format: version of data schema used by annotation file
         :return: datastructure instance
         """
         file_purposes = Counter()
@@ -177,7 +179,8 @@ class PurposeCounterResults:
         removed_line_purposes = Counter()
 
         for change_file, change_data in data.items():
-            change_data = _maybe_changes(change_file, change_data)
+            change_data = _maybe_changes(change_file, change_data,
+                                         data_format=data_format)
             if change_data is None:
                 # this is not changed file information
                 continue
@@ -367,7 +370,8 @@ class AnnotatedBugDataset:
         return combined_results
 
 
-def map_diff_to_purpose_dict(_diff_file_path: str, data: dict) -> dict:
+def map_diff_to_purpose_dict(_diff_file_path: str, data: dict,
+                             data_format: JSONFormat = JSONFormat. V1_5) -> dict:
     """Extracts file purposes of changed file in a diff annotation
 
     Returns mapping from file name (of a changed file) to list (???)
@@ -382,11 +386,13 @@ def map_diff_to_purpose_dict(_diff_file_path: str, data: dict) -> dict:
 
     :param _diff_file_path: file path containing diff, ignored
     :param data: dictionary loaded from file
+    :param data_format: version of data schema used by annotation file
     :return: dictionary with file purposes
     """
     result = {}
     for change_file, change_data in data.items():
-        change_data = _maybe_changes(change_file, change_data)
+        change_data = _maybe_changes(change_file, change_data,
+                                     data_format=data_format)
         if change_data is None:
             # this is not changed file information
             continue
@@ -402,7 +408,8 @@ def map_diff_to_purpose_dict(_diff_file_path: str, data: dict) -> dict:
 
 
 def map_diff_to_lines_stats(annotation_file_basename: str,
-                            annotation_data: dict) -> dict:
+                            annotation_data: dict,
+                            data_format: JSONFormat = JSONFormat.V1_5) -> dict:
     """Mapper passed by line_stats() to *.gather_data_dict() method
 
     It gathers information about file, and counts information about
@@ -411,6 +418,7 @@ def map_diff_to_lines_stats(annotation_file_basename: str,
     :param annotation_file_basename: name of JSON file with annotation data
     :param annotation_data: parsed annotations data, retrieved from
         `annotation_file_basename` file.
+    :param data_format: version of data schema used by annotation file
     """
     # Example fragment of annotation file:
     #
@@ -438,7 +446,8 @@ def map_diff_to_lines_stats(annotation_file_basename: str,
     for filename, file_data in annotation_data.items():
         # DEBUG
         #print(f" {filename=}")
-        file_data = _maybe_changes(filename, file_data)
+        file_data = _maybe_changes(filename, file_data,
+                                   data_format=data_format)
         if file_data is None:
             # this is not changed file information
             continue
@@ -485,6 +494,7 @@ def map_diff_to_lines_stats(annotation_file_basename: str,
 
 def map_diff_to_timeline(annotation_file_basename: str,
                          annotation_data: dict,
+                         data_format: JSONFormat = JSONFormat.V1_5,
                          purpose_to_annotation: Optional[list] = None) -> dict:
     """Mapper passed by timeline() to *.gather_data_dict() method
 
@@ -494,6 +504,7 @@ def map_diff_to_timeline(annotation_file_basename: str,
     :param annotation_file_basename: name of JSON file with annotation data
     :param annotation_data: parsed annotations data, retrieved from
         `annotation_file_basename` file.
+    :param data_format: version of data schema used by annotation file
     :param purpose_to_annotation: list of pairs (<file purpose>, <line type annotation>)
         to treat each line of file with given purpose to have given type annotation.
     """
@@ -569,7 +580,8 @@ def map_diff_to_timeline(annotation_file_basename: str,
     for filename, file_data in annotation_data.items():
         # NOTE: each file should be present only once for given patch/commit
 
-        diff_metadata = _maybe_diff_metadata(filename, file_data)
+        diff_metadata = _maybe_diff_metadata(filename, file_data,
+                                             data_format=data_format)
         if diff_metadata is not None:
             key: str
             count: int
@@ -601,7 +613,8 @@ def map_diff_to_timeline(annotation_file_basename: str,
                 print(f"  warning: found file named 'commit_metadata' in {annotation_file_basename}")
 
         # currently it should be a no-op... for V1 data
-        file_data = _maybe_changes(filename, file_data)
+        file_data = _maybe_changes(filename, file_data,
+                                   data_format=data_format)
 
         result['file_names'] += 1
 
