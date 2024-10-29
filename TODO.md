@@ -146,6 +146,10 @@ The result of annotation is saved in JSON files, one per patch / commit.
               ~~and maybe use it~~ (copy, ~~or import from PyPI/GitHub, or include as submodule and import~~):
               it calls `defect4j` binary from <https://github.com/rjust/defects4j>
               (Java code, Ant build system, with Perl wrappers - for Java code only)
+        - [ ] find out which lines were modified, and not only their count
+              with some kind of fuzzy matching between lines ([RapidFuzz][], [thefuzz][],
+              _maybe_ [regex][] and [orc][], _maybe_ `SequenceMatcher`, `get_close_matches` from [difflib][],
+              or maybe the context diff algorithm)
     - [ ] retrieving and adding commit metadata
         - [x] from Git repository - for 'from-repo'
         - [ ] from \*.message files - for 'dataset' (see BugsInPy, HaPy-Bugs)
@@ -349,6 +353,12 @@ data.
 [ttygif]: https://github.com/icholy/ttygif "ttygif: Convert terminal recordings to animated gifs"
 [shelldemo]: https://github.com/pawamoy/shelldemo "pawamoy/shelldemo: Run a set of Bash commands as if typed by a robo- I mean, a person"
 
+[RapidFuzz]: https://rapidfuzz.github.io/RapidFuzz/ "RapidFuzz: Rapid fuzzy string matching in Python using various string metrics"
+[thefuzz]: https://github.com/seatgeek/thefuzz "thefuzz: Fuzzy String Matching in Python"
+[regex]: https://github.com/mrabarnett/mrab-regex
+[orc]: https://github.com/MaxHalford/orc "orc: Parsing structured information from OCR outputs"
+[difflib]: https://docs.python.org/3/library/difflib.html "difflib — Helpers for computing deltas (Python standard library)"
+
 [github/linguist]: https://github.com/github/linguist
 [douban/linguist]: https://github.com/douban/linguist
 [retanoj/linguist]: https://github.com/retanoj/linguist
@@ -357,6 +367,7 @@ data.
 [1]: https://stackoverflow.com/questions/70387750/how-to-manage-sub-projects-in-python
 [2]: https://github.com/github-linguist/linguist/blob/master/docs/overrides.md#using-gitattributes
 [3]: https://stackoverflow.com/questions/70811640/using-typer-and-hydra-together
+[4]: https://maxhalford.github.io/blog/fuzzy-regex-matching-in-python/ "Fuzzy regex matching in Python"
 
 [dissection-defects4j-paper]: https://doi.org/10.1109/SANER.2018.8330203 "Sobreira et al.: 'Dissection of a bug dataset: Anatomy of 395 patches from Defects4J', SANER 2018"
 [BugsInPy-paper]: https://doi.org/10.1145/3368089.3417943 "'BugsInPy: a database of existing bugs in Python programs to enable controlled testing and debugging studies', ESEC/FSE 2020"
