@@ -1,0 +1,3 @@
+# do not perform any end-of-line conversions;
+# *.diff files here need to keep LF as end of line, but have embedded CR
+*.diff -text

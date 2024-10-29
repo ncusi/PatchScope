@@ -55,7 +55,7 @@ import os
 from collections import Counter, defaultdict
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Any, Optional, TypeVar, TYPE_CHECKING
+from typing import Any, Optional, Union, NamedTuple, TypeVar, TYPE_CHECKING
 from collections.abc import Callable
 if TYPE_CHECKING:
     from _typeshed import SupportsWrite
@@ -66,6 +66,7 @@ import typer
 from typing_extensions import Annotated
 
 from .annotate import Bug
+from .config import JSONFormat, guess_format_version
 
 
 # configure logging
@@ -75,6 +76,60 @@ PathLike = TypeVar("PathLike", str, bytes, Path, os.PathLike)
 T = TypeVar('T')  # Declare type variable "T" to use in typing
 
 app = typer.Typer(no_args_is_help=True, add_completion=False)
+
+
+def _is_commit_metadata(key: str, value: dict,
+                        data_format: JSONFormat = JSONFormat.V1_5) -> bool:
+    """Detect commit metadata instead of changed file information"""
+    # NOTE: switch to structured case statement when minimal versio gets bumped to Python 3.10
+    if data_format == JSONFormat.V1:
+        # there is no commit metadata in this format
+        return False
+    elif data_format == JSONFormat.V1_5:
+        # there can be changed file named 'commit_metadata'
+        return key == 'commit_metadata' and 'purpose' not in value
+    elif data_format == JSONFormat.V2:
+        # changes are stored at separate 'changes' key, no mixing possible
+        return key == 'commit_metadata'
+
+
+def _is_diff_metadata(key: str, value: Union[dict, int],
+                      data_format: JSONFormat = JSONFormat.V1_5) -> bool:
+    """Detect sizes and spreads metrics, instead of changed file information"""
+    if data_format == JSONFormat.V1:
+        # there is no diff metadata in this format
+        return False
+    elif data_format == JSONFormat.V1_5:
+        # diff metadata was gathered using Counter, then embedded in dict
+        # for example diff metadata includes 'n_files', which type is int, not dict
+        return not isinstance(value, dict)
+    elif data_format == JSONFormat.V2:
+        # diff metadata is stored under separate key, no mixing possible
+        return key == 'diff_metadata'
+
+
+class MaybeChanges(NamedTuple):
+    """Changes data, maybe intermixed with other data (see check_it)"""
+    changes: dict[str, Union[dict, int]]
+    check_it: bool = False
+
+
+def _extract_maybe_changes(data: dict,
+                           data_format: JSONFormat = JSONFormat.V1_5) -> MaybeChanges:
+    """Extract changed file information, might be mixed with something else"""
+    if data_format == JSONFormat.V1:
+        return MaybeChanges(data, check_it=False)
+    elif data_format == JSONFormat.V1_5:
+        return MaybeChanges(data, check_it=True)
+    elif data_format == JSONFormat.V2:
+        return MaybeChanges(data['changes'], check_it=False)
+
+
+def _is_not_changes(key: str, value: dict,
+                    data_format: JSONFormat = JSONFormat.V1_5) -> bool:
+    """Detect something that is not changes in data extracted with _extract_maybe_changes()"""
+    return (_is_commit_metadata(key, value, data_format) or
+            _is_diff_metadata(key, value, data_format))
 
 
 class PurposeCounterResults:
@@ -120,36 +175,39 @@ class PurposeCounterResults:
         return PurposeCounterResults([], Counter(), Counter(), Counter())
 
     @staticmethod
-    def create(file_path: str, data: dict) -> 'PurposeCounterResults':
+    def create(file_path: str, data: dict,
+               data_format: JSONFormat = JSONFormat.V1_5) -> 'PurposeCounterResults':
         """
         Override this function for single annotation handling
 
         :param file_path: path to processed file
         :param data: dictionary with annotations (file content)
+        :param data_format: version of data schema used by annotation file
         :return: datastructure instance
         """
         file_purposes = Counter()
         added_line_purposes = Counter()
         removed_line_purposes = Counter()
+        ## DEBUG
+        #print(f"PurposeCounterResults.create({file_path=}, {data.keys()=}, {data_format=})")
+        maybe_changes = _extract_maybe_changes(data, data_format=data_format)
 
-        for change_file in data:
-            if not isinstance(data[change_file], dict):
-                # this is not changed file information, but sizes and spreads metrics
-                # for example 'n_files', which type is int, not dict
+        for change_file, change_data in maybe_changes.changes.items():
+            if (maybe_changes.check_it and
+                _is_not_changes(change_file, change_data,
+                                data_format=data_format)):
+                # this is not changed file information
                 continue
-            if 'purpose' not in data[change_file] and change_file == 'commit_metadata':
-                # this is not changed file information, but commit metadata
-                continue
+
             # TODO: log info / debug
-            #print(change_file)
-            #print(data[change_file]['purpose'])
-            file_purposes[data[change_file]['purpose']] += 1
-            if '+' in data[change_file]:
-                added_lines = data[change_file]['+']
+            #print(f"PurposeCounterResults.create: {change_file=}, {change_data.keys()=}")
+            file_purposes[change_data['purpose']] += 1
+            if '+' in change_data:
+                added_lines = change_data['+']
                 for added_line in added_lines:
                     added_line_purposes[added_line['purpose']] += 1
-            if '-' in data[change_file]:
-                removed_lines = data[change_file]['-']
+            if '-' in change_data:
+                removed_lines = change_data['-']
                 for removed_line in removed_lines:
                     removed_line_purposes[removed_line['purpose']] += 1
         return PurposeCounterResults([file_path], file_purposes, added_line_purposes, removed_line_purposes)
@@ -173,9 +231,14 @@ class AnnotatedFile:
         :param bug_mapper: function to map bug to datastructure
         :return: resulting datastructure
         """
+        file_format = guess_format_version(self._path, warn_ambiguous=True)
+        if file_format is None:
+            logger.warning(f"Unknown annotation file format for '{self._path}'")
+            file_format = JSONFormat.V1_5
         with self._path.open('r') as json_file:
             data = json.load(json_file)
-            return bug_mapper(str(self._path), data, **mapper_kwargs)
+            return bug_mapper(str(self._path), data,
+                              data_format=file_format, **mapper_kwargs)
 
 
 class AnnotatedBug:
@@ -323,7 +386,8 @@ class AnnotatedBugDataset:
         return combined_results
 
 
-def map_diff_to_purpose_dict(_diff_file_path: str, data: dict) -> dict:
+def map_diff_to_purpose_dict(_diff_file_path: str, data: dict,
+                             data_format: JSONFormat = JSONFormat. V1_5) -> dict:
     """Extracts file purposes of changed file in a diff annotation
 
     Returns mapping from file name (of a changed file) to list (???)
@@ -338,30 +402,32 @@ def map_diff_to_purpose_dict(_diff_file_path: str, data: dict) -> dict:
 
     :param _diff_file_path: file path containing diff, ignored
     :param data: dictionary loaded from file
+    :param data_format: version of data schema used by annotation file
     :return: dictionary with file purposes
     """
     result = {}
-    for change_file in data:
-        if not isinstance(data[change_file], dict):
-            # this is not changed file information, but sizes and spreads metrics
-            # for example 'n_files', which type is int, not dict
-            continue
-        if 'purpose' not in data[change_file] and change_file == 'commit_metadata':
-            # this is not changed file information, but commit metadata
+    maybe_changes = _extract_maybe_changes(data, data_format=data_format)
+
+    for change_file, change_data in maybe_changes.changes.items():
+        if (maybe_changes.check_it and
+            _is_not_changes(change_file, change_data,
+                            data_format=data_format)):
+            # this is not changed file information
             continue
 
         #print(change_file)
-        #print(data[change_file]['purpose'])
+        #print(change_data['purpose'])
         if change_file not in result:
             result[change_file] = []
-        result[change_file].append(data[change_file]['purpose'])
+        result[change_file].append(change_data['purpose'])
 
     #print(f"{_diff_file_path}:{result=}")
     return result
 
 
 def map_diff_to_lines_stats(annotation_file_basename: str,
-                            annotation_data: dict) -> dict:
+                            annotation_data: dict,
+                            data_format: JSONFormat = JSONFormat.V1_5) -> dict:
     """Mapper passed by line_stats() to *.gather_data_dict() method
 
     It gathers information about file, and counts information about
@@ -370,6 +436,7 @@ def map_diff_to_lines_stats(annotation_file_basename: str,
     :param annotation_file_basename: name of JSON file with annotation data
     :param annotation_data: parsed annotations data, retrieved from
         `annotation_file_basename` file.
+    :param data_format: version of data schema used by annotation file
     """
     # Example fragment of annotation file:
     #
@@ -394,16 +461,13 @@ def map_diff_to_lines_stats(annotation_file_basename: str,
     # TODO: replace commented out DEBUG lines with logging (info or debug)
     # DEBUG
     #print(f"map_diff_to_lines_stats('{annotation_file_basename}', {{...}}):")
-    for filename, file_data in annotation_data.items():
-        # DEBUG
-        #print(f" {filename=}")
-        if not isinstance(file_data, dict):
-            # this is not changed file information, but sizes and spreads metrics
-            # for example 'n_files', which type is int, not dict
-            continue
+    maybe_changes = _extract_maybe_changes(annotation_data, data_format=data_format)
 
-        if filename == 'commit_metadata' and 'purpose' not in file_data:
-            # this is not changed file information, but commit metadata
+    for filename, file_data in maybe_changes.changes.items():
+        if (maybe_changes.check_it and
+            _is_not_changes(filename, file_data,
+                            data_format=data_format)):
+            # this is not changed file information
             continue
 
         # NOTE: each file should be present only once for given patch/commit
@@ -448,6 +512,7 @@ def map_diff_to_lines_stats(annotation_file_basename: str,
 
 def map_diff_to_timeline(annotation_file_basename: str,
                          annotation_data: dict,
+                         data_format: JSONFormat = JSONFormat.V1_5,
                          purpose_to_annotation: Optional[list] = None) -> dict:
     """Mapper passed by timeline() to *.gather_data_dict() method
 
@@ -457,6 +522,7 @@ def map_diff_to_timeline(annotation_file_basename: str,
     :param annotation_file_basename: name of JSON file with annotation data
     :param annotation_data: parsed annotations data, retrieved from
         `annotation_file_basename` file.
+    :param data_format: version of data schema used by annotation file
     :param purpose_to_annotation: list of pairs (<file purpose>, <line type annotation>)
         to treat each line of file with given purpose to have given type annotation.
     """
@@ -528,38 +594,64 @@ def map_diff_to_timeline(annotation_file_basename: str,
     #print(f"{purpose_to_annotation=}")
     #print(f"{purpose_to_type_dict=}")
 
-    # gather summary data from all changed files
-    for filename, file_data in annotation_data.items():
-        # NOTE: each file should be present only once for given patch/commit
+    # gather diff metadata for v2
+    if data_format == JSONFormat.V2:
+        if 'diff_metadata' in annotation_data:
+            for metric, count in annotation_data['diff_metadata'].items():
+                per_commit_info[f"diff.{metric}"] = count
 
-        if not isinstance(file_data, dict):
-            # this is not changed file information, but sizes and spreads metrics
-            # for example 'n_files', which type is int, not dict
-            # TODO: include this information for other (sub)commands
-            per_commit_info[f"diff.{filename}"] = file_data
-            # no further analysis, no aggregation of  per-file data
-            continue
+    # gather commit metadata for v1.5 and v2
+    if ('commit_metadata' in annotation_data and
+        (data_format == JSONFormat.V1_5 or
+         data_format == JSONFormat.V2)):
 
-        if filename == 'commit_metadata':
-            # this might be changed file information, but commit metadata
-            for metadata_key in ('author', 'committer'):
-                if metadata_key not in file_data:
-                    continue
-                authorship_data = file_data[metadata_key]
-                for authorship_key in ('timestamp', 'tz_info', 'name', 'email'):
-                    if authorship_key in authorship_data:
-                        per_commit_info[f"{metadata_key}.{authorship_key}"] = file_data[metadata_key][authorship_key]
+        commit_metadata = annotation_data['commit_metadata']
 
-            if 'parents' in file_data:
-                per_commit_info['n_parents'] = len(file_data['parents'])
-
-            if 'purpose' not in file_data:
-                # commit metadata, skip processing it as a file
+        for metadata_key in ('author', 'committer'):
+            if metadata_key not in commit_metadata:
                 continue
-            else:
-                # TODO: use logging
-                print(f"  warning: found file named 'commit_metadata' in {annotation_file_basename}")
+            authorship_data = commit_metadata[metadata_key]
+            for authorship_key in ('timestamp', 'tz_info', 'name', 'email'):
+                if authorship_key in authorship_data:
+                    per_commit_info[f"{metadata_key}.{authorship_key}"] = \
+                        commit_metadata[metadata_key][authorship_key]
 
+        if 'parents' in commit_metadata:
+            per_commit_info['n_parents'] = len(commit_metadata['parents'])
+
+        if data_format == JSONFormat.V1_5 and 'purpose' not in commit_metadata:
+            # cannot be an ordinary file
+            del annotation_data['commit_metadata']
+
+    # extract changes data, required for v2
+    if data_format == JSONFormat.V2:
+        changes_data = annotation_data['changes']
+    else:
+        changes_data = annotation_data
+
+    # gather summary data from all changed files
+    for filename, file_data in changes_data.items():
+        # handle the case of commit and diff metadata intermixed with changes data
+        if data_format == JSONFormat.V1_5:
+            # handle case of file named 'commit_metadata'
+            # the commit metadata got extracted before the loop
+            if filename == 'commit_metadata':
+                # this might be changed file information, but commit metadata mixed in
+                # at least for v1.5 annotations file format (file schema version)
+                if 'purpose' not in file_data:
+                    # commit metadata, skip processing it as a file
+                    continue
+                else:
+                    # TODO: use logging
+                    print(f"  warning: found file named 'commit_metadata' in {annotation_file_basename}")
+
+            # handle the case of diff metadata intermixed with changes data
+            if _is_diff_metadata(filename, file_data):
+                per_commit_info[f"diff.{filename}"] = file_data
+                # diff metadata, skip processing it as a file
+                continue
+
+        # NOTE: each file should be present only once for given patch/commit
         result['file_names'] += 1
 
         # gather per-file information, and aggregate it
@@ -602,7 +694,6 @@ def map_diff_to_timeline(annotation_file_basename: str,
     result = dict(result, **per_commit_info)
 
     return result
-
 
 
 # TODO: make it common (move it to 'utils' module or '__init__.py' file)
@@ -679,6 +770,7 @@ def common(
         return
 
     # pass to subcommands via context
+    # TODO: use this technique for other scripts
     ctx.obj = SimpleNamespace(
         annotations_dir=annotations_dir,
     )

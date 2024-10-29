@@ -67,6 +67,7 @@ def test_format_patch(tmp_path: Path):
     # try to parse this patch file
     file_path = patches_paths[0]
     patch = annotate_single_diff(file_path)
+    patch = patch['changes']
     changed_file_name = 'pom.xml'
     assert len(patch) == 1, \
         "there is only one file in patch"

@@ -19,6 +19,10 @@ from diffannotator.utils.git import GitRepo
 default_branch = 'main'
 
 
+## ----------------------------------------------------------------------
+## fixtures
+
+
 @pytest.fixture(scope="module")  # like unittest.setUpClass()
 def example_repo(tmp_path_factory: pytest.TempPathFactory) -> GitRepo:
     """Prepare Git repository for testing `utils.git` module
@@ -78,3 +82,25 @@ def example_repo(tmp_path_factory: pytest.TempPathFactory) -> GitRepo:
     subprocess.run(['git', '-C', repo_path, 'tag', 'v2'])
 
     return GitRepo(repo_path)
+
+
+## ----------------------------------------------------------------------
+## helper functions
+
+
+def count_pm_lines(changes_data: dict) -> tuple[int, int]:
+    """Count number of '-' and '+' lines in changes part of annotation data
+
+    :param changes_data: information about changes extracted from annotation data;
+        in the v2 data format this data is available at the 'changes' key
+    :return: (total number of '-' lines, total number of '+' lines)
+    """
+    total_p = total_m = 0
+    for file_name, file_data in changes_data.items():  # we are not interested in file names here
+        for data_key, data_value in file_data.items():
+            if data_key == '-':
+                total_m += len(data_value)
+            elif data_key == '+':
+                total_p += len(data_value)
+
+    return total_m, total_p

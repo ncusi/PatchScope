@@ -61,7 +61,7 @@ from typing_extensions import Annotated  # in typing since Python 3.9
 import yaml
 
 from . import languages
-from .config import get_version
+from .config import get_version, JSONFormat, JSONFormatExt, guess_format_version
 from .languages import Languages
 from .lexer import Lexer
 from .utils.git import GitRepo, ChangeSet
@@ -306,14 +306,39 @@ def line_is_comment(tokens_list: Iterable[tuple]) -> bool:
 class AnnotatedPatchSet:
     """Annotations for whole patch / diff
 
-    :ivar: patch_set: original unidiff.PatchSet or diffannotator.git.ChangeSet"""
-    def __init__(self, patch_set: unidiff.PatchSet):
+    :ivar patch_set: original unidiff.PatchSet or diffannotator.git.ChangeSet
+    :ivar repo: optionally, the repository diffannotator.git.ChangeSet came from"""
+    def __init__(self,
+                 patch_set: Union[ChangeSet, unidiff.PatchSet],
+                 repo: Optional[GitRepo] = None):
         """Initialize AnnotatedPatchSet with unidiff.PatchSet (or derived class)
 
         :param patch_set: parsed unified diff (if unidiff.PatchSet),
             or parsed commit changes and parsed commit metadata (if ChangeSet)
+        :param repo: the Git repository the `patch_set` (ChangeSet)
+            came from
         """
         self.patch_set = patch_set
+        self.repo = repo
+
+    # builder pattern
+    def add_repo(self, repo: GitRepo) -> 'AnnotatedPatchSet':
+        """Add the Git repository the patch (supposedly) came from
+
+        **NOTE:** Modifies self, and returns modified object.
+
+        :param repo: the Git repository connected to self / the patchset
+        :return: changed object, to enable flow/builder pattern
+        """
+        self.repo = repo
+        return self
+
+    @property
+    def commit_id(self) -> Optional[str]:
+        if isinstance(self.patch_set, ChangeSet):
+            return self.patch_set.commit_id
+        else:
+            return getattr(self.patch_set, 'commit_id', None)
 
     @classmethod
     def from_filename(cls, filename: Union[str, Path], encoding: str = unidiff.DEFAULT_ENCODING,
@@ -417,23 +442,53 @@ class AnnotatedPatchSet:
         i: Optional[int] = None
         patch_annotations: dict[str, Union[dict[str, Union[str, dict]], Counter]] = {}
 
-        try:
-            # once per changeset
-            # TODO/DOING: extract common code
-            # TODO: make '' into a constant, like UNKNOWN_ID, reducing duplication
-            if isinstance(self.patch_set, ChangeSet) and self.patch_set.commit_id != '':
-                commit_metadata = {'id': self.patch_set.commit_id}
-                if self.patch_set.commit_metadata is not None:
-                    commit_metadata.update(self.patch_set.commit_metadata)
-                patch_annotations['commit_metadata'] = commit_metadata
+        # once per changeset: extracting the commit id and commit metadata
+        patch_id: Optional[str] = None
+        # TODO: make '' into a constant, like UNKNOWN_ID, reducing duplication
+        if isinstance(self.patch_set, ChangeSet) and self.patch_set.commit_id != '':
+            patch_id = self.patch_set.commit_id
+            commit_metadata = {'id': patch_id}
+            if self.patch_set.commit_metadata is not None:
+                commit_metadata.update(self.patch_set.commit_metadata)
+            patch_annotations['commit_metadata'] = commit_metadata
 
+        # helpers to get contents of pre-image and post-image files
+        src_commit: Optional[str] = None
+        dst_commit: Optional[str] = None
+        if self.repo is not None and patch_id is not None:
+            if self.repo.is_valid_commit(patch_id):
+                dst_commit = patch_id
+            if self.repo.is_valid_commit(f"{patch_id}^"):
+                src_commit = f"{patch_id}^"
+
+        # TODO?: Consider moving the try ... catch ... inside the loop
+        try:
             # for each changed file
+            patched_file: unidiff.PatchedFile
             for i, patched_file in enumerate(self.patch_set, start=1):
+                # create AnnotatedPatchedFile object from i-th changed file in patchset
                 annotated_patch_file = AnnotatedPatchedFile(patched_file)
-                patch_annotations.update(annotated_patch_file.process())
+
+                # add sources, if repo is available, and they are available from repo
+                src: Optional[str] = None
+                dst: Optional[str] = None
+                if self.repo is not None:
+                    # we need real name, not prefixed with "a/" or "b/" name unidiff.PatchedFile provides
+                    # TODO?: use .is_added_file and .is_removed_file unidiff.PatchedFile properties, or
+                    # TODO?: or use unidiff.DEV_NULL / unidiff.constants.DEV_NULL
+                    if src_commit is not None and annotated_patch_file.source_file != "/dev/null":
+                        src = self.repo.file_contents(src_commit, annotated_patch_file.source_file)
+                    if dst_commit is not None and annotated_patch_file.target_file != "/dev/null":
+                        dst = self.repo.file_contents(dst_commit, annotated_patch_file.target_file)
+                annotated_patch_file.add_sources(src=src, dst=dst)
+
+                # add annotations from i-th changed file
+                if 'changes' not in patch_annotations:
+                    patch_annotations['changes'] = {}
+                patch_annotations['changes'].update(annotated_patch_file.process())
 
             if sizes_and_spreads:
-                patch_annotations.update(self.compute_sizes_and_spreads())
+                patch_annotations['diff_metadata'] = self.compute_sizes_and_spreads()
 
         except Exception as ex:
             #print(f"Error processing patch {self.patch_set!r}, at file no {i}: {ex!r}")
@@ -791,6 +846,10 @@ class AnnotatedPatchedFile:
             return Counter({
                 'n_files': 1,
                 'n_binary_files': 1,
+                # TODO?: Do not add if value is 0
+                'n_added_files': int(self.patched_file.is_added_file),
+                'n_removed_files': int(self.patched_file.is_removed_file),
+                'n_file_renames': int(self.patched_file.is_rename),
             })
 
         result = Counter({
@@ -804,6 +863,12 @@ class AnnotatedPatchedFile:
                 (self.patched_file[-1].target_start + self.patched_file[-1].target_length - 1
                  - self.patched_file[0].target_start),
         })
+        if self.patched_file.is_added_file:
+            result['n_added_files'] = 1
+        elif self.patched_file.is_removed_file:
+            result['n_removed_files'] = 1
+        elif self.patched_file.is_rename:
+            result['n_file_renames'] = 1
 
         #print(f"patched file: {self.patched_file!r}")
         prev_hunk_info: Optional[dict] = None
@@ -1199,7 +1264,11 @@ class AnnotatedHunk:
 
                 line_annotation: Optional[str] = None
                 if AnnotatedPatchedFile.line_callback is not None:
-                    line_annotation = AnnotatedPatchedFile.line_callback(line_tokens)
+                    try:
+                        line_annotation = AnnotatedPatchedFile.line_callback(line_tokens)
+                    except:
+                        # TODO: log problems with line callback
+                        pass
                 if line_annotation is None:
                     line_annotation = 'documentation' if line_is_comment(line_tokens) else 'code'
 
@@ -1385,54 +1454,13 @@ class Bug:
             it, `patch_set` should be changes in repo for commit `patch_id`
         :return: Bug object instance
         """
-        patch_annotations: dict[str, dict[str, Union[str, dict]]] = {}
-        i = 0
-
-        src_commit: Optional[str] = None
-        dst_commit: Optional[str] = None
-        if repo is not None and patch_id is not None:
-            if repo.is_valid_commit(patch_id):
-                dst_commit = patch_id
-            if repo.is_valid_commit(f"{patch_id}^"):
-                src_commit = f"{patch_id}^"
-
-        # add commit metadata to annotations, if available
-        if isinstance(patch_set, ChangeSet):
-            commit_metadata = {'id': patch_set.commit_id}
-            if patch_set.commit_metadata is not None:
-                commit_metadata.update(patch_set.commit_metadata)
-            patch_annotations['commit_metadata'] = commit_metadata
-
-        try:
-            # based on annotate_single_diff() function code
-            patched_file: unidiff.PatchedFile
-            for i, patched_file in enumerate(patch_set, start=1):
-                # create AnnotatedPatchedFile object from i-th changed file in patchset
-                annotated_patch_file = AnnotatedPatchedFile(patched_file)
-                # add sources, if available from repo
-                src: Optional[str] = None
-                dst: Optional[str] = None
-                if repo is not None:
-                    # we need real name, not prefixed with "a/" or "b/" name in unidiff.PatchedFile
-                    if src_commit is not None and annotated_patch_file.source_file != "/dev/null":
-                        src = repo.file_contents(src_commit, annotated_patch_file.source_file)
-                    if dst_commit is not None and annotated_patch_file.target_file != "/dev/null":
-                        dst = repo.file_contents(dst_commit, annotated_patch_file.target_file)
-                annotated_patch_file.add_sources(src=src, dst=dst)
-                # add annotations from i-th changed file
-                patch_annotations.update(annotated_patch_file.process())
-                if sizes_and_spreads:
-                    patch_annotations.update(annotated_patch_file.compute_sizes_and_spreads())
-
-        except Exception as ex:
-            #print(f"Error processing PatchSet {patch_set!r} at {i} patched file: {ex!r}")
-            #traceback.print_tb(ex.__traceback__)
-            logger.error(msg=f"Error processing PatchSet {patch_set!r} at {i} patched file",
-                         exc_info=True)
-            # raise ex
+        annotated_patch = AnnotatedPatchSet(patch_set=patch_set, repo=repo)
+        patch_annotations = annotated_patch.process(
+            sizes_and_spreads=sizes_and_spreads,
+        )
 
         if patch_id is None:
-            patch_id = getattr(patch_set, 'commit_id', repr(patch_set))
+            patch_id = annotated_patch.commit_id
 
         return Bug({patch_id: patch_annotations})
 
@@ -1517,7 +1545,8 @@ class Bug:
 
         return patches_data
 
-    def save(self, annotate_dir: Optional[PathLike] = None, fan_out: bool = False):
+    def save(self, annotate_dir: Optional[PathLike] = None, fan_out: bool = False,
+             output_format_ext: JSONFormatExt = JSONFormatExt.V2):
         """Save annotated patches in JSON format
 
         :param annotate_dir: Separate dir to save annotations, optional.
@@ -1525,6 +1554,8 @@ class Bug:
         :param fan_out: Save annotated data in a fan-out directory,
             named after first 2 hexdigits of patch_id; the rest is used
             for the basename; splits patch_id.
+        :param output_format_ext: Extension used when saving the data;
+            should look like JSON, e.g. '.json', '.v2.json', etc.
         """
         if annotate_dir is not None:
             base_path = Path(annotate_dir)
@@ -1546,9 +1577,11 @@ class Bug:
             if fan_out:
                 base_path.joinpath(patch_id[:2]).mkdir(exist_ok=True)
                 offset = int('/' in patch_id)  #: for '12345' and '12/345' to both split into '12' / '345'
-                out_path = base_path / Path(patch_id[:2], patch_id[2+offset:]).with_suffix('.json')
+                out_path = base_path / Path(patch_id[:2], patch_id[2+offset:])\
+                    .with_suffix(output_format_ext.value)
             else:
-                out_path = base_path / Path(patch_id).with_suffix('.json')
+                out_path = base_path / Path(patch_id)\
+                    .with_suffix(output_format_ext.value)
 
             with out_path.open(mode='wt') as out_f:  # type: SupportsWrite[str]
                 json.dump(patch_data, out_f)
@@ -2270,6 +2303,8 @@ def patch(patch_file: Annotated[Path, typer.Argument(exists=True, dir_okay=False
         result_json.parent.mkdir(parents=True, exist_ok=True)
 
     print(f"Saving results to '{result_json}' JSON file")
+    if guess_format_version(result_json) != JSONFormat.V2:
+        print(f"  note that the file do not use expected {JSONFormatExt.V2.value!r} extension")
     with result_json.open(mode='wt') as result_f:  # type: SupportsWrite[str]
         json.dump(result, result_f, indent=4)
 

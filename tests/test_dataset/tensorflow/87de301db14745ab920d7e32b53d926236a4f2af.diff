@@ -1,0 +1,140 @@
+diff --git a/tensorflow/core/kernels/string_to_number_op.cc b/tensorflow/core/kernels/string_to_number_op.cc
+index d583e4e6bba27d..70dbd15c46cb34 100644
+--- a/tensorflow/core/kernels/string_to_number_op.cc
++++ b/tensorflow/core/kernels/string_to_number_op.cc
+@@ -49,43 +49,15 @@ class StringToNumberOp : public OpKernel {
+     auto output_flat = output_tensor->flat<OutputType>();
+ 
+     for (int i = 0; i < input_flat.size(); ++i) {
+-      Convert(input_flat(i), &output_flat(i), context);
++      OP_REQUIRES(
++          context,
++          strings::SafeStringToNumeric<OutputType>(input_flat(i).c_str(),
++                                                   &output_flat(i)),
++          errors::InvalidArgument(kErrorMessage, input_flat(i).c_str()));
+     }
+   }
+-
+- private:
+-  void Convert(const string& s, OutputType* output_data,
+-               OpKernelContext* context);
+ };
+ 
+-template <>
+-void StringToNumberOp<float>::Convert(const string& s, float* output_data,
+-                                      OpKernelContext* context) {
+-  OP_REQUIRES(context, strings::safe_strtof(s.c_str(), output_data),
+-              errors::InvalidArgument(kErrorMessage, s));
+-}
+-
+-template <>
+-void StringToNumberOp<double>::Convert(const string& s, double* output_data,
+-                                       OpKernelContext* context) {
+-  OP_REQUIRES(context, strings::safe_strtod(s.c_str(), output_data),
+-              errors::InvalidArgument(kErrorMessage, s));
+-}
+-
+-template <>
+-void StringToNumberOp<int32>::Convert(const string& s, int32* output_data,
+-                                      OpKernelContext* context) {
+-  OP_REQUIRES(context, strings::safe_strto32(s, output_data),
+-              errors::InvalidArgument(kErrorMessage, s));
+-}
+-
+-template <>
+-void StringToNumberOp<int64>::Convert(const string& s, int64* output_data,
+-                                      OpKernelContext* context) {
+-  OP_REQUIRES(context, strings::safe_strto64(s, output_data),
+-              errors::InvalidArgument(kErrorMessage, s));
+-}
+-
+ // Registers the currently supported output types.
+ #define REGISTER(type)                                           \
+   REGISTER_KERNEL_BUILDER(Name("StringToNumber")                 \
+diff --git a/tensorflow/core/lib/strings/numbers.h b/tensorflow/core/lib/strings/numbers.h
+index 31b6abbac682bf..3c45b902740199 100644
+--- a/tensorflow/core/lib/strings/numbers.h
++++ b/tensorflow/core/lib/strings/numbers.h
+@@ -122,6 +122,38 @@ bool safe_strtof(const char* str, float* value);
+ // Values may be rounded on over- and underflow.
+ bool safe_strtod(const char* str, double* value);
+ 
++inline bool ProtoParseNumeric(StringPiece s, int32* value) {
++  return safe_strto32(s, value);
++}
++
++inline bool ProtoParseNumeric(StringPiece s, uint32* value) {
++  return safe_strtou32(s, value);
++}
++
++inline bool ProtoParseNumeric(StringPiece s, int64* value) {
++  return safe_strto64(s, value);
++}
++
++inline bool ProtoParseNumeric(StringPiece s, uint64* value) {
++  return safe_strtou64(s, value);
++}
++
++inline bool ProtoParseNumeric(StringPiece s, float* value) {
++  return safe_strtof(s.ToString().c_str(), value);
++}
++
++inline bool ProtoParseNumeric(StringPiece s, double* value) {
++  return safe_strtod(s.ToString().c_str(), value);
++}
++
++// Convert strings to number of type T.
++// Leading and trailing spaces are allowed.
++// Values may be rounded on over- and underflow.
++template <typename T>
++bool SafeStringToNumeric(StringPiece s, T* value) {
++  return ProtoParseNumeric(s, value);
++}
++
+ // Converts from an int64 to a human readable string representing the
+ // same number, using decimal powers.  e.g. 1200000 -> "1.20M".
+ string HumanReadableNum(int64 value);
+diff --git a/tensorflow/core/lib/strings/proto_text_util.h b/tensorflow/core/lib/strings/proto_text_util.h
+index 3d0c6e4a376268..ed6d0af0105c37 100644
+--- a/tensorflow/core/lib/strings/proto_text_util.h
++++ b/tensorflow/core/lib/strings/proto_text_util.h
+@@ -118,30 +118,6 @@ class ProtoTextOutput {
+   TF_DISALLOW_COPY_AND_ASSIGN(ProtoTextOutput);
+ };
+ 
+-inline bool ProtoParseNumeric(StringPiece s, int32* value) {
+-  return ::tensorflow::strings::safe_strto32(s, value);
+-}
+-
+-inline bool ProtoParseNumeric(StringPiece s, uint32* value) {
+-  return ::tensorflow::strings::safe_strtou32(s, value);
+-}
+-
+-inline bool ProtoParseNumeric(StringPiece s, int64* value) {
+-  return ::tensorflow::strings::safe_strto64(s, value);
+-}
+-
+-inline bool ProtoParseNumeric(StringPiece s, uint64* value) {
+-  return ::tensorflow::strings::safe_strtou64(s, value);
+-}
+-
+-inline bool ProtoParseNumeric(StringPiece s, float* value) {
+-  return ::tensorflow::strings::safe_strtof(s.ToString().c_str(), value);
+-}
+-
+-inline bool ProtoParseNumeric(StringPiece s, double* value) {
+-  return ::tensorflow::strings::safe_strtod(s.ToString().c_str(), value);
+-}
+-
+ inline void ProtoSpaceAndComments(Scanner* scanner) {
+   for (;;) {
+     scanner->AnySpace();
+@@ -174,7 +150,7 @@ bool ProtoParseNumericFromScanner(Scanner* scanner, T* value) {
+   }
+ 
+   ProtoSpaceAndComments(scanner);
+-  return ProtoParseNumeric(numeric_str, value);
++  return SafeStringToNumeric<T>(numeric_str, value);
+ }
+ 
+ // Parse the next boolean value from <scanner>, returning false if parsing

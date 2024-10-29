@@ -15,6 +15,7 @@ from diffannotator.annotate import (split_multiline_lex_tokens, line_ends_idx,
                                     clean_text, line_is_comment, annotate_single_diff,
                                     Bug, BugDataset, AnnotatedPatchedFile, AnnotatedHunk, AnnotatedPatchSet)
 from diffannotator.utils.git import GitRepo, DiffSide, ChangeSet
+from .conftest import count_pm_lines
 
 # Example code to be tokenized
 example_C_code = r'''
@@ -145,7 +146,7 @@ def test_annotate_single_diff():
     file_path = 'tests/test_dataset/tqdm-1/c0dcf39b046d1b4ff6de14ac99ad9a1b10487512.diff'
     patch = annotate_single_diff(file_path, missing_ok=False,
                                  ignore_diff_parse_errors=False,
-                                 ignore_annotation_errors=False)
+                                 ignore_annotation_errors=False)['changes']
     # check file data
     expected_language_data = {
         'language': 'Python',
@@ -192,7 +193,7 @@ def test_annotate_single_diff():
     file_path = 'tests/test_dataset/unidiff-1/3353080f357a36c53d21c2464ece041b100075a1.diff'
     patch = annotate_single_diff(file_path, missing_ok=False,
                                  ignore_diff_parse_errors=False,
-                                 ignore_annotation_errors=False)
+                                 ignore_annotation_errors=False)['changes']
     # check file data
     assert 'README.rst' in patch, \
         "correct file name is used in patch data"
@@ -212,7 +213,7 @@ def test_annotate_single_diff():
     patch = annotate_single_diff(file_path, missing_ok=False,
                                  ignore_diff_parse_errors=False,
                                  ignore_annotation_errors=False)
-    assert patch == {}, "empty patch on empty diff"
+    assert patch == {}, "empty result on an empty diff"
 
     file_path = 'tests/test_dataset/this_patch_does_not_exist.diff'
     with pytest.raises(FileNotFoundError):
@@ -383,6 +384,33 @@ def test_misc_patchsets_sizes_and_spreads():
     #pprint(result)
     assert result['n_files'] == 12, "there were 12 changed files in patch"
 
+    file_path = 'tests/test_dataset/tensorflow/87de301db14745ab920d7e32b53d926236a4f2af.diff'
+    patch_set = AnnotatedPatchSet.from_filename(file_path, encoding='utf-8')
+    diff_metadata = patch_set.compute_sizes_and_spreads()
+    changes_data  = patch_set.process(sizes_and_spreads=False)['changes']
+
+    assert len(changes_data) == diff_metadata['n_files'] + diff_metadata['n_file_renames'], \
+        f"number of files matches between 'changes' and 'diff_metadata' for {file_path}"
+
+    total_m, total_p = count_pm_lines(changes_data)
+
+    ## DEBUG
+    #print(f"TOTAL: {total_m=}, {total_p=}, {total_p+total_m=}")
+    #print(f"META:  "
+    #      f"'n_rem'={diff_metadata['n_rem']}, 2*'n_mod'={2*diff_metadata['n_mod']}, 'n_add'={diff_metadata['n_add']}")
+    #print(f"META:  "
+    #      f"'n_rem'+'n_mod'={diff_metadata['n_rem'] + diff_metadata['n_mod']}, ",
+    #      f"'n_mod'+'n_add'={diff_metadata['n_mod'] + diff_metadata['n_add']}")
+    #print(f"META:  "
+    #      f"'n_rem'+2*'n_mod'+'n_add'={diff_metadata['n_rem'] + 2*diff_metadata['n_mod'] + diff_metadata['n_add']}")
+
+    assert total_m == diff_metadata['n_rem'] + diff_metadata['n_mod'], \
+        f"number of '-' lines matches between 'changes' and 'diff_metadata' in {file_path}"
+    assert total_p == diff_metadata['n_add'] + diff_metadata['n_mod'], \
+        f"number of '+' lines matches between 'changes' and 'diff_metadata' in {file_path}"
+    assert total_m + total_p == diff_metadata['n_rem'] + 2*diff_metadata['n_mod'] + diff_metadata['n_add'], \
+        f"number of -/+ lines matches between 'changes' and 'diff_metadata' in {file_path}"
+
 
 @pytest.mark.parametrize("line_type", [unidiff.LINE_TYPE_REMOVED, unidiff.LINE_TYPE_ADDED])
 def test_AnnotatedPatchedFile(line_type):
@@ -498,6 +526,7 @@ def test_AnnotatedPatchSet_binary_files_differ():
     assert sizes_and_spreads['n_files'] == 4, "changes to 2 files"
 
     result = patch_set.process()
+    result = result['changes']
     #print(f"{result=}")
     for pm in ['+', '-']:
         assert pm not in result['/dev/null'], \
@@ -518,7 +547,7 @@ def test_Bug_from_dataset():
         "retrieved annotations for the single *.diff file"
     assert len(bug.patches) == 1, \
         "there was only 1 patch file for a bug"
-    assert "tqdm/contrib/__init__.py" in bug.patches[file_path.name], \
+    assert "tqdm/contrib/__init__.py" in bug.patches[file_path.name]['changes'], \
         "there is expected changed file in a bug patch"
 
 
@@ -534,7 +563,7 @@ def test_Bug_from_dataset_with_fanout():
         "retrieved annotations for the single *.diff file"
     assert len(bug.patches) == 1, \
         "there was only 1 patch file for a bug"
-    assert "tqdm/contrib/__init__.py" in bug.patches[commit_id], \
+    assert "tqdm/contrib/__init__.py" in bug.patches[commit_id]['changes'], \
         "there is expected changed file in a bug patch"
 
 
@@ -548,7 +577,7 @@ def test_Bug_from_patchset():
         "retrieved annotations for the single patchset"
     assert len(bug.patches) == 1, \
         "there was only 1 patchset for a bug"
-    assert "tqdm/contrib/__init__.py" in bug.patches[commit_id], \
+    assert "tqdm/contrib/__init__.py" in bug.patches[commit_id]['changes'], \
         "there is expected changed file in a bug patch"
 
     bug_with_wrong_repo = Bug.from_patchset(patch_id=commit_id, patch_set=patch,
@@ -597,17 +626,17 @@ def test_Bug_from_changeset():
     #            print(f"  {pm}:{line_data['id']}:type={line_data['type']}, purpose={line_data['purpose']}:{line}",
     #                  end="")  # line includes trailing '\n' (usually)
 
-    assert sorted(files_changed) == sorted(bug.patches[commit_id].keys()), \
+    assert sorted(files_changed) == sorted(bug.patches[commit_id]['changes'].keys()), \
         "expected files were changed in changeset"
     for changed_file in files_changed:
         assert {
             'language': 'Python',
             'type': 'programming',
-        }.items() <= bug.patches[commit_id][changed_file].items(), \
+        }.items() <= bug.patches[commit_id]['changes'][changed_file].items(), \
             f"language of '{changed_file}' matches expectations"
-    assert bug.patches[commit_id]['tqdm/contrib/__init__.py']['purpose'] == 'programming', \
+    assert bug.patches[commit_id]['changes']['tqdm/contrib/__init__.py']['purpose'] == 'programming', \
         "__init__.py file in contrib/ purpose is 'programming'"
-    assert bug.patches[commit_id]['tqdm/tests/tests_contrib.py']['purpose'] == 'test', \
+    assert bug.patches[commit_id]['changes']['tqdm/tests/tests_contrib.py']['purpose'] == 'test', \
         "test_*.py file in tests/ purpose is 'test'"
 
     line_types = {}
@@ -615,7 +644,7 @@ def test_Bug_from_changeset():
         line_types[changed_file] = {
             line_data['type']
             for pm in ['-', '+']
-            for line_data in bug.patches[commit_id][changed_file][pm]
+            for line_data in bug.patches[commit_id]['changes'][changed_file][pm]
         }
     #print(f"{line_types=}")
     assert line_types['tqdm/contrib/__init__.py'] <= {'code', 'documentation'}, \
@@ -647,7 +676,7 @@ def test_Bug_from_patchset_from_example_repo(example_repo: GitRepo):
         "created Bug object has only 1 patchset (for a single commit)"
 
     dst_files = example_repo.list_changed_files(commit=commit_id, side=DiffSide.POST)
-    assert set(dst_files) <= set(bug.patches[commit_id].keys()), \
+    assert set(dst_files) <= set(bug.patches[commit_id]['changes'].keys()), \
         "info about every changed file (from post-image side) is in a bug patch from commit"
 
     diff_stat = example_repo.diff_file_status(commit=commit_id)
@@ -659,12 +688,12 @@ def test_Bug_from_patchset_from_example_repo(example_repo: GitRepo):
     #print(f"{added_files=}")
     #print(f"{renames_list=}")
     for f in added_files:
-        assert '-' not in bug.patches[commit_id][f], \
+        assert '-' not in bug.patches[commit_id]['changes'][f], \
             f"added file '{f}' has no '-' lines"
     for (s, d) in renames_list:
-        assert '+' not in bug.patches[commit_id][s], \
+        assert '+' not in bug.patches[commit_id]['changes'][s], \
             f"the '{s}' pre-commit of renamed file has no '+' lines"
-        assert '-' not in bug.patches[commit_id][d], \
+        assert '-' not in bug.patches[commit_id]['changes'][d], \
             f"the '{d}' post-commit of renamed file has no '-' lines"
 
     # NOTE: there is no way to check if sources were retrieved, except for mocking,
@@ -684,7 +713,7 @@ def test_Bug_save(tmp_path: Path):
         "there is only one file saved in save directory"
     assert len(list(save_path.glob("*.json"))) == 1, \
         "there is only one JSON file saved in save directory"
-    assert save_path.joinpath('c1c4afe60b1355a6c0e83577791a0423f37a3324.json').is_file(), \
+    assert save_path.joinpath('c1c4afe60b1355a6c0e83577791a0423f37a3324.v2.json').is_file(), \
         "this JSON file has expected filename"
 
 
@@ -693,7 +722,7 @@ def test_Bug_save_with_fanout(tmp_path: Path):
     bug.save(tmp_path, fan_out=True)
 
     save_path = tmp_path.joinpath('keras-10', Bug.DEFAULT_ANNOTATIONS_DIR)
-    assert save_path.joinpath('c1', 'c4afe60b1355a6c0e83577791a0423f37a3324.json').is_file(), \
+    assert save_path.joinpath('c1', 'c4afe60b1355a6c0e83577791a0423f37a3324.v2.json').is_file(), \
         "JSON file was saved with fan-out"
 
 
@@ -754,7 +783,7 @@ def test_BugDataset_from_repo(tmp_path: Path):
     assert bugs.bug_ids == list(bugs._patches.keys()), \
         "there is 1-to-1 correspondence between bug ids and keys to patch data"
 
-    annotated_data = list(bugs.iter_bugs())
+    annotated_data = list(bugs.iter_bugs(sizes_and_spreads=True))
 
     assert len(annotated_data) == 3, \
         "we got 3 annotated bugs we expected from `git log -3 HEAD`"
@@ -764,6 +793,27 @@ def test_BugDataset_from_repo(tmp_path: Path):
     assert all([len(bug.patches) == 1 and list(bug.patches.items())[0][0] == bug_id
                 for bug_id, bug in zip(bugs.bug_ids, annotated_data)]), \
         "all bugs remember their ids correctly"
+
+    ## DEBUG
+    #from rich.pretty import pprint  # OR: from pprint import pprint
+    #for patch_data in annotated_data:
+    #    pprint(patch_data.patches, max_length=12)
+
+    for i, annotated_patch_data in enumerate(annotated_data, start=1):
+        bug_patches = list(annotated_patch_data.patches.values())[0]  # dict with single key, we want value
+        diff_metadata = bug_patches['diff_metadata']
+        assert len(bug_patches['changes']) == diff_metadata['n_files'] + diff_metadata['n_file_renames'], \
+            f"number of files matches between 'changes' and 'diff_metadata' for patchset № {i}"
+
+        total_m, total_p = count_pm_lines(bug_patches['changes'])
+
+        ## DEBUG
+        #print(f"{i}: {annotated_patch_data.patches.keys()}")
+        #print(f"* {total_m=}, {total_p=}")
+        #print(f"* n_rem={diff_metadata['n_rem']}, 2*n_mod={2*diff_metadata['n_mod']}, n_add={diff_metadata['n_add']}")
+
+        assert total_m + total_p == diff_metadata['n_rem'] + 2*diff_metadata['n_mod'] + diff_metadata['n_add'], \
+            f"number of -/+ lines matches between 'changes' and 'diff_metadata' for patchset № {i}"
 
 
 def test_line_callback_trivial():
@@ -779,12 +829,12 @@ def test_line_callback_trivial():
 
     # - check file
     changed_file_name = 'tqdm/contrib/__init__.py'
-    assert changed_file_name in patch, \
+    assert changed_file_name in patch['changes'], \
         "correct file name is used in patch data"
     # - check type
-    assert patch[changed_file_name]['-'][0]['type'] == line_type, \
+    assert patch['changes'][changed_file_name]['-'][0]['type'] == line_type, \
         f"removed line is marked as '{line_type}' by lambda callback"
-    assert patch[changed_file_name]['+'][0]['type'] == line_type, \
+    assert patch['changes'][changed_file_name]['+'][0]['type'] == line_type, \
         f"added line is marked as '{line_type}' by lambda callback"
 
     # use exec
@@ -799,9 +849,9 @@ def test_line_callback_trivial():
                                  ignore_diff_parse_errors=False,
                                  ignore_annotation_errors=False)
 
-    assert patch[changed_file_name]['-'][0]['type'] == line_type, \
+    assert patch['changes'][changed_file_name]['-'][0]['type'] == line_type, \
         f"removed line is marked as '{line_type}' by self-contained exec callback"
-    assert patch[changed_file_name]['+'][0]['type'] == line_type, \
+    assert patch['changes'][changed_file_name]['+'][0]['type'] == line_type, \
         f"added line is marked as '{line_type}' by self-contained exec callback"
 
 
@@ -826,13 +876,13 @@ def test_line_callback_whitespace():
                                  ignore_annotation_errors=False)
 
     changed_file_name = 'keras/engine/training_utils.py'
-    assert changed_file_name in patch, \
+    assert changed_file_name in patch['changes'], \
         f"there is '{changed_file_name}' file used in patch data"
     assert any([elem['type'] == 'whitespace'
-                for elem in patch[changed_file_name]['-']]), \
+                for elem in patch['changes'][changed_file_name]['-']]), \
         f"at least one whitespace only line in pre-image of '{changed_file_name}'"
     assert any([elem['type'] == 'whitespace'
-                for elem in patch[changed_file_name]['+']]), \
+                for elem in patch['changes'][changed_file_name]['+']]), \
         f"at least one whitespace only line in post-image of '{changed_file_name}'"
 
     # define callback using string
@@ -855,10 +905,10 @@ def test_line_callback_whitespace():
                                  ignore_annotation_errors=False)
 
     assert any([elem['type'] == 'empty'
-                for elem in patch[changed_file_name]['-']]), \
+                for elem in patch['changes'][changed_file_name]['-']]), \
         f"at least one empty line in pre-image of '{changed_file_name}'"
     assert any([elem['type'] == 'empty'
-                for elem in patch[changed_file_name]['+']]), \
+                for elem in patch['changes'][changed_file_name]['+']]), \
         f"at least one empty line in post-image of '{changed_file_name}'"
 
 
