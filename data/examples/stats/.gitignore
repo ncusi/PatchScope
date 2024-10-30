@@ -3,3 +3,8 @@
 /tensorflow.lines-stats.json
 /tensorflow.timeline.json
 /tensorflow.timeline.purpose-to-type.json
+/qtile.purpose-counter.json
+/qtile.purpose-per-file.json
+/qtile.lines-stats.json
+/qtile.timeline.json
+/qtile.timeline.purpose-to-type.json
