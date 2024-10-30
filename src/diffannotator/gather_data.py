@@ -122,7 +122,11 @@ def _extract_maybe_changes(data: dict,
     elif data_format == JSONFormat.V1_5:
         return MaybeChanges(data, check_it=True)
     elif data_format == JSONFormat.V2:
-        return MaybeChanges(data['changes'], check_it=False)
+        if 'changes' in data:
+            return MaybeChanges(data['changes'], check_it=False)
+        else:
+            # commit with empty changes (same tree as parent)
+            return MaybeChanges({}, check_it=False)
 
 
 def _is_not_changes(key: str, value: dict,
@@ -625,7 +629,10 @@ def map_diff_to_timeline(annotation_file_basename: str,
 
     # extract changes data, required for v2
     if data_format == JSONFormat.V2:
-        changes_data = annotation_data['changes']
+        if 'changes' in annotation_data:
+            changes_data = annotation_data['changes']
+        else:
+            changes_data = {}
     else:
         changes_data = annotation_data
 
