@@ -122,7 +122,11 @@ def _extract_maybe_changes(data: dict,
     elif data_format == JSONFormat.V1_5:
         return MaybeChanges(data, check_it=True)
     elif data_format == JSONFormat.V2:
-        return MaybeChanges(data['changes'], check_it=False)
+        if 'changes' in data:
+            return MaybeChanges(data['changes'], check_it=False)
+        else:
+            # commit with empty changes (same tree as parent)
+            return MaybeChanges({}, check_it=False)
 
 
 def _is_not_changes(key: str, value: dict,
