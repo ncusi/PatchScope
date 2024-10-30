@@ -89,6 +89,27 @@ that is what can be extracted from the `timeline.*.purpose-to-type.json`.
       like in GitHub Developer Overview page (perhaps if "Select Year" is selected)
 - [ ] IntSlider widget to select figure size (or two sliders, one for height, one for width)<br>
   or rather make it work the one that exists in the notebook (instead of leaving it disabled)
+- [ ] Select, RadioButtonGroup, ToggleGroup, or Switch to select between using 'author.date'
+  or 'committer.date' as the index, and for resampling
+- [ ] Toggle, or Select, or Switch to drop commits that are merges, or to drop commits
+  that are either merges or root commits (leaving only commits with exactly 1 parent)
+- [ ] switching between linear, logarithmic, symlog, logit, etc. scales:
+    - [ ] Select, or Switch, Toggle, etc. to switch between linear and symlog scale
+      for aggregated number of commits, aggregated number of lines, and for histograms thereof
+      (scale of values i.e. bin sizes for histograms, i.e. x-axis)
+    - [ ] Select, or Switch, Toggle, Checkbox, etc. to switch between linear and log/symlog
+      scale for the counts of values in the histograms (i.e. y-axis)
+    - [ ] Toggle/Switch, integrated into Card header, to switch between log (default)
+      and linear scale for color (v-scale) for heatmap
+    - [ ] _maybe_ Toggle, Switch, ToggleGroup, or another value in Select, to use
+      the logit scale for \[%] of counts
+- [ ] colors, colormaps, and color gradients
+    - [ ] Select for choosing between a few selected options for colormaps for heatmap
+      plots, like Reds/Greens, which would include a choice for banded colormap (i.e.
+      no smooth transition between values, the color is quantized)
+    - [ ] Toggle, ToggleGroup, Checkbox, or Switch to select between solid fill and
+      gradient fill (see e.g. [StackOverflow: fill_between gradient](https://stackoverflow.com/questions/68002782/fill-between-gradient))
+
 
 ### New plots
 
@@ -96,8 +117,34 @@ that is what can be extracted from the `timeline.*.purpose-to-type.json`.
 - [ ] stacked area plot for -/+ line types, or for -/+ line types [%]
 - [ ] Sankey plot (flow plot) diagram between file purpose and line type,
   author and line type, or directory structure and line type, etc.
-- [ ] ...
+- [ ] heatmap type of plot, with time with a week resolution on x-axis,
+  and day of the week on the y-axis (or hour of day), similar to
+  the heatmap plot in GitHub Developer Contributions
+    - [ ] perhaps split into months, like in [Assayo](https://assayo.online/),
+      or with end of months marked somehow in the year of activity
+    - [ ] perhaps split into years, and laid out one below another, so that
+      seasonal changes might be easier to find
+    - [ ] Switch/Toggle to toggle between UTC dates, and localtime
+      (with respect to day of the week)
+- [ ] histogram of timezones (should usually be 1-2 timezones, due to DST,
+  unless the developer in question travels between timezones, or moves) 
+- [ ] histogram of UTC or local timezone times of authorship / commit,
+  or lines, or files, aggregated over specified hours (if using localtime,
+  split between work hours, maybe-work hours, night hours, free time - including weekends)
 
-See also main [`/TODO.md`](../../TODO.md) file.
+## Planned Jupyter Notebook: `02-compare.ipynb`
+
+This Jupyter Notebook is intended to compare different plots between two selected
+authors.  Note that the data file with stats that is read from needs to include data
+for more than one developer.
+
+## Planned Jupyter Notebook: `03-insights.ipynb`
+
+Replicates GitHub Insights plots
+(see the _"Related projects"_ section in the main [`/README.md`](../../README.md) file),
+but better.
+
+-----
+
+See also main [`/TODO.md`](../../TODO.md) file.<br>
 See the _"Related projects"_ section in the main [`/README.md`](../../README.md) file.
-
