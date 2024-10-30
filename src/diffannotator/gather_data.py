@@ -629,7 +629,10 @@ def map_diff_to_timeline(annotation_file_basename: str,
 
     # extract changes data, required for v2
     if data_format == JSONFormat.V2:
-        changes_data = annotation_data['changes']
+        if 'changes' in annotation_data:
+            changes_data = annotation_data['changes']
+        else:
+            changes_data = {}
     else:
         changes_data = annotation_data
 
