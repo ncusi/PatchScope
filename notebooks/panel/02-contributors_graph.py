@@ -7,7 +7,7 @@ from typing import Optional
 from dateutil.relativedelta import relativedelta
 
 # data analysis
-import numpy as np
+#import numpy as np
 import pandas as pd
 
 # dashboard
@@ -36,15 +36,15 @@ def find_dataset_dir() -> Optional[Path]:
     return None
 
 
-def find_timeline_files(dataset_dir: Optional[Path]) -> list[Path]:
+def find_timeline_files(dataset_dir: Optional[Path]) -> dict[str, str]:
     if dataset_dir is None:
         #print(f"find_timeline_files({dataset_dir=}): []")
-        return []
+        return {}
     else:
         # assuming naming convention for file names
         #print(f"find_timeline_files({dataset_dir=}): searching...")
         res = {
-            str(path.stem): str(path) 
+            str(path.stem): str(path)
             for path in dataset_dir.glob('*.timeline.*.json')
         }
         #print(f" -> {res}")
@@ -58,7 +58,7 @@ def get_timeline_data(json_path: Path) -> dict:
         return json.load(json_fp)
 
 
-def find_repos(timeline_data: dict):
+def find_repos(timeline_data: dict) -> list[str]:
     return list(timeline_data.keys())
 
 
@@ -70,7 +70,7 @@ def get_timeline_df(timeline_data: dict, repo: str) -> pd.DataFrame:
         .dropna(subset=['author.timestamp', 'committer.timestamp'], how='any')\
         .assign(
             n_commits =  1,
-            author_date = lambda x: pd.to_datetime(x['author.timestamp'], unit='s', utc=True),
+            author_date    = lambda x: pd.to_datetime(x['author.timestamp'],    unit='s', utc=True),
             committer_date = lambda x: pd.to_datetime(x['committer.timestamp'], unit='s', utc=True),
         )#\
         #.rename(columns={
@@ -105,17 +105,18 @@ def get_date_range(timeline_df: pd.DataFrame):
 
 
 #@pn.cache
-def head_info(repo: str, resample: str, frequency_names: dict[str, str]) -> str:
+def head_info(repo: str, resample: str, frequency: dict[str, str]) -> str:
     return f"""
     <h1>Contributors to {repo}</h1>
-    <p>Contributions per {frequency_names.get(resample, 'unknown frequency')} to HEAD, excluding merge commits</p>
+    <p>Contributions per {frequency.get(resample, 'unknown frequency')} to HEAD, excluding merge commits</p>
     """
 
-def sampling_info(resample: str, frequency_names: dict[str, str], min_max_date) -> str:
+
+def sampling_info(resample: str, frequency: dict[str, str], min_max_date) -> str:
     return f"""
     **Commits over time**
-    
-    {frequency_names.get(resample, 'unknown frequency').title()}ly from {min_max_date[0].strftime('%-d %a %Y')} to {min_max_date[1].strftime('%-d %a %Y')}
+
+    {frequency.get(resample, 'unknown frequency').title()}ly from {min_max_date[0].strftime('%d %a %Y')} to {min_max_date[1].strftime('%d %a %Y')}
     """
 
 
@@ -154,16 +155,17 @@ time_range_period = {
 }
 
 
-def time_range_options(time_range_period: dict[str, Optional[int]] = time_range_period):
+def time_range_options(period_name_to_months: dict[str, Optional[int]]) -> dict[str, str]:
     today = datetime.date.today()
     #print(f"time_range_options(): {today=}")
     return {
         k: '' if v is None else (today + relativedelta(months=-v)).strftime('%d.%m.%Y')
-        for k, v in time_range_period.items()
+        for k, v in period_name_to_months.items()
     }
 
 
-def handle_custom_range(widget: pn.widgets.select.SingleSelectBase, value: Optional[str], na_str: str = 'Custom range') -> None:
+def handle_custom_range(widget: pn.widgets.select.SingleSelectBase,
+                        value: Optional[str], na_str: str = 'Custom range') -> None:
     if value is None or value in widget.options.values():
         if na_str in widget.options:
             del widget.options[na_str]
@@ -201,12 +203,12 @@ select_period_from_widget = pn.widgets.Select(
     # style
     width=300,
 )
-select_period_from_widget.options = time_range_options()
+select_period_from_widget.options = time_range_options(time_range_period)
 select_period_from_widget.value = None
 #print(f"{select_period_from_widget.options=}")
 
 
-def select_period_from_widget__onload():
+def select_period_from_widget__onload() -> None:
     if pn.state.location:
         #print(f"{pn.state.session_args.get('from')[0].decode()}")
         select_period_from_widget.in_onload = True
@@ -217,7 +219,7 @@ def select_period_from_widget__onload():
         select_period_from_widget.in_onload = False
 
 
-def select_period_from_widget__callback(*events):
+def select_period_from_widget__callback(*events) -> None:
     #print(f"select_period_from_widget__callback({events=}):")
     na_str = 'Custom range'
 
@@ -242,7 +244,7 @@ head_styles = {
 head_text_rx = pn.rx(head_info)(
     repo=select_repo_widget,
     resample=resample_frequency_widget,
-    frequency_names=frequency_names,
+    frequency=frequency_names,
 )
 
 get_timeline_df_rx = pn.rx(get_timeline_df)(
@@ -254,7 +256,7 @@ get_date_range_rx = pn.rx(get_date_range)(
 )
 sampling_info_rx = pn.rx(sampling_info)(
     resample=resample_frequency_widget,
-    frequency_names=frequency_names,
+    frequency=frequency_names,
     min_max_date=get_date_range_rx,
 )
 
