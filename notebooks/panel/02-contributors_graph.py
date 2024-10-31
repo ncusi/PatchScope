@@ -52,8 +52,41 @@ def find_timeline_files(dataset_dir: Optional[Path]) -> dict[str, str]:
 
 
 #@pn.cache
-def get_timeline_data(json_path: Path) -> dict:
+def get_timeline_data(json_path: Optional[Path]) -> dict:
     logger.debug(f"[@pn.cache] get_timeline_data() for {json_path=}")
+    if json_path is None:
+        return {
+            'demo repo': [
+                {
+                    "bug_id": "demo data",
+                    "patch_id": "000000000",
+                    "author.timestamp":    1302557067,
+                    "committer.timestamp": 1302558888,
+                    "n_parents": 1,
+                },
+                {
+                    "bug_id": "demo data",
+                    "patch_id": "000000001",
+                    "author.timestamp":     1391253300,
+                    "committer.timestamp":  1391253900,
+                    "n_parents": 1,
+                },
+                {
+                    "bug_id": "demo data",
+                    "patch_id": "000000002",
+                    "author.timestamp":    1445339935,
+                    "committer.timestamp": 1446061018,
+                    "n_parents": 1,
+                },
+                {
+                    "bug_id": "demo data",
+                    "patch_id": "000000003",
+                    "author.timestamp":    1445339935 + 24*60*60,
+                    "committer.timestamp": 1446061018 + 25*60*60,
+                    "n_parents": 1,
+                }
+            ]
+        }
     with open(json_path, mode='r') as json_fp:
         return json.load(json_fp)
 
