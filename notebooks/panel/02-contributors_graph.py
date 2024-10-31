@@ -74,9 +74,9 @@ html_head_text_rx = pn.rx("""
 <h1>Contributors to {repo}</h1>
 """).format(repo=select_repo_widget)
 
-if pn.state.location:
-    pn.state.location.sync(select_file_widget, {'value': 'file'})
-    pn.state.location.sync(select_repo_widget, {'value': 'repo'})
+#if pn.state.location:
+#    pn.state.location.sync(select_file_widget, {'value': 'file'})
+#    pn.state.location.sync(select_repo_widget, {'value': 'repo'})
 
 template = pn.template.MaterialTemplate(
     site="diffannotator",
