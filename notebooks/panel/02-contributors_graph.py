@@ -341,4 +341,13 @@ template = pn.template.MaterialTemplate(
         )
     ]
 )
+if select_file_widget.value is None:
+    template.main.insert(
+        0,
+        pn.pane.Alert(
+            '<em style="font-size: 150%;">Showing synthetic data for demonstration purposes.</em>',
+            alert_type="info",
+            sizing_mode="stretch_width",
+        )
+    )
 template.servable()
