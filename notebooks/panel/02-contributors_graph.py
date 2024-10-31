@@ -18,8 +18,12 @@ import hvplot.pandas  # noqa
 
 
 logger = logging.getLogger("panel.contributors_graph")
-pn.extension("jsoneditor",
-             design="material", sizing_mode="stretch_width")
+pn.extension(
+    "jsoneditor",
+    notifications=True,
+    design="material", sizing_mode="stretch_width"
+)
+pn.state.notifications.position = 'top-center'
 
 DATASET_DIR = 'data/examples/stats'
 
@@ -53,7 +57,7 @@ def find_timeline_files(dataset_dir: Optional[Path]) -> dict[str, str]:
 
 #@pn.cache
 def get_timeline_data(json_path: Optional[Path]) -> dict:
-    logger.debug(f"[@pn.cache] get_timeline_data() for {json_path=}")
+    logger.debug(f"[@pn.cache] get_timeline_data({json_path=})")
     if json_path is None:
         return {
             'demo repo': [
@@ -97,7 +101,10 @@ def find_repos(timeline_data: dict) -> list[str]:
 
 #@pn.cache
 def get_timeline_df(timeline_data: dict, repo: str) -> pd.DataFrame:
+    #print(f"{repo=}")
+    #print(f"{timeline_data=}")
     init_df = pd.DataFrame.from_records(timeline_data[repo])
+    #print(init_df)
     # no merges, no roots; add 'n_commits' column; drop rows with N/A for timestamps
     return init_df[init_df['n_parents'] == 1]\
         .dropna(subset=['author.timestamp', 'committer.timestamp'], how='any')\
@@ -125,6 +132,7 @@ def resample_timeline_all(timeline_df: pd.DataFrame, resample_rate: str) -> pd.D
     # to be possibly used for xlabel when plotting
     #df['author.date(UTC)'] = df.index
     #df['author.date(Y-m)'] = df.index.strftime('%Y-%m')
+    #print(df)
 
     return df
 
@@ -242,6 +250,9 @@ select_period_from_widget.value = None
 
 
 def select_period_from_widget__onload() -> None:
+    if select_file_widget.value is None:
+        pn.state.notifications.info('Showing synthetic data created for demonstration purposes.', duration=0)
+
     if pn.state.location:
         #print(f"{pn.state.session_args.get('from')=}")
         select_period_from_widget.in_onload = True
@@ -274,6 +285,7 @@ def select_period_from_widget__callback(*events) -> None:
 
 
 select_period_from_widget.param.watch(select_period_from_widget__callback, ['value'], onlychanged=True)
+
 
 # main contents
 head_styles = {
@@ -338,16 +350,7 @@ template = pn.template.MaterialTemplate(
                 ),
                 collapsible=False, hide_header=True,
             )
-        )
-    ]
+        ),
+    ],
 )
-if select_file_widget.value is None:
-    template.main.insert(
-        0,
-        pn.pane.Alert(
-            '<em style="font-size: 150%;">Showing synthetic data for demonstration purposes.</em>',
-            alert_type="info",
-            sizing_mode="stretch_width",
-        )
-    )
 template.servable()
