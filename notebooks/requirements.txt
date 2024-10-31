@@ -1,4 +1,6 @@
-# Jupyter and various related tool
+# Helper libraries
+python-dateutil
+# Jupyter and various related tools
 jupyterlab
 # Dashboard tools
 panel

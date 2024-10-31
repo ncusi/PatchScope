@@ -4,6 +4,8 @@ import logging
 from pathlib import Path
 from typing import Optional
 
+from dateutil.relativedelta import relativedelta
+
 # data analysis
 import numpy as np
 import pandas as pd
@@ -142,7 +144,43 @@ frequency_names = {
     'QE': 'quarter',
 }
 
+time_range_period = {
+    'All': None,
+    'Last month': 1,
+    'Last 3 months': 3,
+    'Last 6 months': 6,
+    'Last 12 months': 12,
+    'Last 24 months': 24,
+}
 
+
+def time_range_options(time_range_period: dict[str, Optional[int]] = time_range_period):
+    today = datetime.date.today()
+    #print(f"time_range_options(): {today=}")
+    return {
+        k: '' if v is None else (today + relativedelta(months=-v)).strftime('%d.%m.%Y')
+        for k, v in time_range_period.items()
+    }
+
+
+def handle_custom_range(widget: pn.widgets.select.SingleSelectBase, value: Optional[str], na_str: str = 'Custom range') -> None:
+    if value is None or value in widget.options.values():
+        if na_str in widget.options:
+            del widget.options[na_str]
+            #print(f"after del {widget.options=}")
+
+        #print(f"no changes {widget.options=}")
+        return
+
+    widget.options[na_str] = value
+    widget.value = value
+    #print(f"after add {widget.options=}")
+    widget.param.trigger('options')
+    #widget.param.trigger('value')
+    #widget.disabled_options = [value]
+
+
+# sidebar widgets
 select_file_widget = pn.widgets.Select(name="input JSON file", options=find_timeline_files(find_dataset_dir()))
 
 get_timeline_data_rx = pn.rx(get_timeline_data)(
@@ -155,6 +193,49 @@ select_repo_widget = pn.widgets.Select(name="repository", options=find_repos_rx,
 
 resample_frequency_widget = pn.widgets.Select(name="frequency", value='W', options=time_series_frequencies)
 
+# main contents widgets
+select_period_from_widget = pn.widgets.Select(
+    name="Period:",
+    options={'Any': None},
+    value='Any',
+    # style
+    width=300,
+)
+select_period_from_widget.options = time_range_options()
+select_period_from_widget.value = None
+#print(f"{select_period_from_widget.options=}")
+
+
+def select_period_from_widget__onload():
+    if pn.state.location:
+        #print(f"{pn.state.session_args.get('from')[0].decode()}")
+        select_period_from_widget.in_onload = True
+        handle_custom_range(
+            widget=select_period_from_widget,
+            value=pn.state.session_args.get('from')[0].decode(),
+        )
+        select_period_from_widget.in_onload = False
+
+
+def select_period_from_widget__callback(*events):
+    #print(f"select_period_from_widget__callback({events=}):")
+    na_str = 'Custom range'
+
+    for event in events:
+        # value of attribute 'value' change
+        if event.what == 'value' and event.name == 'value':
+            #print(f"=> {getattr(select_period_from_widget, 'in_onload', False)=} -> {na_str in select_period_from_widget.options}")
+            if not getattr(select_period_from_widget, 'in_onload', False):
+                #print(f"=> non in onload")
+                if na_str in select_period_from_widget.options:
+                    del select_period_from_widget.options[na_str]
+                    select_period_from_widget.param.trigger('options')
+                    #print(f"-> after del[{na_str!r}]: {select_period_from_widget.options=}")
+
+
+select_period_from_widget.param.watch(select_period_from_widget__callback, ['value'], onlychanged=True)
+
+# main contents
 head_styles = {
     'font-size': 'larger',
 }
@@ -190,7 +271,11 @@ if pn.state.location:
 #    pn.state.location.sync(select_file_widget, {'value': 'file'})
 #    pn.state.location.sync(select_repo_widget, {'value': 'repo'})
     pn.state.location.sync(resample_frequency_widget, {'value': 'resample'})
+    pn.state.location.sync(select_period_from_widget, {'value': 'from'})
 
+pn.state.onload(select_period_from_widget__onload)
+
+# GitHub: ..., line counts have been omitted because commit count exceeds 10,000.
 template = pn.template.MaterialTemplate(
     site="diffannotator",
     title="Contributors Graph",  # TODO: make title dynamic
@@ -202,7 +287,10 @@ template = pn.template.MaterialTemplate(
     ],
     main=[
         pn.Column(
-            pn.pane.HTML(head_text_rx, styles=head_styles),
+            pn.Row(
+                pn.pane.HTML(head_text_rx, styles=head_styles),
+                select_period_from_widget,
+            ),
             pn.Card(
                 pn.Column(
                     pn.pane.Markdown(sampling_info_rx, styles=head_styles),
