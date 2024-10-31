@@ -78,6 +78,23 @@ def get_timeline_df(timeline_data: dict, repo: str) -> pd.DataFrame:
 
 
 #@pn.cache
+def resample_timeline_all(timeline_df: pd.DataFrame, resample_rate: str) -> pd.DataFrame:
+    df = timeline_df.resample(
+        resample_rate,
+        on='author_date'
+    ).agg(
+        'sum',
+        numeric_only=True
+    )
+
+    # to be possibly used for xlabel when plotting
+    #df['author.date(UTC)'] = df.index
+    #df['author.date(Y-m)'] = df.index.strftime('%Y-%m')
+
+    return df
+
+
+#@pn.cache
 def get_date_range(timeline_df: pd.DataFrame):
     return (
         timeline_df['author_date'].min(),
@@ -98,6 +115,14 @@ def sampling_info(resample: str, frequency_names: dict[str, str], min_max_date) 
     
     {frequency_names.get(resample, 'unknown frequency').title()}ly from {min_max_date[0].strftime('%-d %a %Y')} to {min_max_date[1].strftime('%-d %a %Y')}
     """
+
+
+def plot_commits(resampled_df: pd.DataFrame):
+    return resampled_df.hvplot.step(
+        x='author_date', y='n_commits',
+        color='blue',
+        responsive=True,
+    )
 
 
 # mapping form display name to alias
@@ -152,6 +177,15 @@ sampling_info_rx = pn.rx(sampling_info)(
     min_max_date=get_date_range_rx,
 )
 
+resample_timeline_all_rx = pn.rx(resample_timeline_all)(
+    timeline_df=get_timeline_df_rx,
+    resample_rate=resample_frequency_widget,
+)
+
+plot_commits_rx = pn.rx(plot_commits)(
+    resampled_df=resample_timeline_all_rx,
+)
+
 #if pn.state.location:
 #    pn.state.location.sync(select_file_widget, {'value': 'file'})
 #    pn.state.location.sync(select_repo_widget, {'value': 'repo'})
@@ -169,7 +203,10 @@ template = pn.template.MaterialTemplate(
         pn.Column(
             pn.pane.HTML(head_text_rx, styles=head_styles),
             pn.Card(
-                pn.pane.Markdown(sampling_info_rx, styles=head_styles),
+                pn.Column(
+                    pn.pane.Markdown(sampling_info_rx, styles=head_styles),
+                    pn.pane.HoloViews(plot_commits_rx),
+                ),
                 collapsible=False, hide_header=True,
             )
         )
