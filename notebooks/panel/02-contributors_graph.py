@@ -60,11 +60,43 @@ def find_repos(timeline_data: dict):
     return list(timeline_data.keys())
 
 
+@pn.cache
+def get_timeline_df(timeline_data: dict, repo: str) -> pd.DataFrame:
+    init_df = pd.DataFrame.from_records(timeline_data[repo])
+    # no merges, no roots; add 'n_commits' column; drop rows with N/A for timestamps
+    return init_df[init_df['n_parents'] == 1]\
+        .dropna(subset=['author.timestamp', 'committer.timestamp'], how='any')\
+        .assign(
+            n_commits =  1,
+            author_date = lambda x: pd.to_datetime(x['author.timestamp'], unit='s', utc=True),
+            committer_date = lambda x: pd.to_datetime(x['committer.timestamp'], unit='s', utc=True),
+        )#\
+        #.rename(columns={
+        #    'author_date': 'author.date',
+        #    'committer_date': 'committer.date',
+        #})
+
+
+#@pn.cache
+def get_date_range(timeline_df: pd.DataFrame):
+    return (
+        timeline_df['author_date'].min(),
+        timeline_df['author_date'].max(),
+    )
+
+
 #@pn.cache
 def head_info(repo: str, resample: str, frequency_names: dict[str, str]) -> str:
     return f"""
     <h1>Contributors to {repo}</h1>
     <p>Contributions per {frequency_names.get(resample, 'unknown frequency')} to HEAD, excluding merge commits</p>
+    """
+
+def sampling_info(resample: str, frequency_names: dict[str, str], min_max_date) -> str:
+    return f"""
+    **Commits over time**
+    
+    {frequency_names.get(resample, 'unknown frequency').title()}ly from {min_max_date[0].strftime('%-d %a %Y')} to {min_max_date[1].strftime('%-d %a %Y')}
     """
 
 
@@ -107,6 +139,19 @@ head_text_rx = pn.rx(head_info)(
     frequency_names=frequency_names,
 )
 
+get_timeline_df_rx = pn.rx(get_timeline_df)(
+    timeline_data=get_timeline_data_rx,
+    repo=select_repo_widget,
+)
+get_date_range_rx = pn.rx(get_date_range)(
+    timeline_df=get_timeline_df_rx,
+)
+sampling_info_rx = pn.rx(sampling_info)(
+    resample=resample_frequency_widget,
+    frequency_names=frequency_names,
+    min_max_date=get_date_range_rx,
+)
+
 #if pn.state.location:
 #    pn.state.location.sync(select_file_widget, {'value': 'file'})
 #    pn.state.location.sync(select_repo_widget, {'value': 'repo'})
@@ -123,6 +168,10 @@ template = pn.template.MaterialTemplate(
     main=[
         pn.Column(
             pn.pane.HTML(head_text_rx, styles=head_styles),
+            pn.Card(
+                pn.pane.Markdown(sampling_info_rx, styles=head_styles),
+                collapsible=False, hide_header=True,
+            )
         )
     ]
 )
