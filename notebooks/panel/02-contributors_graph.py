@@ -70,6 +70,10 @@ find_repos_rx = pn.rx(find_repos)(
 )
 select_repo_widget = pn.widgets.Select(name="repository", options=find_repos_rx, disabled=len(find_repos_rx.rx.value) <= 1)
 
+html_head_text_rx = pn.rx("""
+<h1>Contributors to {repo}</h1>
+""").format(repo=select_repo_widget)
+
 if pn.state.location:
     pn.state.location.sync(select_file_widget, {'value': 'file'})
     pn.state.location.sync(select_repo_widget, {'value': 'repo'})
@@ -81,6 +85,11 @@ template = pn.template.MaterialTemplate(
     sidebar=[
         select_file_widget,
         select_repo_widget,
+    ],
+    main=[
+        pn.Column(
+            pn.pane.HTML(html_head_text_rx),
+        )
     ]
 )
 template.servable()
