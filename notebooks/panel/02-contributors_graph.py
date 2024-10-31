@@ -51,7 +51,7 @@ def find_timeline_files(dataset_dir: Optional[Path]) -> dict[str, str]:
         return res
 
 
-@pn.cache
+#@pn.cache
 def get_timeline_data(json_path: Path) -> dict:
     logger.debug(f"[@pn.cache] get_timeline_data() for {json_path=}")
     with open(json_path, mode='r') as json_fp:
@@ -62,7 +62,7 @@ def find_repos(timeline_data: dict) -> list[str]:
     return list(timeline_data.keys())
 
 
-@pn.cache
+#@pn.cache
 def get_timeline_df(timeline_data: dict, repo: str) -> pd.DataFrame:
     init_df = pd.DataFrame.from_records(timeline_data[repo])
     # no merges, no roots; add 'n_commits' column; drop rows with N/A for timestamps
