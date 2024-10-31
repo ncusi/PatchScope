@@ -60,6 +60,32 @@ def find_repos(timeline_data: dict):
     return list(timeline_data.keys())
 
 
+#@pn.cache
+def head_info(repo: str, resample: str, frequency_names: dict[str, str]) -> str:
+    return f"""
+    <h1>Contributors to {repo}</h1>
+    <p>Contributions per {frequency_names.get(resample, 'unknown frequency')} to HEAD, excluding merge commits</p>
+    """
+
+
+# mapping form display name to alias
+time_series_frequencies = {
+    'calendar day frequency': 'D',
+    'weekly frequency': 'W',
+    'semi-month end frequency (15th and end of month)': 'SME',
+    'month end frequency': 'ME',
+    'quarter end frequency': 'QE',
+}
+# mapping from alias to display stem
+frequency_names = {
+    'D': 'day',
+    'W': 'week',
+    'SME': 'semi-month',
+    'ME': 'month',
+    'QE': 'quarter',
+}
+
+
 select_file_widget = pn.widgets.Select(name="input JSON file", options=find_timeline_files(find_dataset_dir()))
 
 get_timeline_data_rx = pn.rx(get_timeline_data)(
@@ -70,9 +96,16 @@ find_repos_rx = pn.rx(find_repos)(
 )
 select_repo_widget = pn.widgets.Select(name="repository", options=find_repos_rx, disabled=len(find_repos_rx.rx.value) <= 1)
 
-html_head_text_rx = pn.rx("""
-<h1>Contributors to {repo}</h1>
-""").format(repo=select_repo_widget)
+resample_frequency_widget = pn.widgets.Select(name="frequency", value='W', options=time_series_frequencies)
+
+head_styles = {
+    'font-size': 'larger',
+}
+head_text_rx = pn.rx(head_info)(
+    repo=select_repo_widget,
+    resample=resample_frequency_widget,
+    frequency_names=frequency_names,
+)
 
 #if pn.state.location:
 #    pn.state.location.sync(select_file_widget, {'value': 'file'})
@@ -85,10 +118,11 @@ template = pn.template.MaterialTemplate(
     sidebar=[
         select_file_widget,
         select_repo_widget,
+        resample_frequency_widget,
     ],
     main=[
         pn.Column(
-            pn.pane.HTML(html_head_text_rx),
+            pn.pane.HTML(head_text_rx, styles=head_styles),
         )
     ]
 )
