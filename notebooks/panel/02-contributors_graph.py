@@ -186,9 +186,10 @@ plot_commits_rx = pn.rx(plot_commits)(
     resampled_df=resample_timeline_all_rx,
 )
 
-#if pn.state.location:
+if pn.state.location:
 #    pn.state.location.sync(select_file_widget, {'value': 'file'})
 #    pn.state.location.sync(select_repo_widget, {'value': 'repo'})
+    pn.state.location.sync(resample_frequency_widget, {'value': 'resample'})
 
 template = pn.template.MaterialTemplate(
     site="diffannotator",
