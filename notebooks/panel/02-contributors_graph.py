@@ -210,11 +210,16 @@ select_period_from_widget.value = None
 
 def select_period_from_widget__onload() -> None:
     if pn.state.location:
-        #print(f"{pn.state.session_args.get('from')[0].decode()}")
+        #print(f"{pn.state.session_args.get('from')=}")
         select_period_from_widget.in_onload = True
+        query_from = pn.state.session_args.get('from', None)
+        if query_from is not None:
+            value_from = query_from[0].decode()
+        else:
+            value_from = ''
         handle_custom_range(
             widget=select_period_from_widget,
-            value=pn.state.session_args.get('from')[0].decode(),
+            value=value_from,
         )
         select_period_from_widget.in_onload = False
 
