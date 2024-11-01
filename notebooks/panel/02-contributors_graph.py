@@ -169,9 +169,10 @@ def sampling_info(resample: str, frequency: dict[str, str], min_max_date) -> str
     """
 
 
-def plot_commits(resampled_df: pd.DataFrame):
-    return resampled_df.hvplot.step(
+def plot_commits(resampled_df: pd.DataFrame, kind: str = 'step'):
+    return resampled_df.hvplot(
         x='author_date', y='n_commits',
+        kind=kind,
         color='blue',
         responsive=True,
     )
@@ -231,6 +232,7 @@ def handle_custom_range(widget: pn.widgets.select.SingleSelectBase,
     #widget.disabled_options = [value]
 
 
+# --------------------------------------------------
 # sidebar widgets
 select_file_widget = pn.widgets.Select(name="input JSON file", options=find_timeline_files(find_dataset_dir()))
 
@@ -294,7 +296,24 @@ def select_period_from_widget__callback(*events) -> None:
 
 select_period_from_widget.param.watch(select_period_from_widget__callback, ['value'], onlychanged=True)
 
+select_plot_kind_widget = pn.widgets.Select(
+    name="Plot kind:",
+    options=[
+        'step',
+        'line',
+        'bar',
+        'area',
+        'scatter',
+    ],
+    disabled_options=[
+        'area',
+        'scatter',
+    ],
+    value='step',
+    align='end',
+)
 
+# --------------------------------------------------
 # main contents
 head_styles = {
     'font-size': 'larger',
@@ -325,7 +344,12 @@ resample_timeline_all_rx = pn.rx(resample_timeline_all)(
 
 plot_commits_rx = pn.rx(plot_commits)(
     resampled_df=resample_timeline_all_rx,
+    kind=select_plot_kind_widget,
 )
+
+
+# ==================================================
+# main app
 
 if pn.state.location:
 #    pn.state.location.sync(select_file_widget, {'value': 'file'})
@@ -344,6 +368,8 @@ template = pn.template.MaterialTemplate(
         select_file_widget,
         select_repo_widget,
         resample_frequency_widget,
+        pn.layout.Divider(),
+        select_plot_kind_widget,
     ],
     main=[
         pn.Column(
