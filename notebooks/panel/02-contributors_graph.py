@@ -170,11 +170,25 @@ def sampling_info(resample: str, frequency: dict[str, str], min_max_date) -> str
 
 
 def plot_commits(resampled_df: pd.DataFrame, kind: str = 'step'):
+    hvplot_kwargs = {}
+    if kind == 'step':
+        hvplot_kwargs.update({
+            'where': 'mid',  # 'pre' is correct, but we need to adjust xlim
+        })
+    if kind in {'step', 'line'}:
+        hvplot_kwargs.update({
+            'line_width': 2,
+            'hover_line_color': '#0060d0',
+        })
+
     return resampled_df.hvplot(
         x='author_date', y='n_commits',
         kind=kind,
-        color='blue',
+        color='#006dd8',
         responsive=True,
+        hover="vline",
+        ylim=(0, None), ylabel='Contributions', xlabel='',
+        **hvplot_kwargs,
     )
 
 
