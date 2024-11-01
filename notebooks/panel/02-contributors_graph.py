@@ -181,17 +181,23 @@ def plot_commits(resampled_df: pd.DataFrame, kind: str = 'step'):
             'hover_line_color': '#0060d0',
         })
 
-    return resampled_df.hvplot(
+    plot = resampled_df.hvplot(
         x='author_date', y='n_commits',
         kind=kind,
         color='#006dd8',
         responsive=True,
-        hover="vline",
+        hover='vline',
         grid=True,
         ylim=(-1, None), ylabel='Contributions', xlabel='',
         padding=(0.005, 0),
+        tools=['xpan','box_zoom','xwheel_zoom','save','undo','redo','reset','hover'],
         **hvplot_kwargs,
     )
+    # manually specifying the default tools gets rid of any preset default tools
+    # you also just use an empty list here to use only chosen tools
+    plot.opts(default_tools=[])
+
+    return plot
 
 
 # mapping form display name to alias
