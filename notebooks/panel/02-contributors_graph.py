@@ -252,7 +252,8 @@ select_period_from_widget = pn.widgets.Select(
     options={'Any': None},
     value='Any',
     # style
-    width=300,
+    width=200,
+    margin=(20,20),
 )
 select_period_from_widget.options = time_range_options(time_range_period)
 select_period_from_widget.value = None
