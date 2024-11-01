@@ -10,11 +10,15 @@ the [HoloViz Panel][Panel] framework.
 
 - [`00-panel-demo.ipynb`](./00-panel-demo.ipynb)
 - [`00-panel-simple-Matplotlib.ipynb`](./00-panel-simple-Matplotlib.ipynb)
+- [`00-panel-Debugger-demo.ipynb`](./00-panel-Debugger-demo.ipynb)
 - ...
 
 ## Diffannotator web dashboards
 
 - [`01-timeline.ipynb`](./01-timeline.ipynb)
+- [`02-contributors_graph.py`](./02-contributors_graph.py) is meant to be
+  enhanced version of the Contributors subpage in the Insights tab
+  for the GitHub repository (example: <https://github.com/qtile/qtile/graphs/contributors>)
 - ...
 
 ## Development
