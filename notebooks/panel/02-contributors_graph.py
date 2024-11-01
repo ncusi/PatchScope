@@ -121,11 +121,19 @@ def get_timeline_df(timeline_data: dict, repo: str) -> pd.DataFrame:
 
 #@pn.cache
 def resample_timeline_all(timeline_df: pd.DataFrame, resample_rate: str) -> pd.DataFrame:
+    # some columns need specific aggregation function
+    columns_agg_sum = ['n_commits']
+    agg_func_sum = {col: 'sum' for col in columns_agg_sum}
+
+    # all columns to aggregate values of
+    columns_agg = [*columns_agg_sum]
+
+    # aggregate over given period of time, i.e. resample
     df = timeline_df.resample(
         resample_rate,
         on='author_date'
-    ).agg(
-        'sum',
+    )[columns_agg].agg(
+        agg_func_sum,
         numeric_only=True
     )
 
