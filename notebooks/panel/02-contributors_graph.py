@@ -188,6 +188,7 @@ def plot_commits(resampled_df: pd.DataFrame, kind: str = 'step'):
         responsive=True,
         hover="vline",
         ylim=(-1, None), ylabel='Contributions', xlabel='',
+        padding=(0.005, 0),
         **hvplot_kwargs,
     )
 
