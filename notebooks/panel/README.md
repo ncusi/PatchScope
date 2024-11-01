@@ -17,6 +17,13 @@ the [HoloViz Panel][Panel] framework.
 - [`01-timeline.ipynb`](./01-timeline.ipynb)
 - ...
 
+## Development
+
+- [Panel > How-to > Develop in notebooks > Display Output in Notebooks](https://panel.holoviz.org/how_to/notebook/notebook.html)
+- [Panel > How-to > Develop in notebooks > Preview Apps in JupyterLab](https://panel.holoviz.org/how_to/notebook/jupyterlabpreview.html)
+- [Panel > How-to > Develop in editor > Configure PyCharm](https://panel.holoviz.org/how_to/editor/pycharm_configure.html)
+- [Panel > How-to > Develop in editor > Configure VS Code](https://panel.holoviz.org/how_to/editor/vscode_configure.html)
+
 
 # Technology alternatives
 
