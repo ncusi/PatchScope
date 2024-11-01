@@ -313,6 +313,18 @@ select_plot_kind_widget = pn.widgets.Select(
     align='end',
 )
 
+select_plot_theme_widget = pn.widgets.Select(
+    name="Plot theme:",
+    options=[
+        'caliber',
+        'carbon',
+        'dark_minimal',
+        'light_minimal',
+        'night_sky',
+        'contrast',
+    ],
+)
+
 # --------------------------------------------------
 # main contents
 head_styles = {
@@ -370,6 +382,7 @@ template = pn.template.MaterialTemplate(
         resample_frequency_widget,
         pn.layout.Divider(),
         select_plot_kind_widget,
+        select_plot_theme_widget,
     ],
     main=[
         pn.Column(
@@ -380,7 +393,7 @@ template = pn.template.MaterialTemplate(
             pn.Card(
                 pn.Column(
                     pn.pane.Markdown(sampling_info_rx, styles=head_styles),
-                    pn.pane.HoloViews(plot_commits_rx),
+                    pn.pane.HoloViews(plot_commits_rx, theme=select_plot_theme_widget),
                 ),
                 collapsible=False, hide_header=True,
             )
