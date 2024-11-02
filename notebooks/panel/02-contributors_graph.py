@@ -25,6 +25,20 @@ pn.extension(
     design="material", sizing_mode="stretch_width"
 )
 pn.state.notifications.position = 'top-center'
+loaded = False
+
+# TODO: replace with a better mechanism, e.g. Proxy object for pn.state.notifications
+warnings: list[str] = []
+
+
+def warning_notification(msg: str) -> None:
+    if loaded:
+        #print(f"immediate warning: {msg}")
+        pn.state.notifications.warning(msg)
+    else:
+        #print(f"postponed warning: {msg}")
+        warnings.append(msg)
+
 
 DATASET_DIR = 'data/examples/stats'
 
@@ -59,6 +73,7 @@ def find_timeline_files(dataset_dir: Optional[Path]) -> dict[str, str]:
 #@pn.cache
 def get_timeline_data(json_path: Optional[Path]) -> dict:
     logger.debug(f"[@pn.cache] get_timeline_data({json_path=})")
+
     if json_path is None:
         return {
             'demo repo': [
@@ -313,8 +328,15 @@ select_period_from_widget.value = None
 
 
 def select_period_from_widget__onload() -> None:
+    global loaded, warnings
+    loaded = True
+
     if select_file_widget.value is None:
         pn.state.notifications.info('Showing synthetic data created for demonstration purposes.', duration=0)
+
+    for warning in warnings:
+        pn.state.notifications.warning(warning)
+    warnings = []
 
     if pn.state.location:
         #print(f"{pn.state.session_args.get('from')=}")
