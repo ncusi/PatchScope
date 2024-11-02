@@ -1,6 +1,7 @@
 import datetime
 import json
 import logging
+import os
 from pathlib import Path
 from typing import Optional
 
@@ -161,11 +162,24 @@ def head_info(repo: str, resample: str, frequency: dict[str, str]) -> str:
     """
 
 
+def html_date_humane(date: pd.Timestamp) -> str:
+    date_format = '%d %a %Y'
+    if os.name == 'nt':
+        date_format = '%#d %a %Y'
+    elif os.name == 'posix':
+        date_format = '%-d %a %Y'
+
+    return f'<time datetime="{date.isoformat()}">{date.strftime(date_format)}</time>'
+
+
 def sampling_info(resample: str, frequency: dict[str, str], min_max_date) -> str:
     return f"""
-    **Commits over time**
-
-    {frequency.get(resample, 'unknown frequency').title()}ly from {min_max_date[0].strftime('%d %a %Y')} to {min_max_date[1].strftime('%d %a %Y')}
+    <strong>Commits over time</strong>
+    <p>
+    {frequency.get(resample, 'unknown frequency').title()}ly
+    from {html_date_humane(min_max_date[0])}
+    to {html_date_humane(min_max_date[1])}
+    </p>
     """
 
 
@@ -440,7 +454,7 @@ template = pn.template.MaterialTemplate(
             ),
             pn.Card(
                 pn.Column(
-                    pn.pane.Markdown(sampling_info_rx, styles=head_styles),
+                    pn.pane.HTML(sampling_info_rx, styles=head_styles),
                     pn.pane.HoloViews(plot_commits_rx, theme=select_plot_theme_widget),
                 ),
                 collapsible=False, hide_header=True,
