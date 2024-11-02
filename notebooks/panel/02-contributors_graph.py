@@ -169,7 +169,8 @@ def sampling_info(resample: str, frequency: dict[str, str], min_max_date) -> str
     """
 
 
-def plot_commits(resampled_df: pd.DataFrame, kind: str = 'step'):
+def plot_commits(resampled_df: pd.DataFrame, kind: str = 'step',
+                 autorange: bool = True):
     hvplot_kwargs = {}
     if kind == 'step':
         hvplot_kwargs.update({
@@ -179,6 +180,12 @@ def plot_commits(resampled_df: pd.DataFrame, kind: str = 'step'):
         hvplot_kwargs.update({
             'line_width': 2,
             'hover_line_color': '#0060d0',
+        })
+    if autorange:
+        # NOTE: doesn't seem to work, compare results in
+        # https://hvplot.holoviz.org/user_guide/Large_Timeseries.html#webgl-rendering-current-default
+        hvplot_kwargs.update({
+            'autorange': 'y',
         })
 
     plot = resampled_df.hvplot(
@@ -190,7 +197,16 @@ def plot_commits(resampled_df: pd.DataFrame, kind: str = 'step'):
         grid=True,
         ylim=(-1, None), ylabel='Contributions', xlabel='',
         padding=(0.005, 0),
-        tools=['xpan','box_zoom','xwheel_zoom','save','undo','redo','reset','hover'],
+        tools=[
+            'xpan',
+            'box_zoom',
+            'wheel_zoom' if autorange else 'wheel_zoom',
+            'save',
+            'undo',
+            'redo',
+            'reset',
+            'hover',
+        ],
         **hvplot_kwargs,
     )
     # manually specifying the default tools gets rid of any preset default tools
@@ -348,6 +364,11 @@ select_plot_theme_widget = pn.widgets.Select(
     ],
 )
 
+toggle_autorange_widget = pn.widgets.Checkbox(
+    name="autoscale 'y' axis when using zoom tools",
+    value=True,
+)
+
 # --------------------------------------------------
 # main contents
 head_styles = {
@@ -380,6 +401,7 @@ resample_timeline_all_rx = pn.rx(resample_timeline_all)(
 plot_commits_rx = pn.rx(plot_commits)(
     resampled_df=resample_timeline_all_rx,
     kind=select_plot_kind_widget,
+    autorange=toggle_autorange_widget,
 )
 
 
@@ -403,9 +425,12 @@ template = pn.template.MaterialTemplate(
         select_file_widget,
         select_repo_widget,
         resample_frequency_widget,
-        pn.layout.Divider(),
+
+        pn.layout.Divider(), # - - - - - - - - - - - - -
+
         select_plot_kind_widget,
         select_plot_theme_widget,
+        toggle_autorange_widget,
     ],
     main=[
         pn.Column(
