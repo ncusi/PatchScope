@@ -2,6 +2,7 @@ import datetime
 import json
 import logging
 import os
+import re
 from pathlib import Path
 from typing import Optional
 
@@ -344,6 +345,18 @@ def select_period_from_widget__onload() -> None:
         query_from = pn.state.session_args.get('from', None)
         if query_from is not None:
             value_from = query_from[0].decode()
+            if value_from == '':
+                pass
+            elif match := re.match(r'(?P<day>\d{1,2})\.(?P<month>\d{1,2})\.(?P<year>\d{4})', value_from):
+                try:
+                    datetime.date(int(match.group('year')), int(match.group('month')), int(match.group('day')))
+                except ValueError as err:
+                    warning_notification(f"from={value_from} is not a valid DD.YY.MMMM date: {err}")
+                    value_from = ''
+            else:
+                warning_notification(f"from={value_from} does not match the DD.YY.MMMM pattern for dates")
+                value_from = ''
+
         else:
             value_from = ''
         handle_custom_range(
