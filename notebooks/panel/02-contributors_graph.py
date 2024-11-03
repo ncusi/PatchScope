@@ -138,6 +138,31 @@ def get_timeline_df(timeline_data: dict, repo: str) -> pd.DataFrame:
     #print(f"  -> df={hex(id(df))}, {df.shape=}")
     return df
 
+
+def authors_info_df(timeline_df: pd.DataFrame,
+                    column: str = 'n_commits',
+                    _from_date_str: str = '') -> pd.DataFrame:
+    info_columns = ['n_commits', '+:count', '-:count']
+
+    # sanity check
+    if column not in info_columns:
+        column = info_columns[0]
+
+    # TODO: use `from_date_str` parameter
+
+    df = timeline_df\
+        .groupby(by='author.email')[info_columns]\
+        .agg('sum')\
+        .sort_values(by=column, ascending=False)\
+        .rename(columns={
+            '+:count': 'p_count',
+            '-:count': 'm_count',
+        })
+
+    #print(df)
+    return df
+
+
 #@pn.cache
 def resample_timeline_all(timeline_df: pd.DataFrame, resample_rate: str) -> pd.DataFrame:
     #print(f"resample_timeline_all(timeline_df={hex(id(timeline_df))}, {resample_rate=})")
@@ -276,6 +301,20 @@ def plot_commits(resampled_df: pd.DataFrame,
     return plot
 
 
+def authors_cards(authors_df: pd.DataFrame,
+                  top_n: int = 4) -> list[pn.layout.Card]:
+    result: list[pn.layout.Card] = []
+    for row in authors_df.head(top_n).itertuples():
+        result.append(
+            pn.layout.Card(
+                header=f"{row[0]}",
+                collapsible=False,
+            )
+        )
+
+    return result
+
+
 # mapping form display name to alias
 time_series_frequencies = {
     'calendar day frequency': 'D',
@@ -344,6 +383,9 @@ find_repos_rx = pn.rx(find_repos)(
 select_repo_widget = pn.widgets.Select(name="repository", options=find_repos_rx, disabled=len(find_repos_rx.rx.value) <= 1)
 
 resample_frequency_widget = pn.widgets.Select(name="frequency", value='W', options=time_series_frequencies)
+
+# might be not a Select widget
+top_n_widget = pn.widgets.Select(name="top N", options=[4,10,32], value=4)
 
 # ............................................................
 # after the separator
@@ -503,6 +545,11 @@ sampling_info_rx = pn.rx(sampling_info)(
     min_max_date=get_date_range_rx,
 )
 
+authors_info_df_rx = pn.rx(authors_info_df)(
+    timeline_df=get_timeline_df_rx,
+    column=select_contribution_type_widget,
+    #from_date_str=select_period_from_widget,
+)
 resample_timeline_all_rx = pn.rx(resample_timeline_all)(
     timeline_df=get_timeline_df_rx,
     resample_rate=resample_frequency_widget,
@@ -516,6 +563,39 @@ plot_commits_rx = pn.rx(plot_commits)(
     autorange=toggle_autorange_widget,
 )
 
+
+authors_grid = pn.layout.GridBox(
+    ncols=2,
+)
+
+
+def update_authors_grid(authors_df: pd.DataFrame, top_n: int = 4) -> None:
+    #print(f"update_authors_grid({top_n=})")
+    authors_grid.clear()
+    authors_grid.extend(
+        authors_cards(
+            authors_df=authors_df,
+            top_n=top_n,
+        )
+    )
+
+
+# NOTE: does not work as intended, displays widgets it depends on
+#authors_cards_rx = pn.rx(authors_cards)(
+#    authors_df=authors_info_df_rx,
+#    top_n=top_n_widget,
+#)
+bind_update_authors_grid = pn.bind(
+    # func
+    update_authors_grid,
+    # *dependencies
+    authors_df=authors_info_df_rx,
+    top_n=top_n_widget,
+    # keywords
+    watch=True,
+)
+# on init, update the authors_grid widget
+bind_update_authors_grid()
 
 # ==================================================
 # main app
@@ -537,6 +617,7 @@ template = pn.template.MaterialTemplate(
         select_file_widget,
         select_repo_widget,
         resample_frequency_widget,
+        top_n_widget,
 
         pn.layout.Divider(), # - - - - - - - - - - - - -
 
@@ -559,6 +640,7 @@ template = pn.template.MaterialTemplate(
                 collapsible=False, hide_header=True,
             )
         ),
+        authors_grid,
     ],
 )
 template.servable()
