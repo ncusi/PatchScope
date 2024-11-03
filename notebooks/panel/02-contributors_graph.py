@@ -145,15 +145,19 @@ def resample_timeline_all(timeline_df: pd.DataFrame, resample_rate: str) -> pd.D
     columns_agg_sum = ['n_commits']
     agg_func_sum = {col: 'sum' for col in columns_agg_sum}
 
+    agg_func = 'sum'
+    columns_agg_any = ['+:count', '-:count']
+    agg_func_any = {col: agg_func for col in columns_agg_any}
+
     # all columns to aggregate values of
-    columns_agg = [*columns_agg_sum]
+    columns_agg = [*columns_agg_sum, *columns_agg_any]
 
     # aggregate over given period of time, i.e. resample
     df = timeline_df.resample(
         resample_rate,
         on='author_date'
     )[columns_agg].agg(
-        agg_func_sum,
+        agg_func_sum | agg_func_any,
         numeric_only=True
     )
 
@@ -192,9 +196,11 @@ def html_date_humane(date: pd.Timestamp) -> str:
     return f'<time datetime="{date.isoformat()}">{date.strftime(date_format)}</time>'
 
 
-def sampling_info(resample: str, frequency: dict[str, str], min_max_date) -> str:
+def sampling_info(resample: str, column: str, frequency: dict[str, str], min_max_date) -> str:
+    contribution_type = column_to_contribution.get(column, "Unknown type of contribution")
+
     return f"""
-    <strong>Commits over time</strong>
+    <strong>{contribution_type} over time</strong>
     <p>
     {frequency.get(resample, 'unknown frequency').title()}ly
     from {html_date_humane(min_max_date[0])}
@@ -204,10 +210,12 @@ def sampling_info(resample: str, frequency: dict[str, str], min_max_date) -> str
 
 
 def plot_commits(resampled_df: pd.DataFrame,
+                 column: str = 'n_commits',
                  from_date_str: str = '',
                  kind: str = 'step', autorange: bool = True):
     from_date: Optional[pd.Timestamp] = None
-    #print(f"plot_commits(resampled_df={hex(id(resampled_df))}, {from_date_str=}, {kind=}, {autorange=})")
+    #print(f"plot_commits(resampled_df={hex(id(resampled_df))}, {columns=}, {from_date_str=}, {kind=}, {autorange=})")
+    #print(f"   {resampled_df.shape=}")
     if from_date_str:
         try:
             # the `from_date_str` is in DD.MM.YYYY format
@@ -239,8 +247,9 @@ def plot_commits(resampled_df: pd.DataFrame,
     else:
         filtered_df = resampled_df[resampled_df.index >= from_date]
     #print(f"plot_commits(): {filtered_df.shape=}")
+
     plot = filtered_df.hvplot(
-        x='author_date', y='n_commits',
+        x='author_date', y=column,
         kind=kind,
         color='#006dd8',
         responsive=True,
@@ -321,6 +330,7 @@ def handle_custom_range(widget: pn.widgets.select.SingleSelectBase,
     #widget.disabled_options = [value]
 
 
+# ==================================================
 # --------------------------------------------------
 # sidebar widgets
 select_file_widget = pn.widgets.Select(name="input JSON file", options=find_timeline_files(find_dataset_dir()))
@@ -335,14 +345,53 @@ select_repo_widget = pn.widgets.Select(name="repository", options=find_repos_rx,
 
 resample_frequency_widget = pn.widgets.Select(name="frequency", value='W', options=time_series_frequencies)
 
+# ............................................................
+# after the separator
+
+select_plot_kind_widget = pn.widgets.Select(
+    name="Plot kind:",
+    options=[
+        'step',
+        'line',
+        'bar',
+        'area',
+        'scatter',
+    ],
+    disabled_options=[
+        'area',
+        'scatter',
+    ],
+    value='step',
+    align='end',
+)
+
+select_plot_theme_widget = pn.widgets.Select(
+    name="Plot theme:",
+    options=[
+        'caliber',
+        'carbon',
+        'dark_minimal',
+        'light_minimal',
+        'night_sky',
+        'contrast',
+    ],
+)
+
+toggle_autorange_widget = pn.widgets.Checkbox(
+    name="autoscale 'y' axis when using zoom tools",
+    value=True,
+)
+
+
+# --------------------------------------------------
 # main contents widgets
 select_period_from_widget = pn.widgets.Select(
     name="Period:",
     options={'Any': ''},
     value='Any',
     # style
-    width=150,
-    margin=(20,20),
+    width=110,
+    margin=(20,5),
 )
 select_period_from_widget.options = time_range_options(time_range_period)
 select_period_from_widget.value = ''
@@ -411,40 +460,24 @@ def select_period_from_widget__callback(*events) -> None:
 
 select_period_from_widget.param.watch(select_period_from_widget__callback, ['value'], onlychanged=True)
 
-select_plot_kind_widget = pn.widgets.Select(
-    name="Plot kind:",
-    options=[
-        'step',
-        'line',
-        'bar',
-        'area',
-        'scatter',
-    ],
-    disabled_options=[
-        'area',
-        'scatter',
-    ],
-    value='step',
-    align='end',
+#: for the select_contribution_type_widget
+contribution_types_map = {
+    "Commits": "n_commits",
+    "Additions": "+:count",
+    "Deletions": "-:count",
+}
+column_to_contribution = {
+    v: k for k, v in contribution_types_map.items()
+}
+select_contribution_type_widget = pn.widgets.Select(
+    name="Contributions:",
+    options=contribution_types_map,
+    value="n_commits",
+    width=180,
+    margin=(20,0),  # same as `select_period_from_widget`
 )
 
-select_plot_theme_widget = pn.widgets.Select(
-    name="Plot theme:",
-    options=[
-        'caliber',
-        'carbon',
-        'dark_minimal',
-        'light_minimal',
-        'night_sky',
-        'contrast',
-    ],
-)
-
-toggle_autorange_widget = pn.widgets.Checkbox(
-    name="autoscale 'y' axis when using zoom tools",
-    value=True,
-)
-
+# ##################################################
 # --------------------------------------------------
 # main contents
 head_styles = {
@@ -465,6 +498,7 @@ get_date_range_rx = pn.rx(get_date_range)(
 )
 sampling_info_rx = pn.rx(sampling_info)(
     resample=resample_frequency_widget,
+    column=select_contribution_type_widget,
     frequency=frequency_names,
     min_max_date=get_date_range_rx,
 )
@@ -476,6 +510,7 @@ resample_timeline_all_rx = pn.rx(resample_timeline_all)(
 
 plot_commits_rx = pn.rx(plot_commits)(
     resampled_df=resample_timeline_all_rx,
+    column=select_contribution_type_widget,
     from_date_str=select_period_from_widget,
     kind=select_plot_kind_widget,
     autorange=toggle_autorange_widget,
@@ -514,6 +549,7 @@ template = pn.template.MaterialTemplate(
             pn.Row(
                 pn.pane.HTML(head_text_rx, styles=head_styles),
                 select_period_from_widget,
+                select_contribution_type_widget,
             ),
             pn.Card(
                 pn.Column(
