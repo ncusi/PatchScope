@@ -141,16 +141,16 @@ def get_timeline_df(timeline_data: dict, repo: str) -> pd.DataFrame:
 
 def authors_info_df(timeline_df: pd.DataFrame,
                     column: str = 'n_commits',
-                    _from_date_str: str = '') -> pd.DataFrame:
+                    from_date_str: str = '') -> pd.DataFrame:
     info_columns = ['n_commits', '+:count', '-:count']
 
     # sanity check
     if column not in info_columns:
         column = info_columns[0]
 
-    # TODO: use `from_date_str` parameter
+    filtered_df = filter_df_by_from_date(timeline_df, from_date_str, 'author.timestamp')
 
-    df = timeline_df\
+    df = filtered_df\
         .groupby(by='author.email')[info_columns]\
         .agg('sum')\
         .sort_values(by=column, ascending=False)\
@@ -193,6 +193,37 @@ def resample_timeline_all(timeline_df: pd.DataFrame, resample_rate: str) -> pd.D
 
     #print(f"  -> df={hex(id(df))}, {df.shape=}")
     return df
+
+
+# NOTE: consider putting the filter earlier in the pipeline (needs profiling / benchmarking?)
+def filter_df_by_from_date(resampled_df: pd.DataFrame,
+                           from_date_str: str,
+                           date_column: Optional[str] = None) -> pd.DataFrame:
+    from_date: Optional[pd.Timestamp] = None
+    if from_date_str:
+        try:
+            # the `from_date_str` is in DD.MM.YYYY format
+            from_date = pd.to_datetime(from_date_str, dayfirst=True, utc=True)
+        except ValueError as err:
+            # NOTE: should not happen, value should be validated earlier
+            warning_notification(f"from={from_date_str!r} is not a valid date: {err}")
+
+
+    filtered_df = resampled_df
+    if from_date is not None:
+        if date_column is None:
+            filtered_df = resampled_df[resampled_df.index >= from_date]
+        else:
+            if pd.api.types.is_timedelta64_dtype(resampled_df[date_column]):
+                filtered_df = resampled_df[resampled_df[date_column] >= from_date]
+            elif pd.api.types.is_numeric_dtype(resampled_df[date_column]):
+                # assume numeric date column is UNIX timestamp
+                filtered_df = resampled_df[resampled_df[date_column] >= from_date.timestamp()]
+            else:
+                warning_notification(f"unsupported type {resampled_df.dtypes[date_column]!r} "
+                                     f"for column {date_column!r}")
+
+    return filtered_df
 
 
 #@pn.cache
@@ -238,17 +269,9 @@ def plot_commits(resampled_df: pd.DataFrame,
                  column: str = 'n_commits',
                  from_date_str: str = '',
                  kind: str = 'step', autorange: bool = True):
-    from_date: Optional[pd.Timestamp] = None
     #print(f"plot_commits(resampled_df={hex(id(resampled_df))}, {columns=}, {from_date_str=}, {kind=}, {autorange=})")
     #print(f"   {resampled_df.shape=}")
-    if from_date_str:
-        try:
-            # the `from_date_str` is in DD.MM.YYYY format
-            from_date = pd.to_datetime(from_date_str, dayfirst=True, utc=True)
-        except ValueError as err:
-            # NOTE: should not happen, value should be validated earlier
-            warning_notification(f"from={from_date_str!r} is not a valid date: {err}")
-    #print(f"plot_commits(): from_date={from_date}")
+    filtered_df = filter_df_by_from_date(resampled_df, from_date_str)
 
     hvplot_kwargs = {}
     if kind == 'step':
@@ -266,12 +289,6 @@ def plot_commits(resampled_df: pd.DataFrame,
         hvplot_kwargs.update({
             'autorange': 'y',
         })
-
-    if from_date is None:
-        filtered_df = resampled_df
-    else:
-        filtered_df = resampled_df[resampled_df.index >= from_date]
-    #print(f"plot_commits(): {filtered_df.shape=}")
 
     plot = filtered_df.hvplot(
         x='author_date', y=column,
@@ -548,7 +565,7 @@ sampling_info_rx = pn.rx(sampling_info)(
 authors_info_df_rx = pn.rx(authors_info_df)(
     timeline_df=get_timeline_df_rx,
     column=select_contribution_type_widget,
-    #from_date_str=select_period_from_widget,
+    from_date_str=select_period_from_widget,
 )
 resample_timeline_all_rx = pn.rx(resample_timeline_all)(
     timeline_df=get_timeline_df_rx,
