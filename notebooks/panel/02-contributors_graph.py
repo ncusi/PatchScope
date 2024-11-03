@@ -199,8 +199,20 @@ def sampling_info(resample: str, frequency: dict[str, str], min_max_date) -> str
     """
 
 
-def plot_commits(resampled_df: pd.DataFrame, kind: str = 'step',
-                 autorange: bool = True):
+def plot_commits(resampled_df: pd.DataFrame,
+                 from_date_str: str = '',
+                 kind: str = 'step', autorange: bool = True):
+    from_date: Optional[pd.Timestamp] = None
+    #print(f"plot_commits(resampled_df={hex(id(resampled_df))}, {from_date_str=}, {kind=}, {autorange=})")
+    if from_date_str:
+        try:
+            # the `from_date_str` is in DD.MM.YYYY format
+            from_date = pd.to_datetime(from_date_str, dayfirst=True, utc=True)
+        except ValueError as err:
+            # NOTE: should not happen, value should be validated earlier
+            warning_notification(f"from={from_date_str!r} is not a valid date: {err}")
+    #print(f"plot_commits(): from_date={from_date}")
+
     hvplot_kwargs = {}
     if kind == 'step':
         hvplot_kwargs.update({
@@ -218,7 +230,12 @@ def plot_commits(resampled_df: pd.DataFrame, kind: str = 'step',
             'autorange': 'y',
         })
 
-    plot = resampled_df.hvplot(
+    if from_date is None:
+        filtered_df = resampled_df
+    else:
+        filtered_df = resampled_df[resampled_df.index >= from_date]
+    #print(f"plot_commits(): {filtered_df.shape=}")
+    plot = filtered_df.hvplot(
         x='author_date', y='n_commits',
         kind=kind,
         color='#006dd8',
@@ -320,7 +337,7 @@ select_period_from_widget = pn.widgets.Select(
     options={'Any': None},
     value='Any',
     # style
-    width=200,
+    width=150,
     margin=(20,20),
 )
 select_period_from_widget.options = time_range_options(time_range_period)
@@ -449,6 +466,7 @@ resample_timeline_all_rx = pn.rx(resample_timeline_all)(
 
 plot_commits_rx = pn.rx(plot_commits)(
     resampled_df=resample_timeline_all_rx,
+    from_date_str=select_period_from_widget,
     kind=select_plot_kind_widget,
     autorange=toggle_autorange_widget,
 )
