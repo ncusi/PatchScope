@@ -169,12 +169,51 @@ def sampling_info(resample: str, frequency: dict[str, str], min_max_date) -> str
     """
 
 
-def plot_commits(resampled_df: pd.DataFrame):
-    return resampled_df.hvplot.step(
+def plot_commits(resampled_df: pd.DataFrame, kind: str = 'step',
+                 autorange: bool = True):
+    hvplot_kwargs = {}
+    if kind == 'step':
+        hvplot_kwargs.update({
+            'where': 'mid',  # 'pre' is correct, but we need to adjust xlim
+        })
+    if kind in {'step', 'line'}:
+        hvplot_kwargs.update({
+            'line_width': 2,
+            'hover_line_color': '#0060d0',
+        })
+    if autorange:
+        # NOTE: doesn't seem to work, compare results in
+        # https://hvplot.holoviz.org/user_guide/Large_Timeseries.html#webgl-rendering-current-default
+        hvplot_kwargs.update({
+            'autorange': 'y',
+        })
+
+    plot = resampled_df.hvplot(
         x='author_date', y='n_commits',
-        color='blue',
+        kind=kind,
+        color='#006dd8',
         responsive=True,
+        hover='vline',
+        grid=True,
+        ylim=(-1, None), ylabel='Contributions', xlabel='',
+        padding=(0.005, 0),
+        tools=[
+            'xpan',
+            'box_zoom',
+            'wheel_zoom' if autorange else 'wheel_zoom',
+            'save',
+            'undo',
+            'redo',
+            'reset',
+            'hover',
+        ],
+        **hvplot_kwargs,
     )
+    # manually specifying the default tools gets rid of any preset default tools
+    # you also just use an empty list here to use only chosen tools
+    plot.opts(default_tools=[])
+
+    return plot
 
 
 # mapping form display name to alias
@@ -231,6 +270,7 @@ def handle_custom_range(widget: pn.widgets.select.SingleSelectBase,
     #widget.disabled_options = [value]
 
 
+# --------------------------------------------------
 # sidebar widgets
 select_file_widget = pn.widgets.Select(name="input JSON file", options=find_timeline_files(find_dataset_dir()))
 
@@ -250,7 +290,8 @@ select_period_from_widget = pn.widgets.Select(
     options={'Any': None},
     value='Any',
     # style
-    width=300,
+    width=200,
+    margin=(20,20),
 )
 select_period_from_widget.options = time_range_options(time_range_period)
 select_period_from_widget.value = None
@@ -294,7 +335,41 @@ def select_period_from_widget__callback(*events) -> None:
 
 select_period_from_widget.param.watch(select_period_from_widget__callback, ['value'], onlychanged=True)
 
+select_plot_kind_widget = pn.widgets.Select(
+    name="Plot kind:",
+    options=[
+        'step',
+        'line',
+        'bar',
+        'area',
+        'scatter',
+    ],
+    disabled_options=[
+        'area',
+        'scatter',
+    ],
+    value='step',
+    align='end',
+)
 
+select_plot_theme_widget = pn.widgets.Select(
+    name="Plot theme:",
+    options=[
+        'caliber',
+        'carbon',
+        'dark_minimal',
+        'light_minimal',
+        'night_sky',
+        'contrast',
+    ],
+)
+
+toggle_autorange_widget = pn.widgets.Checkbox(
+    name="autoscale 'y' axis when using zoom tools",
+    value=True,
+)
+
+# --------------------------------------------------
 # main contents
 head_styles = {
     'font-size': 'larger',
@@ -325,7 +400,13 @@ resample_timeline_all_rx = pn.rx(resample_timeline_all)(
 
 plot_commits_rx = pn.rx(plot_commits)(
     resampled_df=resample_timeline_all_rx,
+    kind=select_plot_kind_widget,
+    autorange=toggle_autorange_widget,
 )
+
+
+# ==================================================
+# main app
 
 if pn.state.location:
 #    pn.state.location.sync(select_file_widget, {'value': 'file'})
@@ -344,6 +425,12 @@ template = pn.template.MaterialTemplate(
         select_file_widget,
         select_repo_widget,
         resample_frequency_widget,
+
+        pn.layout.Divider(), # - - - - - - - - - - - - -
+
+        select_plot_kind_widget,
+        select_plot_theme_widget,
+        toggle_autorange_widget,
     ],
     main=[
         pn.Column(
@@ -354,7 +441,7 @@ template = pn.template.MaterialTemplate(
             pn.Card(
                 pn.Column(
                     pn.pane.Markdown(sampling_info_rx, styles=head_styles),
-                    pn.pane.HoloViews(plot_commits_rx),
+                    pn.pane.HoloViews(plot_commits_rx, theme=select_plot_theme_widget),
                 ),
                 collapsible=False, hide_header=True,
             )
