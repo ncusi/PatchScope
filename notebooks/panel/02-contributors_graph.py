@@ -118,12 +118,12 @@ def find_repos(timeline_data: dict) -> list[str]:
 
 #@pn.cache
 def get_timeline_df(timeline_data: dict, repo: str) -> pd.DataFrame:
-    #print(f"{repo=}")
+    #print(f"get_timeline_df({len(timeline_data)=}, {repo=})")
     #print(f"{timeline_data=}")
     init_df = pd.DataFrame.from_records(timeline_data[repo])
     #print(init_df)
     # no merges, no roots; add 'n_commits' column; drop rows with N/A for timestamps
-    return init_df[init_df['n_parents'] == 1]\
+    df = init_df[init_df['n_parents'] == 1]\
         .dropna(subset=['author.timestamp', 'committer.timestamp'], how='any')\
         .assign(
             n_commits =  1,
@@ -135,9 +135,12 @@ def get_timeline_df(timeline_data: dict, repo: str) -> pd.DataFrame:
         #    'committer_date': 'committer.date',
         #})
 
+    #print(f"  -> df={hex(id(df))}, {df.shape=}")
+    return df
 
 #@pn.cache
 def resample_timeline_all(timeline_df: pd.DataFrame, resample_rate: str) -> pd.DataFrame:
+    #print(f"resample_timeline_all(timeline_df={hex(id(timeline_df))}, {resample_rate=})")
     # some columns need specific aggregation function
     columns_agg_sum = ['n_commits']
     agg_func_sum = {col: 'sum' for col in columns_agg_sum}
@@ -159,6 +162,7 @@ def resample_timeline_all(timeline_df: pd.DataFrame, resample_rate: str) -> pd.D
     #df['author.date(Y-m)'] = df.index.strftime('%Y-%m')
     #print(df)
 
+    #print(f"  -> df={hex(id(df))}, {df.shape=}")
     return df
 
 
@@ -334,14 +338,14 @@ resample_frequency_widget = pn.widgets.Select(name="frequency", value='W', optio
 # main contents widgets
 select_period_from_widget = pn.widgets.Select(
     name="Period:",
-    options={'Any': None},
+    options={'Any': ''},
     value='Any',
     # style
     width=150,
     margin=(20,20),
 )
 select_period_from_widget.options = time_range_options(time_range_period)
-select_period_from_widget.value = None
+select_period_from_widget.value = ''
 #print(f"{select_period_from_widget.options=}")
 
 
@@ -349,6 +353,7 @@ def select_period_from_widget__onload() -> None:
     global loaded, warnings
     loaded = True
 
+    #print("select_period_from_widget__onload()")
     if select_file_widget.value is None:
         pn.state.notifications.info('Showing synthetic data created for demonstration purposes.', duration=0)
 
@@ -358,8 +363,8 @@ def select_period_from_widget__onload() -> None:
 
     if pn.state.location:
         #print(f"{pn.state.session_args.get('from')=}")
-        select_period_from_widget.in_onload = True
         query_from = pn.state.session_args.get('from', None)
+        needs_adjusting = False
         if query_from is not None:
             value_from = query_from[0].decode()
             if value_from == '':
@@ -367,6 +372,7 @@ def select_period_from_widget__onload() -> None:
             elif match := re.match(r'(?P<day>\d{1,2})\.(?P<month>\d{1,2})\.(?P<year>\d{4})', value_from):
                 try:
                     datetime.date(int(match.group('year')), int(match.group('month')), int(match.group('day')))
+                    needs_adjusting = True
                 except ValueError as err:
                     warning_notification(f"from={value_from} is not a valid DD.YY.MMMM date: {err}")
                     value_from = ''
@@ -376,15 +382,19 @@ def select_period_from_widget__onload() -> None:
 
         else:
             value_from = ''
-        handle_custom_range(
-            widget=select_period_from_widget,
-            value=value_from,
-        )
-        select_period_from_widget.in_onload = False
+
+        #print(f"   {needs_adjusting=}")
+        if needs_adjusting:
+            select_period_from_widget.in_onload = True
+            handle_custom_range(
+                widget=select_period_from_widget,
+                value=value_from,
+            )
+            select_period_from_widget.in_onload = False
 
 
 def select_period_from_widget__callback(*events) -> None:
-    #print(f"select_period_from_widget__callback({events=}):")
+    #print(f"select_period_from_widget__callback({len(events)=})")
     na_str = 'Custom range'
 
     for event in events:
@@ -396,7 +406,7 @@ def select_period_from_widget__callback(*events) -> None:
                 if na_str in select_period_from_widget.options:
                     del select_period_from_widget.options[na_str]
                     select_period_from_widget.param.trigger('options')
-                    #print(f"-> after del[{na_str!r}]: {select_period_from_widget.options=}")
+                    #print(f"  -> after del[{na_str!r}]: {select_period_from_widget.options=}")
 
 
 select_period_from_widget.param.watch(select_period_from_widget__callback, ['value'], onlychanged=True)
