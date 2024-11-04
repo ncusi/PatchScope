@@ -170,10 +170,7 @@ def authors_info_df(timeline_df: pd.DataFrame,
     return df
 
 
-#@pn.cache
-def resample_timeline_all(timeline_df: pd.DataFrame, resample_rate: str) -> pd.DataFrame:
-    #print(f"resample_timeline_all(timeline_df={hex(id(timeline_df))}, {resample_rate=})")
-    # some columns need specific aggregation function
+def agg_func_mapping():
     columns_agg_sum = ['n_commits']
     agg_func_sum = {col: 'sum' for col in columns_agg_sum}
 
@@ -181,15 +178,24 @@ def resample_timeline_all(timeline_df: pd.DataFrame, resample_rate: str) -> pd.D
     columns_agg_any = ['+:count', '-:count']
     agg_func_any = {col: agg_func for col in columns_agg_any}
 
+    return agg_func_sum | agg_func_any
+
+
+#@pn.cache
+def resample_timeline_all(timeline_df: pd.DataFrame, resample_rate: str) -> pd.DataFrame:
+    #print(f"resample_timeline_all(timeline_df={hex(id(timeline_df))}, {resample_rate=})")
+    # some columns need specific aggregation function
+    agg_func_map = agg_func_mapping()
+
     # all columns to aggregate values of
-    columns_agg = [*columns_agg_sum, *columns_agg_any]
+    columns_agg = list(agg_func_map.keys())
 
     # aggregate over given period of time, i.e. resample
     df = timeline_df.resample(
         resample_rate,
         on='author_date'
     )[columns_agg].agg(
-        agg_func_sum | agg_func_any,
+        agg_func_map,
         numeric_only=True
     )
 
