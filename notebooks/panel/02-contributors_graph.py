@@ -4,8 +4,9 @@ import logging
 import os
 import re
 from collections import namedtuple
+#from collections.abc import Callable
 from pathlib import Path
-from typing import Optional, Union
+from typing import Optional
 
 from dateutil.relativedelta import relativedelta
 
@@ -170,11 +171,6 @@ def authors_info_df(timeline_df: pd.DataFrame,
     return df
 
 
-def timeline_group_by_author_df(timeline_df: pd.DataFrame) -> pd.api.typing.DataFrameGroupBy:
-    #print(f"timeline_group_by_author_df(timeline_df=pd.DataFrame(<{hex(id(timeline_df))}>)")
-    return timeline_df.groupby('author.email')
-
-
 def agg_func_mapping():
     columns_agg_sum = ['n_commits']
     agg_func_sum = {col: 'sum' for col in columns_agg_sum}
@@ -183,13 +179,16 @@ def agg_func_mapping():
     columns_agg_any = ['+:count', '-:count']
     agg_func_any = {col: agg_func for col in columns_agg_any}
 
-    return agg_func_sum | agg_func_any
+    res = agg_func_sum | agg_func_any
+    #print(f"agg_func_mapping() -> {res=}")
+    return res
 
 
 #@pn.cache
-def resample_timeline(timeline_df: Union[pd.DataFrame, pd.api.typing.DataFrameGroupBy],
-                      resample_rate: str) -> pd.DataFrame:
-    #print(f"resample_timeline_all(timeline_df={hex(id(timeline_df))}, {resample_rate=})")
+def resample_timeline(timeline_df: pd.DataFrame,
+                      resample_rate: str, group_by: Optional[str] = None) -> pd.DataFrame:
+    #print(f"resample_timeline(timeline_df=<{hex(id(timeline_df))}>, {resample_rate=})")
+
     # some columns need specific aggregation function
     agg_func_map = agg_func_mapping()
 
@@ -197,10 +196,18 @@ def resample_timeline(timeline_df: Union[pd.DataFrame, pd.api.typing.DataFrameGr
     columns_agg = list(agg_func_map.keys())
 
     # aggregate over given period of time, i.e. resample
-    df = timeline_df.resample(
-        resample_rate,
-        on='author_date'
-    )[columns_agg].agg(
+    #print(f"  {resample_rate=}, {group_by=}; {columns_agg=}, {agg_func_map=}")
+    if group_by is None:
+        df_r = timeline_df.resample(
+            resample_rate,
+            on='author_date'
+        )
+    else:
+        df_r = timeline_df.groupby([
+            group_by,
+            pd.Grouper(key='author_date', freq=resample_rate)
+        ])
+    df = df_r[columns_agg].agg(
         agg_func_map,
         numeric_only=True
     )
@@ -210,7 +217,8 @@ def resample_timeline(timeline_df: Union[pd.DataFrame, pd.api.typing.DataFrameGr
     #df['author.date(Y-m)'] = df.index.strftime('%Y-%m')
     #print(df)
 
-    #print(f"  -> df={hex(id(df))}, {df.shape=}")
+    #print(f"  -> df=<{hex(id(df))}>, {df.shape=}, {df.columns=}")
+    #print(df.head(5))
     return df
 
 
@@ -339,37 +347,33 @@ def plot_commits(resampled_df: pd.DataFrame,
 
 
 def authors_cards(authors_df: pd.DataFrame,
-                  #resample_by_author_df: pd.DataFrame,
-                  #column: str, from_date_str: str, kind: str, autorange: bool,
+                  resample_by_author_df: pd.DataFrame,
+                  #plot_commit_partial: Callable,
                   top_n: int = 4) -> list[pn.layout.Card]:
     #print(f"authors_cards(authors_df=pd.DataFrame(<{hex(id(authors_df))}>), "
     #      f"resample_by_author_df=pd.DataFrame(<{hex(id(resample_by_author_df))}>), "
-    #      f"{column=}, {from_date_str=}, {kind=}, {autorange=}, {top_n=}):")
+    #      #f"{plot_commit_partial=}, "
+    #      f"{top_n=}):")
     result: list[pn.layout.Card] = []
 
     row: namedtuple('Pandas', ['Index', 'n_commits', 'p_count', 'm_count', 'author_name'])
     for row in authors_df.head(top_n).itertuples():
         #print(f". authors_cards(): {row=}")
-        #print(resample_by_author_df.loc[row.Index])
+        #print(f". {type(resample_by_author_df.loc[row.Index])}")
+        #print(f". {resample_by_author_df.columns=}")
+        #print(f". {resample_by_author_df.loc[row.Index].columns=}")
+        #print(resample_by_author_df.head())
+        #print(resample_by_author_df.loc[row.Index].head())
 
         result.append(
             pn.layout.Card(
                 pn.Column(
                     pn.pane.HoloViews(
-                        #pn.ReactiveExpr(
-                        #    pn.rx(plot_commits)(
-                        #        resampled_df=resample_by_author_df.loc[row.Index],
-                        #        column=column,
-                        #        from_date_str=from_date_str,
-                        #        kind=kind,
-                        #        autorange=autorange,
-                        #    ),
-                        #    show_widgets=False,
+                        bind_plot_commits_no_df(resampled_df=resample_by_author_df.loc[row.Index]),
+                        #plot_commits(
+                        #    resampled_df=resample_by_author_df.loc[row.Index],
                         #),
-                        # WTF!?! the above leads to the following error, event though type(column) says <class 'str'>
-                        # holoviews.core.data.interface.DataError:
-                        #     Having a non-string as a column name in a DataFrame is not supported.
-                        plot_commits_rx,
+                        #plot_commits_rx,
                         theme=select_plot_theme_widget,
                         height=250,  # TODO: find a better way than fixed height
                         sizing_mode='stretch_width',
@@ -607,9 +611,6 @@ get_timeline_df_rx = pn.rx(get_timeline_df)(
     timeline_data=get_timeline_data_rx,
     repo=select_repo_widget,
 )
-timeline_group_by_author_df_rx = pn.rx(timeline_group_by_author_df)(
-    timeline_df=get_timeline_df_rx,
-)
 get_date_range_rx = pn.rx(get_date_range)(
     timeline_df=get_timeline_df_rx,
 )
@@ -630,12 +631,23 @@ resample_timeline_all_rx = pn.rx(resample_timeline)(
     resample_rate=resample_frequency_widget,
 )
 resample_timeline_by_author_rx = pn.rx(resample_timeline)(
-    timeline_df=timeline_group_by_author_df_rx,
+    timeline_df=get_timeline_df_rx,
     resample_rate=resample_frequency_widget,
+    group_by='author.email',  # TODO: make it configurable (code duplication)
 )
 
 plot_commits_rx = pn.rx(plot_commits)(
     resampled_df=resample_timeline_all_rx,
+    column=select_contribution_type_widget,
+    from_date_str=select_period_from_widget,
+    kind=select_plot_kind_widget,
+    autorange=toggle_autorange_widget,
+)
+bind_plot_commits_no_df = pn.bind(
+    # function
+    plot_commits,
+    # arguments
+    # NOTE: explicitly missing `resampled_df=...,`
     column=select_contribution_type_widget,
     from_date_str=select_period_from_widget,
     kind=select_plot_kind_widget,
@@ -649,22 +661,23 @@ authors_grid = pn.layout.GridBox(
 
 
 def update_authors_grid(authors_df: pd.DataFrame,
-                        #resample_by_author_df: pd.DataFrame,
-                        #column: str, from_date_str: str, kind: str, autorange: bool,
+                        resample_by_author_df: pd.DataFrame,
+                        #plot_commit_partial: Callable,
                         top_n: int = 4) -> None:
     #print(f"update_authors_grid(..., {top_n=}):")
     authors_grid.clear()
     authors_grid.extend(
         authors_cards(
             authors_df=authors_df,
-            #resample_by_author_df=resample_by_author_df,
-            #column=column, from_date_str=from_date_str, kind=kind, autorange=autorange,
+            resample_by_author_df=resample_by_author_df,
+            #plot_commit_partial=plot_commit_partial,
             top_n=top_n,
         )
     )
 
 
 # NOTE: does not work as intended, displays widgets it depends on
+# might be helped by wrapping in pn.ReactiveExpr
 #authors_cards_rx = pn.rx(authors_cards)(
 #    authors_df=authors_info_df_rx,
 #    top_n=top_n_widget,
@@ -674,13 +687,8 @@ bind_update_authors_grid = pn.bind(
     update_authors_grid,
     # *dependencies
     authors_df=authors_info_df_rx,
-    #resample_by_author_df=resample_timeline_by_author_rx,
-    # - copied from plot_commits_rx
-    #column=select_contribution_type_widget.value,
-    #from_date_str=select_period_from_widget.value,
-    #kind=select_plot_kind_widget.value,
-    #autorange=toggle_autorange_widget.value,
-    # - grid's own widget
+    resample_by_author_df=resample_timeline_by_author_rx,
+    #plot_commits_partial=bind_plot_commits_no_df,
     top_n=top_n_widget,
     # keywords
     watch=True,
