@@ -5,7 +5,7 @@ import os
 import re
 from collections import namedtuple
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Union
 
 from dateutil.relativedelta import relativedelta
 
@@ -170,6 +170,11 @@ def authors_info_df(timeline_df: pd.DataFrame,
     return df
 
 
+def timeline_group_by_author_df(timeline_df: pd.DataFrame) -> pd.api.typing.DataFrameGroupBy:
+    #print(f"timeline_group_by_author_df(timeline_df=pd.DataFrame(<{hex(id(timeline_df))}>)")
+    return timeline_df.groupby('author.email')
+
+
 def agg_func_mapping():
     columns_agg_sum = ['n_commits']
     agg_func_sum = {col: 'sum' for col in columns_agg_sum}
@@ -182,7 +187,8 @@ def agg_func_mapping():
 
 
 #@pn.cache
-def resample_timeline_all(timeline_df: pd.DataFrame, resample_rate: str) -> pd.DataFrame:
+def resample_timeline(timeline_df: Union[pd.DataFrame, pd.api.typing.DataFrameGroupBy],
+                      resample_rate: str) -> pd.DataFrame:
     #print(f"resample_timeline_all(timeline_df={hex(id(timeline_df))}, {resample_rate=})")
     # some columns need specific aggregation function
     agg_func_map = agg_func_mapping()
@@ -282,8 +288,9 @@ def plot_commits(resampled_df: pd.DataFrame,
                  column: str = 'n_commits',
                  from_date_str: str = '',
                  kind: str = 'step', autorange: bool = True):
-    #print(f"plot_commits(resampled_df={hex(id(resampled_df))}, {columns=}, {from_date_str=}, {kind=}, {autorange=})")
+    #print(f"plot_commits(resampled_df=<{hex(id(resampled_df))}>, {column=}, {from_date_str=}, {kind=}, {autorange=})")
     #print(f"   {resampled_df.shape=}")
+    #print(f"   {type(column)=}")
     filtered_df = filter_df_by_from_date(resampled_df, from_date_str)
 
     hvplot_kwargs = {}
@@ -332,14 +339,45 @@ def plot_commits(resampled_df: pd.DataFrame,
 
 
 def authors_cards(authors_df: pd.DataFrame,
+                  #resample_by_author_df: pd.DataFrame,
+                  #column: str, from_date_str: str, kind: str, autorange: bool,
                   top_n: int = 4) -> list[pn.layout.Card]:
+    #print(f"authors_cards(authors_df=pd.DataFrame(<{hex(id(authors_df))}>), "
+    #      f"resample_by_author_df=pd.DataFrame(<{hex(id(resample_by_author_df))}>), "
+    #      f"{column=}, {from_date_str=}, {kind=}, {autorange=}, {top_n=}):")
     result: list[pn.layout.Card] = []
 
     row: namedtuple('Pandas', ['Index', 'n_commits', 'p_count', 'm_count', 'author_name'])
     for row in authors_df.head(top_n).itertuples():
-        #print(f"authors_cards(): {row=}")
+        #print(f". authors_cards(): {row=}")
+        #print(resample_by_author_df.loc[row.Index])
+
         result.append(
             pn.layout.Card(
+                pn.Column(
+                    pn.pane.HoloViews(
+                        #pn.ReactiveExpr(
+                        #    pn.rx(plot_commits)(
+                        #        resampled_df=resample_by_author_df.loc[row.Index],
+                        #        column=column,
+                        #        from_date_str=from_date_str,
+                        #        kind=kind,
+                        #        autorange=autorange,
+                        #    ),
+                        #    show_widgets=False,
+                        #),
+                        # WTF!?! the above leads to the following error, event though type(column) says <class 'str'>
+                        # holoviews.core.data.interface.DataError:
+                        #     Having a non-string as a column name in a DataFrame is not supported.
+                        plot_commits_rx,
+                        theme=select_plot_theme_widget,
+                        height=250,  # TODO: find a better way than fixed height
+                        sizing_mode='stretch_width',
+                        #sizing_mode='scale_both',  # NOTE: does not work, and neither does 'stretch_both'
+                        #aspect_ratio=1.5,  # NOTE: does not help to use 'scale_both'/'stretch_both'
+                        margin=5,
+                    ),
+                ),
                 # author.name <author.email>, using most common author.name
                 header=f"{row.author_name} &lt;{row.Index}&gt;",
                 collapsible=False,
@@ -569,6 +607,9 @@ get_timeline_df_rx = pn.rx(get_timeline_df)(
     timeline_data=get_timeline_data_rx,
     repo=select_repo_widget,
 )
+timeline_group_by_author_df_rx = pn.rx(timeline_group_by_author_df)(
+    timeline_df=get_timeline_df_rx,
+)
 get_date_range_rx = pn.rx(get_date_range)(
     timeline_df=get_timeline_df_rx,
 )
@@ -584,8 +625,12 @@ authors_info_df_rx = pn.rx(authors_info_df)(
     column=select_contribution_type_widget,
     from_date_str=select_period_from_widget,
 )
-resample_timeline_all_rx = pn.rx(resample_timeline_all)(
+resample_timeline_all_rx = pn.rx(resample_timeline)(
     timeline_df=get_timeline_df_rx,
+    resample_rate=resample_frequency_widget,
+)
+resample_timeline_by_author_rx = pn.rx(resample_timeline)(
+    timeline_df=timeline_group_by_author_df_rx,
     resample_rate=resample_frequency_widget,
 )
 
@@ -603,12 +648,17 @@ authors_grid = pn.layout.GridBox(
 )
 
 
-def update_authors_grid(authors_df: pd.DataFrame, top_n: int = 4) -> None:
-    #print(f"update_authors_grid({top_n=})")
+def update_authors_grid(authors_df: pd.DataFrame,
+                        #resample_by_author_df: pd.DataFrame,
+                        #column: str, from_date_str: str, kind: str, autorange: bool,
+                        top_n: int = 4) -> None:
+    #print(f"update_authors_grid(..., {top_n=}):")
     authors_grid.clear()
     authors_grid.extend(
         authors_cards(
             authors_df=authors_df,
+            #resample_by_author_df=resample_by_author_df,
+            #column=column, from_date_str=from_date_str, kind=kind, autorange=autorange,
             top_n=top_n,
         )
     )
@@ -624,6 +674,13 @@ bind_update_authors_grid = pn.bind(
     update_authors_grid,
     # *dependencies
     authors_df=authors_info_df_rx,
+    #resample_by_author_df=resample_timeline_by_author_rx,
+    # - copied from plot_commits_rx
+    #column=select_contribution_type_widget.value,
+    #from_date_str=select_period_from_widget.value,
+    #kind=select_plot_kind_widget.value,
+    #autorange=toggle_autorange_widget.value,
+    # - grid's own widget
     top_n=top_n_widget,
     # keywords
     watch=True,
