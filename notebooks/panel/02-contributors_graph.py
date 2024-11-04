@@ -3,6 +3,7 @@ import json
 import logging
 import os
 import re
+from collections import namedtuple
 from pathlib import Path
 from typing import Optional
 
@@ -151,12 +152,18 @@ def authors_info_df(timeline_df: pd.DataFrame,
     filtered_df = filter_df_by_from_date(timeline_df, from_date_str, 'author.timestamp')
 
     df = filtered_df\
-        .groupby(by='author.email')[info_columns]\
-        .agg('sum')\
+        .groupby(by='author.email')[info_columns + ['author.name']]\
+        .agg({
+            col: 'sum' for col in info_columns
+        } | {
+            # https://stackoverflow.com/questions/15222754/groupby-pandas-dataframe-and-select-most-common-value
+            'author.name': pd.Series.mode,
+        })\
         .sort_values(by=column, ascending=False)\
         .rename(columns={
             '+:count': 'p_count',
             '-:count': 'm_count',
+            'author.name': 'author_name',
         })
 
     #print(df)
@@ -321,10 +328,14 @@ def plot_commits(resampled_df: pd.DataFrame,
 def authors_cards(authors_df: pd.DataFrame,
                   top_n: int = 4) -> list[pn.layout.Card]:
     result: list[pn.layout.Card] = []
+
+    row: namedtuple('Pandas', ['Index', 'n_commits', 'p_count', 'm_count', 'author_name'])
     for row in authors_df.head(top_n).itertuples():
+        #print(f"authors_cards(): {row=}")
         result.append(
             pn.layout.Card(
-                header=f"{row[0]}",
+                # author.name <author.email>, using most common author.name
+                header=f"{row.author_name} &lt;{row.Index}&gt;",
                 collapsible=False,
             )
         )
