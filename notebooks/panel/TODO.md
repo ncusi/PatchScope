@@ -175,7 +175,7 @@ See also the [TO DO List for `01-timeline.ipynb` Jupyter Notebook](#to-do-list-f
 ### Bugs and issues
 
 - [ ] Switching between resample frequencies makes per-author plots
-      to have yrange (-1, 1) until reload
+      to have yrange (-1, 1) until reload (**work around** added)
 
 
 ## Planned Jupyter Notebook: `03-compare.ipynb`

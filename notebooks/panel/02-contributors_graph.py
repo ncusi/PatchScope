@@ -331,8 +331,12 @@ def plot_commits(resampled_df: pd.DataFrame,
     if ylim is None:
         ylim = (-1, None)
     else:
-        # this depends on the column(s)
-        ylim = (-1, ylim[1])
+        # the use of (-1, ...) depends on the column(s)
+        # sanity check - TODO: find the source of the bug
+        if ylim[1] == 1:
+            ylim = (-1, None)
+        else:
+            ylim = (-1, ylim[1])
 
     plot = filtered_df.hvplot(
         x='author_date', y=column,
