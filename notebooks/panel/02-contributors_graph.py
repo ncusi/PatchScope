@@ -1,13 +1,17 @@
 import datetime
+import hashlib
 import json
 import logging
+import os
+import re
+from collections import namedtuple
 from pathlib import Path
 from typing import Optional
+from urllib.parse import urlencode
 
 from dateutil.relativedelta import relativedelta
 
 # data analysis
-#import numpy as np
 import pandas as pd
 
 # dashboard
@@ -24,17 +28,27 @@ pn.extension(
     design="material", sizing_mode="stretch_width"
 )
 pn.state.notifications.position = 'top-center'
+loaded = False
+
+# TODO: replace with a better mechanism, e.g. Proxy object for pn.state.notifications
+warnings: list[str] = []
+
+
+def warning_notification(msg: str) -> None:
+    if loaded:
+        pn.state.notifications.warning(msg)
+    else:
+        warnings.append(msg)
+
 
 DATASET_DIR = 'data/examples/stats'
 
 
 def find_dataset_dir() -> Optional[Path]:
     for TOP_DIR in ['', '..', '../..']:
-        #print(f"find_dataset_dir(): {TOP_DIR}")
         full_dir = Path(TOP_DIR).joinpath(DATASET_DIR)
 
         if full_dir.is_dir():
-            #print(f"find_dataset_dir(): found {full_dir}")
             return full_dir
 
     return None
@@ -42,22 +56,20 @@ def find_dataset_dir() -> Optional[Path]:
 
 def find_timeline_files(dataset_dir: Optional[Path]) -> dict[str, str]:
     if dataset_dir is None:
-        #print(f"find_timeline_files({dataset_dir=}): []")
+        # TODO?: add a warning
         return {}
     else:
-        # assuming naming convention for file names
-        #print(f"find_timeline_files({dataset_dir=}): searching...")
-        res = {
+        # assuming naming convention *.timeline.*.json for appropriate data files
+        return {
             str(path.stem): str(path)
             for path in dataset_dir.glob('*.timeline.*.json')
         }
-        #print(f" -> {res}")
-        return res
 
 
 #@pn.cache
 def get_timeline_data(json_path: Optional[Path]) -> dict:
     logger.debug(f"[@pn.cache] get_timeline_data({json_path=})")
+
     if json_path is None:
         return {
             'demo repo': [
@@ -101,48 +113,118 @@ def find_repos(timeline_data: dict) -> list[str]:
 
 #@pn.cache
 def get_timeline_df(timeline_data: dict, repo: str) -> pd.DataFrame:
-    #print(f"{repo=}")
-    #print(f"{timeline_data=}")
     init_df = pd.DataFrame.from_records(timeline_data[repo])
-    #print(init_df)
+
     # no merges, no roots; add 'n_commits' column; drop rows with N/A for timestamps
-    return init_df[init_df['n_parents'] == 1]\
+    df = init_df[init_df['n_parents'] == 1]\
         .dropna(subset=['author.timestamp', 'committer.timestamp'], how='any')\
         .assign(
             n_commits =  1,
             author_date    = lambda x: pd.to_datetime(x['author.timestamp'],    unit='s', utc=True),
             committer_date = lambda x: pd.to_datetime(x['committer.timestamp'], unit='s', utc=True),
-        )#\
-        #.rename(columns={
-        #    'author_date': 'author.date',
-        #    'committer_date': 'committer.date',
-        #})
+        )
+
+    return df
 
 
-#@pn.cache
-def resample_timeline_all(timeline_df: pd.DataFrame, resample_rate: str) -> pd.DataFrame:
-    # some columns need specific aggregation function
+def authors_info_df(timeline_df: pd.DataFrame,
+                    column: str = 'n_commits',
+                    from_date_str: str = '') -> pd.DataFrame:
+    info_columns = ['n_commits', '+:count', '-:count']
+
+    # sanity check
+    if column not in info_columns:
+        column = info_columns[0]
+
+    filtered_df = filter_df_by_from_date(timeline_df, from_date_str, 'author.timestamp')
+
+    df = filtered_df\
+        .groupby(by='author.email')[info_columns + ['author.name']]\
+        .agg({
+            col: 'sum' for col in info_columns
+        } | {
+            # https://stackoverflow.com/questions/15222754/groupby-pandas-dataframe-and-select-most-common-value
+            'author.name': pd.Series.mode,
+        })\
+        .sort_values(by=column, ascending=False)\
+        .rename(columns={
+            '+:count': 'p_count',
+            '-:count': 'm_count',
+            'author.name': 'author_name',
+        })
+
+    #print(f" -> {df.columns=}, {df.index.name=}")
+    return df
+
+
+def agg_func_mapping():
     columns_agg_sum = ['n_commits']
     agg_func_sum = {col: 'sum' for col in columns_agg_sum}
 
+    agg_func = 'sum'
+    columns_agg_any = ['+:count', '-:count']
+    agg_func_any = {col: agg_func for col in columns_agg_any}
+
+    return agg_func_sum | agg_func_any
+
+
+#@pn.cache
+def resample_timeline(timeline_df: pd.DataFrame,
+                      resample_rate: str, group_by: Optional[str] = None) -> pd.DataFrame:
+    # select appropriate aggregation function for specific columns
+    agg_func_map = agg_func_mapping()
+
     # all columns to aggregate values of
-    columns_agg = [*columns_agg_sum]
+    columns_agg = list(agg_func_map.keys())
 
     # aggregate over given period of time, i.e. resample
-    df = timeline_df.resample(
-        resample_rate,
-        on='author_date'
-    )[columns_agg].agg(
-        agg_func_sum,
+    if group_by is None:
+        # resample only
+        df_r = timeline_df.resample(
+            resample_rate,
+            on='author_date'
+        )
+    else:
+        # group by and resample
+        df_r = timeline_df.groupby([
+            group_by,
+            pd.Grouper(key='author_date', freq=resample_rate)
+        ])
+
+    return df_r[columns_agg].agg(
+        agg_func_map,
         numeric_only=True
     )
 
-    # to be possibly used for xlabel when plotting
-    #df['author.date(UTC)'] = df.index
-    #df['author.date(Y-m)'] = df.index.strftime('%Y-%m')
-    #print(df)
 
-    return df
+# NOTE: consider putting the filter earlier in the pipeline (needs profiling / benchmarking?)
+def filter_df_by_from_date(resampled_df: pd.DataFrame,
+                           from_date_str: str,
+                           date_column: Optional[str] = None) -> pd.DataFrame:
+    from_date: Optional[pd.Timestamp] = None
+    if from_date_str:
+        try:
+            # the `from_date_str` is in DD.MM.YYYY format
+            from_date = pd.to_datetime(from_date_str, dayfirst=True, utc=True)
+        except ValueError as err:
+            # NOTE: should not happen, value should be validated earlier
+            warning_notification(f"from={from_date_str!r} is not a valid date: {err}")
+
+    filtered_df = resampled_df
+    if from_date is not None:
+        if date_column is None:
+            filtered_df = resampled_df[resampled_df.index >= from_date]
+        else:
+            if pd.api.types.is_timedelta64_dtype(resampled_df[date_column]):
+                filtered_df = resampled_df[resampled_df[date_column] >= from_date]
+            elif pd.api.types.is_numeric_dtype(resampled_df[date_column]):
+                # assume numeric date column is UNIX timestamp
+                filtered_df = resampled_df[resampled_df[date_column] >= from_date.timestamp()]
+            else:
+                warning_notification(f"unsupported type {resampled_df.dtypes[date_column]!r} "
+                                     f"for column {date_column!r}")
+
+    return filtered_df
 
 
 #@pn.cache
@@ -154,6 +236,14 @@ def get_date_range(timeline_df: pd.DataFrame):
 
 
 #@pn.cache
+def get_value_range(timeline_df: pd.DataFrame, column: str = 'n_commits'):
+    return (
+        timeline_df[column].min(),
+        timeline_df[column].max(),
+    )
+
+
+#@pn.cache
 def head_info(repo: str, resample: str, frequency: dict[str, str]) -> str:
     return f"""
     <h1>Contributors to {repo}</h1>
@@ -161,16 +251,64 @@ def head_info(repo: str, resample: str, frequency: dict[str, str]) -> str:
     """
 
 
-def sampling_info(resample: str, frequency: dict[str, str], min_max_date) -> str:
-    return f"""
-    **Commits over time**
+def html_date_humane(date: pd.Timestamp) -> str:
+    date_format = '%d %a %Y'
+    if os.name == 'nt':
+        date_format = '%#d %a %Y'
+    elif os.name == 'posix':
+        date_format = '%-d %a %Y'
 
-    {frequency.get(resample, 'unknown frequency').title()}ly from {min_max_date[0].strftime('%d %a %Y')} to {min_max_date[1].strftime('%d %a %Y')}
+    return f'<time datetime="{date.isoformat()}">{date.strftime(date_format)}</time>'
+
+
+def html_int_humane(val: int) -> str:
+    thousands_sep = " "  # Unicode thin space, &thinsp;
+
+    res = f'{val:,}'
+    if thousands_sep != ",":
+        res = res.replace(",", thousands_sep)
+
+    #return f'<data value="{val}">res</data>'
+    return res
+
+
+def sampling_info(resample: str, column: str, frequency: dict[str, str], min_max_date) -> str:
+    contribution_type = column_to_contribution.get(column, "Unknown type of contribution")
+
+    return f"""
+    <strong>{contribution_type} over time</strong>
+    <p>
+    {frequency.get(resample, 'unknown frequency').title()}ly
+    from {html_date_humane(min_max_date[0])}
+    to {html_date_humane(min_max_date[1])}
+    </p>
     """
 
 
-def plot_commits(resampled_df: pd.DataFrame, kind: str = 'step',
-                 autorange: bool = True):
+def author_info(authors_df: pd.DataFrame, author: str = '') -> str:
+    author_s: pd.Series = authors_df.loc[author]
+
+    if not author:
+        return "{unknown}"
+
+    # TODO: replace inline style with the use of `stylesheets=[stylesheet]`
+    # use minus sign '−', rather than dash '-'
+    return f"""
+    <span style="color: rgb(89, 99, 110);">{html_int_humane(author_s.loc['n_commits'])}&nbsp;commits</span>
+    <span class="additionsDeletionsWrapper">
+    <span class="color-fg-success" style="color: #1a7f37">{html_int_humane(int(author_s.loc['p_count']))}&nbsp;++</span>
+    <span class="color-fg-danger"  style="color: #d1242f">{html_int_humane(int(author_s.loc['m_count']))}&nbsp;−−</span>
+    </span>
+    """
+
+
+def plot_commits(resampled_df: pd.DataFrame,
+                 column: str = 'n_commits',
+                 from_date_str: str = '',
+                 xlim: Optional[tuple] = None, ylim: Optional[tuple] = None,
+                 kind: str = 'step', autorange: bool = True):
+    filtered_df = filter_df_by_from_date(resampled_df, from_date_str)
+
     hvplot_kwargs = {}
     if kind == 'step':
         hvplot_kwargs.update({
@@ -182,20 +320,29 @@ def plot_commits(resampled_df: pd.DataFrame, kind: str = 'step',
             'hover_line_color': '#0060d0',
         })
     if autorange:
-        # NOTE: doesn't seem to work, compare results in
+        # NOTE: doesn't seem to work reliably, compare results in
         # https://hvplot.holoviz.org/user_guide/Large_Timeseries.html#webgl-rendering-current-default
         hvplot_kwargs.update({
             'autorange': 'y',
         })
 
-    plot = resampled_df.hvplot(
-        x='author_date', y='n_commits',
+    if xlim is None:
+        xlim = (None, None)
+    if ylim is None:
+        ylim = (-1, None)
+    else:
+        # this depends on the column(s)
+        ylim = (-1, ylim[1])
+
+    plot = filtered_df.hvplot(
+        x='author_date', y=column,
         kind=kind,
         color='#006dd8',
         responsive=True,
         hover='vline',
         grid=True,
-        ylim=(-1, None), ylabel='Contributions', xlabel='',
+        xlim=xlim, xlabel='',
+        ylim=ylim, ylabel='Contributions',
         padding=(0.005, 0),
         tools=[
             'xpan',
@@ -245,7 +392,7 @@ time_range_period = {
 
 def time_range_options(period_name_to_months: dict[str, Optional[int]]) -> dict[str, str]:
     today = datetime.date.today()
-    #print(f"time_range_options(): {today=}")
+
     return {
         k: '' if v is None else (today + relativedelta(months=-v)).strftime('%d.%m.%Y')
         for k, v in period_name_to_months.items()
@@ -256,20 +403,20 @@ def handle_custom_range(widget: pn.widgets.select.SingleSelectBase,
                         value: Optional[str], na_str: str = 'Custom range') -> None:
     if value is None or value in widget.options.values():
         if na_str in widget.options:
+            # selecting pre-defined range, delete 'Custom range'
             del widget.options[na_str]
-            #print(f"after del {widget.options=}")
 
-        #print(f"no changes {widget.options=}")
+        # no value, or 'Custom range' already present - no need to add it
         return
 
     widget.options[na_str] = value
     widget.value = value
-    #print(f"after add {widget.options=}")
     widget.param.trigger('options')
-    #widget.param.trigger('value')
-    #widget.disabled_options = [value]
+    #widget.param.trigger('value')      # NOTE: not needed, causes unnecessary recalculation
+    #widget.disabled_options = [value]  # NOTE: it is forbidden to set `value` to disabled option
 
 
+# ==================================================
 # --------------------------------------------------
 # sidebar widgets
 select_file_widget = pn.widgets.Select(name="input JSON file", options=find_timeline_files(find_dataset_dir()))
@@ -284,56 +431,11 @@ select_repo_widget = pn.widgets.Select(name="repository", options=find_repos_rx,
 
 resample_frequency_widget = pn.widgets.Select(name="frequency", value='W', options=time_series_frequencies)
 
-# main contents widgets
-select_period_from_widget = pn.widgets.Select(
-    name="Period:",
-    options={'Any': None},
-    value='Any',
-    # style
-    width=200,
-    margin=(20,20),
-)
-select_period_from_widget.options = time_range_options(time_range_period)
-select_period_from_widget.value = None
-#print(f"{select_period_from_widget.options=}")
+# might be not a Select widget
+top_n_widget = pn.widgets.Select(name="top N", options=[4,10,32], value=4)
 
-
-def select_period_from_widget__onload() -> None:
-    if select_file_widget.value is None:
-        pn.state.notifications.info('Showing synthetic data created for demonstration purposes.', duration=0)
-
-    if pn.state.location:
-        #print(f"{pn.state.session_args.get('from')=}")
-        select_period_from_widget.in_onload = True
-        query_from = pn.state.session_args.get('from', None)
-        if query_from is not None:
-            value_from = query_from[0].decode()
-        else:
-            value_from = ''
-        handle_custom_range(
-            widget=select_period_from_widget,
-            value=value_from,
-        )
-        select_period_from_widget.in_onload = False
-
-
-def select_period_from_widget__callback(*events) -> None:
-    #print(f"select_period_from_widget__callback({events=}):")
-    na_str = 'Custom range'
-
-    for event in events:
-        # value of attribute 'value' change
-        if event.what == 'value' and event.name == 'value':
-            #print(f"=> {getattr(select_period_from_widget, 'in_onload', False)=} -> {na_str in select_period_from_widget.options}")
-            if not getattr(select_period_from_widget, 'in_onload', False):
-                #print(f"=> non in onload")
-                if na_str in select_period_from_widget.options:
-                    del select_period_from_widget.options[na_str]
-                    select_period_from_widget.param.trigger('options')
-                    #print(f"-> after del[{na_str!r}]: {select_period_from_widget.options=}")
-
-
-select_period_from_widget.param.watch(select_period_from_widget__callback, ['value'], onlychanged=True)
+# ............................................................
+# after the separator
 
 select_plot_kind_widget = pn.widgets.Select(
     name="Plot kind:",
@@ -369,6 +471,96 @@ toggle_autorange_widget = pn.widgets.Checkbox(
     value=True,
 )
 
+
+# --------------------------------------------------
+# main contents widgets
+select_period_from_widget = pn.widgets.Select(
+    name="Period:",
+    options={'Any': ''},
+    value='Any',
+    # style
+    width=110,
+    margin=(20,5),
+)
+select_period_from_widget.options = time_range_options(time_range_period)
+select_period_from_widget.value = ''
+
+
+def select_period_from_widget__onload() -> None:
+    global loaded, warnings
+    loaded = True
+
+    if select_file_widget.value is None:
+        pn.state.notifications.info('Showing synthetic data created for demonstration purposes.', duration=0)
+
+    for warning in warnings:
+        pn.state.notifications.warning(warning)
+    warnings = []
+
+    if pn.state.location:
+        query_from = pn.state.session_args.get('from', None)
+        needs_adjusting = False
+        if query_from is not None:
+            value_from = query_from[0].decode()
+            if value_from == '':
+                pass
+            elif match := re.match(r'(?P<day>\d{1,2})\.(?P<month>\d{1,2})\.(?P<year>\d{4})', value_from):
+                try:
+                    datetime.date(int(match.group('year')), int(match.group('month')), int(match.group('day')))
+                    needs_adjusting = True
+                except ValueError as err:
+                    warning_notification(f"from={value_from} is not a valid DD.YY.MMMM date: {err}")
+                    value_from = ''
+            else:
+                warning_notification(f"from={value_from} does not match the DD.YY.MMMM pattern for dates")
+                value_from = ''
+
+        else:
+            value_from = ''
+
+        # don't adjust value if not needed
+        if needs_adjusting:
+            select_period_from_widget.in_onload = True
+            handle_custom_range(
+                widget=select_period_from_widget,
+                value=value_from,
+            )
+            select_period_from_widget.in_onload = False
+
+
+def select_period_from_widget__callback(*events) -> None:
+    na_str = 'Custom range'
+
+    for event in events:
+        if event.what == 'value' and event.name == 'value':
+            # value of attribute 'value' changed
+            if not getattr(select_period_from_widget, 'in_onload', False):
+                # delete 'Custom range' if needed, and not in onload callback
+                if na_str in select_period_from_widget.options:
+                    del select_period_from_widget.options[na_str]
+                    select_period_from_widget.param.trigger('options')
+
+
+select_period_from_widget.param.watch(select_period_from_widget__callback, ['value'], onlychanged=True)
+
+#: for the select_contribution_type_widget
+contribution_types_map = {
+    "Commits": "n_commits",
+    "Additions": "+:count",
+    "Deletions": "-:count",
+}
+column_to_contribution = {
+    v: k for k, v in contribution_types_map.items()
+}
+select_contribution_type_widget = pn.widgets.Select(
+    name="Contributions:",
+    options=contribution_types_map,
+    value="n_commits",
+    width=180,
+    margin=(20,0),  # TODO: extract variable - it is the same as in `select_period_from_widget`
+)
+
+# ##################################################
 # --------------------------------------------------
 # main contents
 head_styles = {
@@ -387,23 +579,167 @@ get_timeline_df_rx = pn.rx(get_timeline_df)(
 get_date_range_rx = pn.rx(get_date_range)(
     timeline_df=get_timeline_df_rx,
 )
+get_value_range_rx = pn.rx(get_value_range)(
+    timeline_df=get_timeline_df_rx,
+    column=select_contribution_type_widget,
+)
 sampling_info_rx = pn.rx(sampling_info)(
     resample=resample_frequency_widget,
+    column=select_contribution_type_widget,
     frequency=frequency_names,
     min_max_date=get_date_range_rx,
 )
 
-resample_timeline_all_rx = pn.rx(resample_timeline_all)(
+authors_info_df_rx = pn.rx(authors_info_df)(
+    timeline_df=get_timeline_df_rx,
+    column=select_contribution_type_widget,
+    from_date_str=select_period_from_widget,
+)
+resample_timeline_all_rx = pn.rx(resample_timeline)(
     timeline_df=get_timeline_df_rx,
     resample_rate=resample_frequency_widget,
+)
+resample_timeline_by_author_rx = pn.rx(resample_timeline)(
+    timeline_df=get_timeline_df_rx,
+    resample_rate=resample_frequency_widget,
+    group_by='author.email',  # TODO: make it configurable (code duplication)
 )
 
 plot_commits_rx = pn.rx(plot_commits)(
     resampled_df=resample_timeline_all_rx,
+    column=select_contribution_type_widget,
+    from_date_str=select_period_from_widget,
+    kind=select_plot_kind_widget,
+    autorange=toggle_autorange_widget,
+)
+bind_plot_commits_no_df = pn.bind(
+    # function
+    plot_commits,
+    # arguments
+    # NOTE: explicitly missing `resampled_df=...,`
+    column=select_contribution_type_widget,
+    from_date_str=select_period_from_widget,
+    xlim=get_date_range_rx,
+    ylim=get_value_range_rx,  # TODO: allow to switch between totals, max N, and own
     kind=select_plot_kind_widget,
     autorange=toggle_autorange_widget,
 )
 
+authors_grid = pn.layout.GridBox(
+    ncols=2,
+)
+
+
+#@pn.cache
+def gravatar_url(email: str, size: int = 16) -> str:
+    # https://docs.gravatar.com/api/avatars/python/
+
+    # Set default parameters
+    # ...
+
+    # Encode the email to lowercase and then to bytes
+    email_encoded = email.lower().encode('utf-8')
+
+    # Generate the SHA256 hash of the email
+    email_hash = hashlib.sha256(email_encoded).hexdigest()
+
+    # https://docs.gravatar.com/api/avatars/images/
+    # Construct the URL with encoded query parameters
+    query_params = urlencode({'s': str(size)})  # NOTE: will be needed for 'd' parameter
+    url = f"https://www.gravatar.com/avatar/{email_hash}?{query_params}"
+
+    return url
+
+
+def authors_cards(authors_df: pd.DataFrame,
+                  resample_by_author_df: pd.DataFrame,
+                  top_n: int = 4) -> list[pn.layout.Card]:
+    result: list[pn.layout.Card] = []
+    avatar_size = 20
+
+    row: namedtuple('Pandas', ['Index', 'n_commits', 'p_count', 'm_count', 'author_name'])
+    for i, row in enumerate(authors_df.head(top_n).itertuples(), start=1):
+        result.append(
+            pn.layout.Card(
+                pn.Column(
+                    pn.pane.HTML(
+                        author_info(authors_df=authors_df, author=row.Index)
+                    ),
+                    pn.pane.HoloViews(
+                        bind_plot_commits_no_df(resampled_df=resample_by_author_df.loc[row.Index]),
+                        theme=select_plot_theme_widget,
+                        height=250,  # TODO: find a better way than fixed height
+                        sizing_mode='stretch_width',
+                        #sizing_mode='scale_both',  # NOTE: does not work, and neither does 'stretch_both'
+                        #aspect_ratio=1.5,  # NOTE: does not help to use 'scale_both'/'stretch_both'
+                        margin=5,
+                    ),
+                ),
+                # NOTE: could not get it to span the whole width ot the card,
+                # not without resorting to specifying fixed width
+                header=pn.FlexBox(
+                    # author.name <author.email>, using most common author.name
+                    pn.pane.HTML('<div class="author">'
+                                 f'<img src="{gravatar_url(row.Index, avatar_size)}" width="{avatar_size}" height="{avatar_size}" alt="" /> '
+                                 f'{row.author_name} &lt;{row.Index}&gt;'
+                                 '</div>'),
+                    # position in the top N list
+                    pn.pane.HTML(f'<div class="chip">#{i}</div>', width=20),
+                    # FlexBox parameters
+                    # https://css-tricks.com/snippets/css/a-guide-to-flexbox/
+                    # https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_flexible_box_layout/Basic_concepts_of_flexbox
+                    flex_direction="row",
+                    flex_wrap="nowrap",
+                    justify_content="space-between",
+                    align_items="baseline",
+                    gap="1 rem",
+                    # layoutable parameters
+                    sizing_mode='stretch_width',
+                    width_policy="max",
+                    #width=300,
+                    #styles={"width": "100%"}
+                ),
+                collapsible=False,
+            )
+        )
+
+    return result
+
+
+def update_authors_grid(authors_df: pd.DataFrame,
+                        resample_by_author_df: pd.DataFrame,
+                        top_n: int = 4) -> None:
+    authors_grid.clear()
+    authors_grid.extend(
+        authors_cards(
+            authors_df=authors_df,
+            resample_by_author_df=resample_by_author_df,
+            top_n=top_n,
+        )
+    )
+
+
+# NOTE: does not work as intended, displays widgets it depends on
+# might be helped by wrapping in pn.ReactiveExpr
+#authors_cards_rx = pn.rx(authors_cards)(
+#    authors_df=authors_info_df_rx,
+#    top_n=top_n_widget,
+#)
+bind_update_authors_grid = pn.bind(
+    # func
+    update_authors_grid,
+    # *dependencies
+    authors_df=authors_info_df_rx,
+    resample_by_author_df=resample_timeline_by_author_rx,
+    # NOTE: passing partially bound function (as now) results, for some strange reason, in
+    # TypeError: plot_commits() missing 1 required positional argument: 'resampled_df'
+    #plot_commits_partial=bind_plot_commits_no_df,
+    top_n=top_n_widget,
+    # keywords
+    watch=True,
+)
+# on init, update the authors_grid widget
+bind_update_authors_grid()
 
 # ==================================================
 # main app
@@ -411,6 +747,8 @@ plot_commits_rx = pn.rx(plot_commits)(
 if pn.state.location:
 #    pn.state.location.sync(select_file_widget, {'value': 'file'})
 #    pn.state.location.sync(select_repo_widget, {'value': 'repo'})
+    # TODO: rename 'resample' to 'freq' (shorter and more memorable)
+    # TODO: validate value of 'resample'/'freq', instead of trying to use it as is
     pn.state.location.sync(resample_frequency_widget, {'value': 'resample'})
     pn.state.location.sync(select_period_from_widget, {'value': 'from'})
 
@@ -425,6 +763,7 @@ template = pn.template.MaterialTemplate(
         select_file_widget,
         select_repo_widget,
         resample_frequency_widget,
+        top_n_widget,
 
         pn.layout.Divider(), # - - - - - - - - - - - - -
 
@@ -437,15 +776,17 @@ template = pn.template.MaterialTemplate(
             pn.Row(
                 pn.pane.HTML(head_text_rx, styles=head_styles),
                 select_period_from_widget,
+                select_contribution_type_widget,
             ),
             pn.Card(
                 pn.Column(
-                    pn.pane.Markdown(sampling_info_rx, styles=head_styles),
+                    pn.pane.HTML(sampling_info_rx, styles=head_styles),
                     pn.pane.HoloViews(plot_commits_rx, theme=select_plot_theme_widget),
                 ),
                 collapsible=False, hide_header=True,
             )
         ),
+        authors_grid,
     ],
 )
 template.servable()
