@@ -362,6 +362,11 @@ def plot_commits(resampled_df: pd.DataFrame,
         'n_commits': '#006dd8',
         '+:count':   '#008826',
         '-:count':   '#d42000', # or '#c43711',
+        # taken from maplotlib/seaborn's 10-hue categorical color palette
+        # https://seaborn.pydata.org/tutorial/color_palettes.html
+        'file_names': '#937860',
+        'diff.patch_size': '#9467bd',
+        'diff.groups_spread': '#e377c2',
     }
     color = color_map.get(column, '#006dd8')
 
