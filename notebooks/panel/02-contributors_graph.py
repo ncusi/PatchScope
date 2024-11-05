@@ -233,6 +233,14 @@ def get_date_range(timeline_df: pd.DataFrame):
 
 
 #@pn.cache
+def get_value_range(timeline_df: pd.DataFrame, column: str = 'n_commits'):
+    return (
+        timeline_df[column].min(),
+        timeline_df[column].max(),
+    )
+
+
+#@pn.cache
 def head_info(repo: str, resample: str, frequency: dict[str, str]) -> str:
     return f"""
     <h1>Contributors to {repo}</h1>
@@ -266,6 +274,7 @@ def sampling_info(resample: str, column: str, frequency: dict[str, str], min_max
 def plot_commits(resampled_df: pd.DataFrame,
                  column: str = 'n_commits',
                  from_date_str: str = '',
+                 xlim: Optional[tuple] = None, ylim: Optional[tuple] = None,
                  kind: str = 'step', autorange: bool = True):
     filtered_df = filter_df_by_from_date(resampled_df, from_date_str)
 
@@ -286,6 +295,14 @@ def plot_commits(resampled_df: pd.DataFrame,
             'autorange': 'y',
         })
 
+    if xlim is None:
+        xlim = (None, None)
+    if ylim is None:
+        ylim = (-1, None)
+    else:
+        # this depends on the column(s)
+        ylim = (-1, ylim[1])
+
     plot = filtered_df.hvplot(
         x='author_date', y=column,
         kind=kind,
@@ -293,7 +310,8 @@ def plot_commits(resampled_df: pd.DataFrame,
         responsive=True,
         hover='vline',
         grid=True,
-        ylim=(-1, None), ylabel='Contributions', xlabel='',
+        xlim=xlim, xlabel='',
+        ylim=ylim, ylabel='Contributions',
         padding=(0.005, 0),
         tools=[
             'xpan',
@@ -530,6 +548,10 @@ get_timeline_df_rx = pn.rx(get_timeline_df)(
 get_date_range_rx = pn.rx(get_date_range)(
     timeline_df=get_timeline_df_rx,
 )
+get_value_range_rx = pn.rx(get_value_range)(
+    timeline_df=get_timeline_df_rx,
+    column=select_contribution_type_widget,
+)
 sampling_info_rx = pn.rx(sampling_info)(
     resample=resample_frequency_widget,
     column=select_contribution_type_widget,
@@ -566,6 +588,8 @@ bind_plot_commits_no_df = pn.bind(
     # NOTE: explicitly missing `resampled_df=...,`
     column=select_contribution_type_widget,
     from_date_str=select_period_from_widget,
+    xlim=get_date_range_rx,
+    ylim=get_value_range_rx,  # TODO: allow to switch between totals, max N, and own
     kind=select_plot_kind_widget,
     autorange=toggle_autorange_widget,
 )
