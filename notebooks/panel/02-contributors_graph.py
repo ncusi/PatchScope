@@ -228,9 +228,15 @@ def filter_df_by_from_date(resampled_df: pd.DataFrame,
 
 
 #@pn.cache
-def get_date_range(timeline_df: pd.DataFrame):
+def get_date_range(timeline_df: pd.DataFrame, from_date_str: str):
+    # TODO: create reactive component or bound function to compute from_date to avoid recalculations
+    min_date = timeline_df['author_date'].min()
+    if from_date_str:
+        from_date = pd.to_datetime(from_date_str, dayfirst=True, utc=True)
+        min_date = max(min_date, from_date)
+
     return (
-        timeline_df['author_date'].min(),
+        min_date,
         timeline_df['author_date'].max(),
     )
 
@@ -588,19 +594,6 @@ get_timeline_df_rx = pn.rx(get_timeline_df)(
     timeline_data=get_timeline_data_rx,
     repo=select_repo_widget,
 )
-get_date_range_rx = pn.rx(get_date_range)(
-    timeline_df=get_timeline_df_rx,
-)
-get_value_range_rx = pn.rx(get_value_range)(
-    timeline_df=get_timeline_df_rx,
-    column=select_contribution_type_widget,
-)
-sampling_info_rx = pn.rx(sampling_info)(
-    resample=resample_frequency_widget,
-    column=select_contribution_type_widget,
-    frequency=frequency_names,
-    min_max_date=get_date_range_rx,
-)
 
 authors_info_df_rx = pn.rx(authors_info_df)(
     timeline_df=get_timeline_df_rx,
@@ -615,6 +608,21 @@ resample_timeline_by_author_rx = pn.rx(resample_timeline)(
     timeline_df=get_timeline_df_rx,
     resample_rate=resample_frequency_widget,
     group_by='author.email',  # TODO: make it configurable (code duplication)
+)
+get_date_range_rx = pn.rx(get_date_range)(
+    timeline_df=get_timeline_df_rx,
+    from_date_str=select_period_from_widget,
+)
+get_value_range_rx = pn.rx(get_value_range)(
+    timeline_df=resample_timeline_all_rx,
+    column=select_contribution_type_widget,
+)
+
+sampling_info_rx = pn.rx(sampling_info)(
+    resample=resample_frequency_widget,
+    column=select_contribution_type_widget,
+    frequency=frequency_names,
+    min_max_date=get_date_range_rx,
 )
 
 plot_commits_rx = pn.rx(plot_commits)(

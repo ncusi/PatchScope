@@ -176,6 +176,8 @@ See also the [TO DO List for `01-timeline.ipynb` Jupyter Notebook](#to-do-list-f
 
 - [x] Switching between resample frequencies makes per-author plots
       to have yrange (-1, 1) until reload
+- [ ] In per-author plot, missing values creates "jumps" instead of being filled with 0;
+      this might be the question of the order of grouping (to be tested)
 
 
 ## Planned Jupyter Notebook: `03-compare.ipynb`
