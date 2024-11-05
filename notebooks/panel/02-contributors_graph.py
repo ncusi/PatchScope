@@ -631,11 +631,11 @@ authors_grid = pn.layout.GridBox(
 
 
 #@pn.cache
-def gravatar_url(email: str) -> str:
+def gravatar_url(email: str, size: int = 16) -> str:
     # https://docs.gravatar.com/api/avatars/python/
 
     # Set default parameters
-    size = 16  # TODO: make a configuration variable (it is used in other place)
+    # ...
 
     # Encode the email to lowercase and then to bytes
     email_encoded = email.lower().encode('utf-8')
@@ -655,6 +655,7 @@ def authors_cards(authors_df: pd.DataFrame,
                   resample_by_author_df: pd.DataFrame,
                   top_n: int = 4) -> list[pn.layout.Card]:
     result: list[pn.layout.Card] = []
+    avatar_size = 20
 
     row: namedtuple('Pandas', ['Index', 'n_commits', 'p_count', 'm_count', 'author_name'])
     for i, row in enumerate(authors_df.head(top_n).itertuples(), start=1):
@@ -679,7 +680,7 @@ def authors_cards(authors_df: pd.DataFrame,
                 header=pn.FlexBox(
                     # author.name <author.email>, using most common author.name
                     pn.pane.HTML('<div class="author">'
-                                 f'<img src="{gravatar_url(row.Index)}" width="16" height="16" alt="" /> '
+                                 f'<img src="{gravatar_url(row.Index, avatar_size)}" width="{avatar_size}" height="{avatar_size}" alt="" /> '
                                  f'{row.author_name} &lt;{row.Index}&gt;'
                                  '</div>'),
                     # position in the top N list
