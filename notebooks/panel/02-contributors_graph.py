@@ -346,51 +346,6 @@ def plot_commits(resampled_df: pd.DataFrame,
     return plot
 
 
-def authors_cards(authors_df: pd.DataFrame,
-                  resample_by_author_df: pd.DataFrame,
-                  #plot_commit_partial: Callable,
-                  top_n: int = 4) -> list[pn.layout.Card]:
-    #print(f"authors_cards(authors_df=pd.DataFrame(<{hex(id(authors_df))}>), "
-    #      f"resample_by_author_df=pd.DataFrame(<{hex(id(resample_by_author_df))}>), "
-    #      #f"{plot_commit_partial=}, "
-    #      f"{top_n=}):")
-    result: list[pn.layout.Card] = []
-
-    row: namedtuple('Pandas', ['Index', 'n_commits', 'p_count', 'm_count', 'author_name'])
-    for row in authors_df.head(top_n).itertuples():
-        #print(f". authors_cards(): {row=}")
-        #print(f". {type(resample_by_author_df.loc[row.Index])}")
-        #print(f". {resample_by_author_df.columns=}")
-        #print(f". {resample_by_author_df.loc[row.Index].columns=}")
-        #print(resample_by_author_df.head())
-        #print(resample_by_author_df.loc[row.Index].head())
-
-        result.append(
-            pn.layout.Card(
-                pn.Column(
-                    pn.pane.HoloViews(
-                        bind_plot_commits_no_df(resampled_df=resample_by_author_df.loc[row.Index]),
-                        #plot_commits(
-                        #    resampled_df=resample_by_author_df.loc[row.Index],
-                        #),
-                        #plot_commits_rx,
-                        theme=select_plot_theme_widget,
-                        height=250,  # TODO: find a better way than fixed height
-                        sizing_mode='stretch_width',
-                        #sizing_mode='scale_both',  # NOTE: does not work, and neither does 'stretch_both'
-                        #aspect_ratio=1.5,  # NOTE: does not help to use 'scale_both'/'stretch_both'
-                        margin=5,
-                    ),
-                ),
-                # author.name <author.email>, using most common author.name
-                header=f"{row.author_name} &lt;{row.Index}&gt;",
-                collapsible=False,
-            )
-        )
-
-    return result
-
-
 # mapping form display name to alias
 time_series_frequencies = {
     'calendar day frequency': 'D',
@@ -660,6 +615,52 @@ authors_grid = pn.layout.GridBox(
 )
 
 
+def authors_cards(authors_df: pd.DataFrame,
+                  resample_by_author_df: pd.DataFrame,
+                  #plot_commit_partial: Callable,
+                  top_n: int = 4) -> list[pn.layout.Card]:
+    #print(f"authors_cards(authors_df=pd.DataFrame(<{hex(id(authors_df))}>), "
+    #      f"resample_by_author_df=pd.DataFrame(<{hex(id(resample_by_author_df))}>), "
+    #      #f"{plot_commit_partial=}, "
+    #      f"{top_n=}):")
+    result: list[pn.layout.Card] = []
+
+    row: namedtuple('Pandas', ['Index', 'n_commits', 'p_count', 'm_count', 'author_name'])
+    for row in authors_df.head(top_n).itertuples():
+        #print(f". authors_cards(): {row=}")
+        #print(f". {type(resample_by_author_df.loc[row.Index])}")
+        #print(f". {resample_by_author_df.columns=}")
+        #print(f". {resample_by_author_df.loc[row.Index].columns=}")
+        #print(resample_by_author_df.head())
+        #print(resample_by_author_df.loc[row.Index].head())
+
+        result.append(
+            pn.layout.Card(
+                pn.Column(
+                    pn.pane.HoloViews(
+                        bind_plot_commits_no_df(resampled_df=resample_by_author_df.loc[row.Index]),
+                        #plot_commits(
+                        #    resampled_df=resample_by_author_df.loc[row.Index],
+                        #),
+                        #plot_commits_rx,
+                        theme=select_plot_theme_widget,
+                        height=250,  # TODO: find a better way than fixed height
+                        sizing_mode='stretch_width',
+                        #sizing_mode='scale_both',  # NOTE: does not work, and neither does 'stretch_both'
+                        #aspect_ratio=1.5,  # NOTE: does not help to use 'scale_both'/'stretch_both'
+                        margin=5,
+                    ),
+                ),
+                # author.name <author.email>, using most common author.name
+                header=f"{row.author_name} &lt;{row.Index}&gt;",
+                collapsible=False,
+            )
+        )
+
+    return result
+
+
+
 def update_authors_grid(authors_df: pd.DataFrame,
                         resample_by_author_df: pd.DataFrame,
                         #plot_commit_partial: Callable,
@@ -688,6 +689,8 @@ bind_update_authors_grid = pn.bind(
     # *dependencies
     authors_df=authors_info_df_rx,
     resample_by_author_df=resample_timeline_by_author_rx,
+    # NOTE: passing partially bound function (as now) results, for some strange reason, in
+    # TypeError: plot_commits() missing 1 required positional argument: 'resampled_df'
     #plot_commits_partial=bind_plot_commits_no_df,
     top_n=top_n_widget,
     # keywords
