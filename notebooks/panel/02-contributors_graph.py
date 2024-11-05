@@ -280,14 +280,13 @@ def html_date_humane(date: pd.Timestamp) -> str:
 
 
 def html_int_humane(val: int) -> str:
-    thousands_sep = " "  # Unicode thin space, &thinsp;
+    thousands_sep = " "  # Unicode thin space (breakable in HTML), &thinsp;
 
     res = f'{val:,}'
     if thousands_sep != ",":
         res = res.replace(",", thousands_sep)
 
-    #return f'<data value="{val}">res</data>'
-    return res
+    return f'<data value="{val}" style="white-space: nowrap;">{res}</data>'
 
 
 def sampling_info(resample: str, column: str, frequency: dict[str, str], min_max_date) -> str:
