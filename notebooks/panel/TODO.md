@@ -141,7 +141,22 @@ but better.
 
 Example: <https://github.com/qtile/qtile/graphs/contributors>.
 
-Missing GitHub Insights features:
+See also the [TO DO List for `01-timeline.ipynb` Jupyter Notebook](#to-do-list-for-01-timelineipynb-jupyter-notebook).
+
+### General
+
+- [ ] Replace `warnings` global variable and `warning_notification()` function
+  with a better mechanism, for example a proxy class/object for `pn.state.notifications`
+- [ ] _maybe_ add a warning if no specified type of data files are found
+- [ ] create stylesheet(s), replaces uses of inline styles
+- [ ] extract common "magic" values into configuration variables
+- [ ] allow to switch between full-repo yscale (current behavior),
+      top N yscale, and each per-author subplot having their own yscale
+- [ ] try to not use fixed heights and fixed widths
+- [ ] rename 'resample' query parameter to 'freq', validate it
+
+### Missing GitHub Insights features
+
 - [ ] make plot lines thicker on hover
 - [ ] move #<i>N</i> to the end of the author card pane
 - [ ] create app for examining author contributions (to a single repository),
@@ -153,12 +168,15 @@ Missing GitHub Insights features:
   - [ ] download CSV
   - [x] ~~download PNG~~ Bokeh plots have "Save" tool (enabled)
         that can be used instead
+- [ ] _maybe_ add support for GitHub profile avatar via querying for primary e-mail
+      (see the `"avatar_url"` field in the response JSON):<br>
+      <https://stackoverflow.com/questions/44888187/get-github-username-through-primary-email>
 
-Bugs to fix:
+### Bugs and issues
+
 - [ ] Switching between resample frequencies makes per-author plots
       to have yrange (-1, 1) until reload
 
-See also the [TO DO List for `01-timeline.ipynb` Jupyter Notebook](#to-do-list-for-01-timelineipynb-jupyter-notebook).
 
 ## Planned Jupyter Notebook: `03-compare.ipynb`
 
