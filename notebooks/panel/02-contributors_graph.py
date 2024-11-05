@@ -4,14 +4,12 @@ import logging
 import os
 import re
 from collections import namedtuple
-#from collections.abc import Callable
 from pathlib import Path
 from typing import Optional
 
 from dateutil.relativedelta import relativedelta
 
 # data analysis
-#import numpy as np
 import pandas as pd
 
 # dashboard
@@ -36,10 +34,8 @@ warnings: list[str] = []
 
 def warning_notification(msg: str) -> None:
     if loaded:
-        #print(f"immediate warning: {msg}")
         pn.state.notifications.warning(msg)
     else:
-        #print(f"postponed warning: {msg}")
         warnings.append(msg)
 
 
@@ -48,11 +44,9 @@ DATASET_DIR = 'data/examples/stats'
 
 def find_dataset_dir() -> Optional[Path]:
     for TOP_DIR in ['', '..', '../..']:
-        #print(f"find_dataset_dir(): {TOP_DIR}")
         full_dir = Path(TOP_DIR).joinpath(DATASET_DIR)
 
         if full_dir.is_dir():
-            #print(f"find_dataset_dir(): found {full_dir}")
             return full_dir
 
     return None
@@ -60,17 +54,14 @@ def find_dataset_dir() -> Optional[Path]:
 
 def find_timeline_files(dataset_dir: Optional[Path]) -> dict[str, str]:
     if dataset_dir is None:
-        #print(f"find_timeline_files({dataset_dir=}): []")
+        # TODO?: add a warning
         return {}
     else:
-        # assuming naming convention for file names
-        #print(f"find_timeline_files({dataset_dir=}): searching...")
-        res = {
+        # assuming naming convention *.timeline.*.json for appropriate data files
+        return {
             str(path.stem): str(path)
             for path in dataset_dir.glob('*.timeline.*.json')
         }
-        #print(f" -> {res}")
-        return res
 
 
 #@pn.cache
@@ -120,10 +111,8 @@ def find_repos(timeline_data: dict) -> list[str]:
 
 #@pn.cache
 def get_timeline_df(timeline_data: dict, repo: str) -> pd.DataFrame:
-    #print(f"get_timeline_df({len(timeline_data)=}, {repo=})")
-    #print(f"{timeline_data=}")
     init_df = pd.DataFrame.from_records(timeline_data[repo])
-    #print(init_df)
+
     # no merges, no roots; add 'n_commits' column; drop rows with N/A for timestamps
     df = init_df[init_df['n_parents'] == 1]\
         .dropna(subset=['author.timestamp', 'committer.timestamp'], how='any')\
@@ -131,13 +120,8 @@ def get_timeline_df(timeline_data: dict, repo: str) -> pd.DataFrame:
             n_commits =  1,
             author_date    = lambda x: pd.to_datetime(x['author.timestamp'],    unit='s', utc=True),
             committer_date = lambda x: pd.to_datetime(x['committer.timestamp'], unit='s', utc=True),
-        )#\
-        #.rename(columns={
-        #    'author_date': 'author.date',
-        #    'committer_date': 'committer.date',
-        #})
+        )
 
-    #print(f"  -> df={hex(id(df))}, {df.shape=}")
     return df
 
 
@@ -167,7 +151,6 @@ def authors_info_df(timeline_df: pd.DataFrame,
             'author.name': 'author_name',
         })
 
-    #print(df)
     return df
 
 
@@ -179,47 +162,36 @@ def agg_func_mapping():
     columns_agg_any = ['+:count', '-:count']
     agg_func_any = {col: agg_func for col in columns_agg_any}
 
-    res = agg_func_sum | agg_func_any
-    #print(f"agg_func_mapping() -> {res=}")
-    return res
+    return agg_func_sum | agg_func_any
 
 
 #@pn.cache
 def resample_timeline(timeline_df: pd.DataFrame,
                       resample_rate: str, group_by: Optional[str] = None) -> pd.DataFrame:
-    #print(f"resample_timeline(timeline_df=<{hex(id(timeline_df))}>, {resample_rate=})")
-
-    # some columns need specific aggregation function
+    # select appropriate aggregation function for specific columns
     agg_func_map = agg_func_mapping()
 
     # all columns to aggregate values of
     columns_agg = list(agg_func_map.keys())
 
     # aggregate over given period of time, i.e. resample
-    #print(f"  {resample_rate=}, {group_by=}; {columns_agg=}, {agg_func_map=}")
     if group_by is None:
+        # resample only
         df_r = timeline_df.resample(
             resample_rate,
             on='author_date'
         )
     else:
+        # group by and resample
         df_r = timeline_df.groupby([
             group_by,
             pd.Grouper(key='author_date', freq=resample_rate)
         ])
-    df = df_r[columns_agg].agg(
+
+    return df_r[columns_agg].agg(
         agg_func_map,
         numeric_only=True
     )
-
-    # to be possibly used for xlabel when plotting
-    #df['author.date(UTC)'] = df.index
-    #df['author.date(Y-m)'] = df.index.strftime('%Y-%m')
-    #print(df)
-
-    #print(f"  -> df=<{hex(id(df))}>, {df.shape=}, {df.columns=}")
-    #print(df.head(5))
-    return df
 
 
 # NOTE: consider putting the filter earlier in the pipeline (needs profiling / benchmarking?)
@@ -234,7 +206,6 @@ def filter_df_by_from_date(resampled_df: pd.DataFrame,
         except ValueError as err:
             # NOTE: should not happen, value should be validated earlier
             warning_notification(f"from={from_date_str!r} is not a valid date: {err}")
-
 
     filtered_df = resampled_df
     if from_date is not None:
@@ -296,9 +267,6 @@ def plot_commits(resampled_df: pd.DataFrame,
                  column: str = 'n_commits',
                  from_date_str: str = '',
                  kind: str = 'step', autorange: bool = True):
-    #print(f"plot_commits(resampled_df=<{hex(id(resampled_df))}>, {column=}, {from_date_str=}, {kind=}, {autorange=})")
-    #print(f"   {resampled_df.shape=}")
-    #print(f"   {type(column)=}")
     filtered_df = filter_df_by_from_date(resampled_df, from_date_str)
 
     hvplot_kwargs = {}
@@ -312,7 +280,7 @@ def plot_commits(resampled_df: pd.DataFrame,
             'hover_line_color': '#0060d0',
         })
     if autorange:
-        # NOTE: doesn't seem to work, compare results in
+        # NOTE: doesn't seem to work reliably, compare results in
         # https://hvplot.holoviz.org/user_guide/Large_Timeseries.html#webgl-rendering-current-default
         hvplot_kwargs.update({
             'autorange': 'y',
@@ -375,7 +343,7 @@ time_range_period = {
 
 def time_range_options(period_name_to_months: dict[str, Optional[int]]) -> dict[str, str]:
     today = datetime.date.today()
-    #print(f"time_range_options(): {today=}")
+
     return {
         k: '' if v is None else (today + relativedelta(months=-v)).strftime('%d.%m.%Y')
         for k, v in period_name_to_months.items()
@@ -386,18 +354,17 @@ def handle_custom_range(widget: pn.widgets.select.SingleSelectBase,
                         value: Optional[str], na_str: str = 'Custom range') -> None:
     if value is None or value in widget.options.values():
         if na_str in widget.options:
+            # selecting pre-defined range, delete 'Custom range'
             del widget.options[na_str]
-            #print(f"after del {widget.options=}")
 
-        #print(f"no changes {widget.options=}")
+        # no value, or 'Custom range' already present - no need to add it
         return
 
     widget.options[na_str] = value
     widget.value = value
-    #print(f"after add {widget.options=}")
     widget.param.trigger('options')
-    #widget.param.trigger('value')
-    #widget.disabled_options = [value]
+    #widget.param.trigger('value')      # NOTE: not needed, causes unnecessary recalculation
+    #widget.disabled_options = [value]  # NOTE: it is forbidden to set `value` to disabled option
 
 
 # ==================================================
@@ -468,14 +435,12 @@ select_period_from_widget = pn.widgets.Select(
 )
 select_period_from_widget.options = time_range_options(time_range_period)
 select_period_from_widget.value = ''
-#print(f"{select_period_from_widget.options=}")
 
 
 def select_period_from_widget__onload() -> None:
     global loaded, warnings
     loaded = True
 
-    #print("select_period_from_widget__onload()")
     if select_file_widget.value is None:
         pn.state.notifications.info('Showing synthetic data created for demonstration purposes.', duration=0)
 
@@ -484,7 +449,6 @@ def select_period_from_widget__onload() -> None:
     warnings = []
 
     if pn.state.location:
-        #print(f"{pn.state.session_args.get('from')=}")
         query_from = pn.state.session_args.get('from', None)
         needs_adjusting = False
         if query_from is not None:
@@ -505,7 +469,7 @@ def select_period_from_widget__onload() -> None:
         else:
             value_from = ''
 
-        #print(f"   {needs_adjusting=}")
+        # don't adjust value if not needed
         if needs_adjusting:
             select_period_from_widget.in_onload = True
             handle_custom_range(
@@ -516,19 +480,16 @@ def select_period_from_widget__onload() -> None:
 
 
 def select_period_from_widget__callback(*events) -> None:
-    #print(f"select_period_from_widget__callback({len(events)=})")
     na_str = 'Custom range'
 
     for event in events:
-        # value of attribute 'value' change
         if event.what == 'value' and event.name == 'value':
-            #print(f"=> {getattr(select_period_from_widget, 'in_onload', False)=} -> {na_str in select_period_from_widget.options}")
+            # value of attribute 'value' changed
             if not getattr(select_period_from_widget, 'in_onload', False):
-                #print(f"=> non in onload")
+                # delete 'Custom range' if needed, and not in onload callback
                 if na_str in select_period_from_widget.options:
                     del select_period_from_widget.options[na_str]
                     select_period_from_widget.param.trigger('options')
-                    #print(f"  -> after del[{na_str!r}]: {select_period_from_widget.options=}")
 
 
 select_period_from_widget.param.watch(select_period_from_widget__callback, ['value'], onlychanged=True)
@@ -547,7 +508,7 @@ select_contribution_type_widget = pn.widgets.Select(
     options=contribution_types_map,
     value="n_commits",
     width=180,
-    margin=(20,0),  # same as `select_period_from_widget`
+    margin=(20,0),  # TODO: extract variable - it is the same as in `select_period_from_widget`
 )
 
 # ##################################################
@@ -609,7 +570,6 @@ bind_plot_commits_no_df = pn.bind(
     autorange=toggle_autorange_widget,
 )
 
-
 authors_grid = pn.layout.GridBox(
     ncols=2,
 )
@@ -617,32 +577,16 @@ authors_grid = pn.layout.GridBox(
 
 def authors_cards(authors_df: pd.DataFrame,
                   resample_by_author_df: pd.DataFrame,
-                  #plot_commit_partial: Callable,
                   top_n: int = 4) -> list[pn.layout.Card]:
-    #print(f"authors_cards(authors_df=pd.DataFrame(<{hex(id(authors_df))}>), "
-    #      f"resample_by_author_df=pd.DataFrame(<{hex(id(resample_by_author_df))}>), "
-    #      #f"{plot_commit_partial=}, "
-    #      f"{top_n=}):")
     result: list[pn.layout.Card] = []
 
     row: namedtuple('Pandas', ['Index', 'n_commits', 'p_count', 'm_count', 'author_name'])
     for row in authors_df.head(top_n).itertuples():
-        #print(f". authors_cards(): {row=}")
-        #print(f". {type(resample_by_author_df.loc[row.Index])}")
-        #print(f". {resample_by_author_df.columns=}")
-        #print(f". {resample_by_author_df.loc[row.Index].columns=}")
-        #print(resample_by_author_df.head())
-        #print(resample_by_author_df.loc[row.Index].head())
-
         result.append(
             pn.layout.Card(
                 pn.Column(
                     pn.pane.HoloViews(
                         bind_plot_commits_no_df(resampled_df=resample_by_author_df.loc[row.Index]),
-                        #plot_commits(
-                        #    resampled_df=resample_by_author_df.loc[row.Index],
-                        #),
-                        #plot_commits_rx,
                         theme=select_plot_theme_widget,
                         height=250,  # TODO: find a better way than fixed height
                         sizing_mode='stretch_width',
@@ -660,18 +604,14 @@ def authors_cards(authors_df: pd.DataFrame,
     return result
 
 
-
 def update_authors_grid(authors_df: pd.DataFrame,
                         resample_by_author_df: pd.DataFrame,
-                        #plot_commit_partial: Callable,
                         top_n: int = 4) -> None:
-    #print(f"update_authors_grid(..., {top_n=}):")
     authors_grid.clear()
     authors_grid.extend(
         authors_cards(
             authors_df=authors_df,
             resample_by_author_df=resample_by_author_df,
-            #plot_commit_partial=plot_commit_partial,
             top_n=top_n,
         )
     )
@@ -705,6 +645,8 @@ bind_update_authors_grid()
 if pn.state.location:
 #    pn.state.location.sync(select_file_widget, {'value': 'file'})
 #    pn.state.location.sync(select_repo_widget, {'value': 'repo'})
+    # TODO: rename 'resample' to 'freq' (shorter and more memorable)
+    # TODO: validate value of 'resample'/'freq', instead of trying to use it as is
     pn.state.location.sync(resample_frequency_widget, {'value': 'resample'})
     pn.state.location.sync(select_period_from_widget, {'value': 'from'})
 
