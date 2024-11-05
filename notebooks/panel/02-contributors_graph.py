@@ -130,7 +130,7 @@ def get_timeline_df(timeline_data: dict, repo: str) -> pd.DataFrame:
 def authors_info_df(timeline_df: pd.DataFrame,
                     column: str = 'n_commits',
                     from_date_str: str = '') -> pd.DataFrame:
-    info_columns = ['n_commits', '+:count', '-:count']
+    info_columns = list(agg_func_mapping().keys())
 
     # sanity check
     if column not in info_columns:
@@ -162,10 +162,22 @@ def agg_func_mapping():
     agg_func_sum = {col: 'sum' for col in columns_agg_sum}
 
     agg_func = 'sum'
-    columns_agg_any = ['+:count', '-:count']
+    columns_agg_any = ['+:count', '-:count', 'file_names']
     agg_func_any = {col: agg_func for col in columns_agg_any}
 
     return agg_func_sum | agg_func_any
+
+
+#: for the select_contribution_type_widget
+contribution_types_map = {
+    "Commits": "n_commits",
+    "Additions": "+:count",
+    "Deletions": "-:count",
+    "Files changed": "file_names",
+}
+column_to_contribution = {
+    v: k for k, v in contribution_types_map.items()
+}
 
 
 #@pn.cache
@@ -561,15 +573,6 @@ def select_period_from_widget__callback(*events) -> None:
 
 select_period_from_widget.param.watch(select_period_from_widget__callback, ['value'], onlychanged=True)
 
-#: for the select_contribution_type_widget
-contribution_types_map = {
-    "Commits": "n_commits",
-    "Additions": "+:count",
-    "Deletions": "-:count",
-}
-column_to_contribution = {
-    v: k for k, v in contribution_types_map.items()
-}
 select_contribution_type_widget = pn.widgets.Select(
     name="Contributions:",
     options=contribution_types_map,
