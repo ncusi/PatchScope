@@ -325,6 +325,7 @@ def plot_commits(resampled_df: pd.DataFrame,
                  column: str = 'n_commits',
                  from_date_str: str = '',
                  xlim: Optional[tuple] = None, ylim: Optional[tuple] = None,
+                 marginals: bool = True,
                  kind: str = 'step', autorange: bool = True):
     filtered_df = filter_df_by_from_date(resampled_df, from_date_str)
 
@@ -394,7 +395,25 @@ def plot_commits(resampled_df: pd.DataFrame,
     )
     # manually specifying the default tools gets rid of any preset default tools
     # you also just use an empty list here to use only chosen tools
-    plot.opts(default_tools=[])
+    plot.opts(default_tools=[], responsive=True, toolbar='above')
+
+    # only main plot, and only when turned on
+    if xlim == (None, None) and marginals:
+        hist = filtered_df.hvplot.hist(
+            y=column,
+            color=color,
+            #bins=20,
+            invert=True,
+            width=150,
+            grid=True,
+            xlabel='', xaxis=None,
+            ylabel='', yaxis='right',
+            padding=(0.005, 0),
+            responsive=True,
+        )
+        hist.opts(default_tools=[], align='end', toolbar=None)
+
+        return plot << hist
 
     return plot
 
@@ -466,6 +485,11 @@ find_repos_rx = pn.rx(find_repos)(
 select_repo_widget = pn.widgets.Select(name="repository", options=find_repos_rx, disabled=len(find_repos_rx.rx.value) <= 1)
 
 resample_frequency_widget = pn.widgets.Select(name="frequency", value='W', options=time_series_frequencies)
+
+toggle_marginals_widget = pn.widgets.Checkbox(
+    name="marginals for main plot: hist",
+    value=False,
+)
 
 # might be not a Select widget
 top_n_widget = pn.widgets.Select(name="top N", options=[4,10,32], value=4)
@@ -638,6 +662,7 @@ plot_commits_rx = pn.rx(plot_commits)(
     resampled_df=resample_timeline_all_rx,
     column=select_contribution_type_widget,
     from_date_str=select_period_from_widget,
+    marginals=toggle_marginals_widget,
     kind=select_plot_kind_widget,
     autorange=toggle_autorange_widget,
 )
@@ -798,6 +823,7 @@ template = pn.template.MaterialTemplate(
         select_file_widget,
         select_repo_widget,
         resample_frequency_widget,
+        toggle_marginals_widget,
         top_n_widget,
 
         pn.layout.Divider(), # - - - - - - - - - - - - -

@@ -178,6 +178,8 @@ See also the [TO DO List for `01-timeline.ipynb` Jupyter Notebook](#to-do-list-f
       to have yrange (-1, 1) until reload
 - [ ] In per-author plot, missing values creates "jumps" instead of being filled with 0;
       this might be the question of the order of grouping (to be tested)
+- [ ] When adding histogram on the margin of the main plot,
+      the main plot no longer stretches full (remaining) width of the page.
 
 
 ## Planned Jupyter Notebook: `03-compare.ipynb`
