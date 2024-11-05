@@ -151,6 +151,7 @@ def authors_info_df(timeline_df: pd.DataFrame,
             'author.name': 'author_name',
         })
 
+    #print(f" -> {df.columns=}, {df.index.name=}")
     return df
 
 
@@ -258,6 +259,17 @@ def html_date_humane(date: pd.Timestamp) -> str:
     return f'<time datetime="{date.isoformat()}">{date.strftime(date_format)}</time>'
 
 
+def html_int_humane(val: int) -> str:
+    thousands_sep = " "  # Unicode thin space, &thinsp;
+
+    res = f'{val:,}'
+    if thousands_sep != ",":
+        res = res.replace(",", thousands_sep)
+
+    #return f'<data value="{val}">res</data>'
+    return res
+
+
 def sampling_info(resample: str, column: str, frequency: dict[str, str], min_max_date) -> str:
     contribution_type = column_to_contribution.get(column, "Unknown type of contribution")
 
@@ -268,6 +280,23 @@ def sampling_info(resample: str, column: str, frequency: dict[str, str], min_max
     from {html_date_humane(min_max_date[0])}
     to {html_date_humane(min_max_date[1])}
     </p>
+    """
+
+
+def author_info(authors_df: pd.DataFrame, author: str = '') -> str:
+    author_s: pd.Series = authors_df.loc[author]
+
+    if not author:
+        return "{unknown}"
+
+    # TODO: replace inline style with the use of `stylesheets=[stylesheet]`
+    # use minus sign '−', rather than dash '-'
+    return f"""
+    <span style="color: rgb(89, 99, 110);">{html_int_humane(author_s.loc['n_commits'])}&nbsp;commits</span>
+    <span class="additionsDeletionsWrapper">
+    <span class="color-fg-success" style="color: #1a7f37">{html_int_humane(int(author_s.loc['p_count']))}&nbsp;++</span>
+    <span class="color-fg-danger"  style="color: #d1242f">{html_int_humane(int(author_s.loc['m_count']))}&nbsp;−−</span>
+    </span>
     """
 
 
@@ -609,6 +638,9 @@ def authors_cards(authors_df: pd.DataFrame,
         result.append(
             pn.layout.Card(
                 pn.Column(
+                    pn.pane.HTML(
+                        author_info(authors_df=authors_df, author=row.Index)
+                    ),
                     pn.pane.HoloViews(
                         bind_plot_commits_no_df(resampled_df=resample_by_author_df.loc[row.Index]),
                         theme=select_plot_theme_widget,
