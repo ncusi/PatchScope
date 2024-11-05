@@ -162,7 +162,7 @@ def agg_func_mapping():
     agg_func_sum = {col: 'sum' for col in columns_agg_sum}
 
     agg_func = 'sum'
-    columns_agg_any = ['+:count', '-:count', 'file_names']
+    columns_agg_any = ['+:count', '-:count', 'file_names', 'diff.patch_size', 'diff.groups_spread']
     agg_func_any = {col: agg_func for col in columns_agg_any}
 
     return agg_func_sum | agg_func_any
@@ -174,6 +174,8 @@ contribution_types_map = {
     "Additions": "+:count",
     "Deletions": "-:count",
     "Files changed": "file_names",
+    "Patch size (lines)": "diff.patch_size",
+    "Patch spreading (lines)": "diff.groups_spread"
 }
 column_to_contribution = {
     v: k for k, v in contribution_types_map.items()
