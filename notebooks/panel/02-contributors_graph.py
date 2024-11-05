@@ -634,7 +634,7 @@ def authors_cards(authors_df: pd.DataFrame,
     result: list[pn.layout.Card] = []
 
     row: namedtuple('Pandas', ['Index', 'n_commits', 'p_count', 'm_count', 'author_name'])
-    for row in authors_df.head(top_n).itertuples():
+    for i, row in enumerate(authors_df.head(top_n).itertuples(), start=1):
         result.append(
             pn.layout.Card(
                 pn.Column(
@@ -651,8 +651,22 @@ def authors_cards(authors_df: pd.DataFrame,
                         margin=5,
                     ),
                 ),
-                # author.name <author.email>, using most common author.name
-                header=f"{row.author_name} &lt;{row.Index}&gt;",
+                # NOTE: could not get it to span the whole width ot the card,
+                # not without resorting to specifying fixed width
+                header=pn.FlexBox(
+                    # author.name <author.email>, using most common author.name
+                    pn.pane.HTML(f'<span class="author">{row.author_name} &lt;{row.Index}&gt;</span>'),
+                    # position in the top N list
+                    pn.pane.HTML(f'<span class="chip">#{i}</span>', width=20),
+                    flex_direction="row",
+                    flex_wrap="nowrap",
+                    justify_content="space-between",
+                    gap="1 rem",
+                    sizing_mode='stretch_width',
+                    width_policy="max",
+                    #width=300,
+                    #styles={"width": "100%"}
+                ),
                 collapsible=False,
             )
         )
