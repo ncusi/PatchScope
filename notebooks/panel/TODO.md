@@ -132,17 +132,35 @@ that is what can be extracted from the `timeline.*.purpose-to-type.json`.
   or lines, or files, aggregated over specified hours (if using localtime,
   split between work hours, maybe-work hours, night hours, free time - including weekends)
 
-## Planned Jupyter Notebook: `02-compare.ipynb`
+
+## TO DO List for `02-contributors_graph.py` Python script
+
+Replicates GitHub Insights plots,
+(see the _"Related projects"_ section in the main [`/README.md`](../../README.md) file),
+but better.
+
+Example: <https://github.com/qtile/qtile/graphs/contributors>.
+
+Missing GitHub Insights features:
+- [ ] make plot lines thicker on hover
+- [ ] move #<i>N</i> to the end of the author card pane
+- [ ] create app for examining author contributions (to a single repository),
+      and link to it from author card (avatar, name+email)
+- [ ] _maybe_ create app for listing commits in the repository, and link
+      to commits by author from author card (number of commits information)
+- [ ] _maybe_ add drop down menu to the end of author card header
+  - [ ] view as table (in a modal)
+  - [ ] download CSV
+  - [x] ~~download PNG~~ Bokeh plots have "Save" tool (enabled)
+        that can be used instead
+
+See also the [TO DO List for `01-timeline.ipynb` Jupyter Notebook](#to-do-list-for-01-timelineipynb-jupyter-notebook).
+
+## Planned Jupyter Notebook: `03-compare.ipynb`
 
 This Jupyter Notebook is intended to compare different plots between two selected
 authors.  Note that the data file with stats that is read from needs to include data
 for more than one developer.
-
-## Planned Jupyter Notebook: `03-insights.ipynb`
-
-Replicates GitHub Insights plots
-(see the _"Related projects"_ section in the main [`/README.md`](../../README.md) file),
-but better.
 
 -----
 
