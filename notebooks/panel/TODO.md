@@ -154,6 +154,10 @@ Missing GitHub Insights features:
   - [x] ~~download PNG~~ Bokeh plots have "Save" tool (enabled)
         that can be used instead
 
+Bugs to fix:
+- [ ] Switching between resample frequencies makes per-author plots
+      to have yrange (-1, 1) until reload
+
 See also the [TO DO List for `01-timeline.ipynb` Jupyter Notebook](#to-do-list-for-01-timelineipynb-jupyter-notebook).
 
 ## Planned Jupyter Notebook: `03-compare.ipynb`
