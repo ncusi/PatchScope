@@ -720,7 +720,8 @@ def authors_cards(authors_df: pd.DataFrame,
 
 def update_authors_grid(authors_df: pd.DataFrame,
                         resample_by_author_df: pd.DataFrame,
-                        top_n: int = 4) -> None:
+                        top_n: int = 4,
+                        **_kwargs) -> None:
     authors_grid.clear()
     authors_grid.extend(
         authors_cards(
@@ -741,12 +742,17 @@ bind_update_authors_grid = pn.bind(
     # func
     update_authors_grid,
     # *dependencies
-    authors_df=authors_info_df_rx,
-    resample_by_author_df=resample_timeline_by_author_rx,
+    authors_df=authors_info_df_rx,  # depends: column, from_date_str
+    resample_by_author_df=resample_timeline_by_author_rx,  # depends: resample_rate, group_by
     # NOTE: passing partially bound function (as now) results, for some strange reason, in
     # TypeError: plot_commits() missing 1 required positional argument: 'resampled_df'
     #plot_commits_partial=bind_plot_commits_no_df,
     top_n=top_n_widget,
+    # used only to define dependencies
+    _xlim=get_date_range_rx,
+    _ylim=get_value_range_rx,
+    _kind=select_plot_kind_widget,
+    _autorange=toggle_autorange_widget,
     # keywords
     watch=True,
 )
