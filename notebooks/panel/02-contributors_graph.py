@@ -338,10 +338,18 @@ def plot_commits(resampled_df: pd.DataFrame,
         else:
             ylim = (-1, ylim[1])
 
+    # via https://oklch-palette.vercel.app/ and https://htmlcolorcodes.com/rgb-to-hex/
+    color_map = {
+        'n_commits': '#006dd8',
+        '+:count':   '#008826',
+        '-:count':   '#d42000', # or '#c43711',
+    }
+    color = color_map.get(column, '#006dd8')
+
     plot = filtered_df.hvplot(
         x='author_date', y=column,
         kind=kind,
-        color='#006dd8',
+        color=color,
         responsive=True,
         hover='vline',
         grid=True,
