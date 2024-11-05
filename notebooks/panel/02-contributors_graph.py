@@ -317,7 +317,7 @@ def plot_commits(resampled_df: pd.DataFrame,
     if kind in {'step', 'line'}:
         hvplot_kwargs.update({
             'line_width': 2,
-            'hover_line_color': '#0060d0',
+            'hover_line_width': 3,
         })
     if autorange:
         # NOTE: doesn't seem to work reliably, compare results in

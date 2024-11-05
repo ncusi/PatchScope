@@ -157,7 +157,7 @@ See also the [TO DO List for `01-timeline.ipynb` Jupyter Notebook](#to-do-list-f
 
 ### Missing GitHub Insights features
 
-- [ ] make plot lines thicker on hover
+- [x] make plot lines thicker on hover
 - [ ] move #<i>N</i> to the end of the author card pane
 - [ ] create app for examining author contributions (to a single repository),
       and link to it from author card (avatar, name+email)
