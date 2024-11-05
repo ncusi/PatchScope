@@ -1,4 +1,5 @@
 import datetime
+import hashlib
 import json
 import logging
 import os
@@ -6,6 +7,7 @@ import re
 from collections import namedtuple
 from pathlib import Path
 from typing import Optional
+from urllib.parse import urlencode
 
 from dateutil.relativedelta import relativedelta
 
@@ -628,6 +630,27 @@ authors_grid = pn.layout.GridBox(
 )
 
 
+#@pn.cache
+def gravatar_url(email: str) -> str:
+    # https://docs.gravatar.com/api/avatars/python/
+
+    # Set default parameters
+    size = 16  # TODO: make a configuration variable (it is used in other place)
+
+    # Encode the email to lowercase and then to bytes
+    email_encoded = email.lower().encode('utf-8')
+
+    # Generate the SHA256 hash of the email
+    email_hash = hashlib.sha256(email_encoded).hexdigest()
+
+    # https://docs.gravatar.com/api/avatars/images/
+    # Construct the URL with encoded query parameters
+    query_params = urlencode({'s': str(size)})  # NOTE: will be needed for 'd' parameter
+    url = f"https://www.gravatar.com/avatar/{email_hash}?{query_params}"
+
+    return url
+
+
 def authors_cards(authors_df: pd.DataFrame,
                   resample_by_author_df: pd.DataFrame,
                   top_n: int = 4) -> list[pn.layout.Card]:
@@ -655,13 +678,21 @@ def authors_cards(authors_df: pd.DataFrame,
                 # not without resorting to specifying fixed width
                 header=pn.FlexBox(
                     # author.name <author.email>, using most common author.name
-                    pn.pane.HTML(f'<span class="author">{row.author_name} &lt;{row.Index}&gt;</span>'),
+                    pn.pane.HTML('<div class="author">'
+                                 f'<img src="{gravatar_url(row.Index)}" width="16" height="16" alt="" /> '
+                                 f'{row.author_name} &lt;{row.Index}&gt;'
+                                 '</div>'),
                     # position in the top N list
-                    pn.pane.HTML(f'<span class="chip">#{i}</span>', width=20),
+                    pn.pane.HTML(f'<div class="chip">#{i}</div>', width=20),
+                    # FlexBox parameters
+                    # https://css-tricks.com/snippets/css/a-guide-to-flexbox/
+                    # https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_flexible_box_layout/Basic_concepts_of_flexbox
                     flex_direction="row",
                     flex_wrap="nowrap",
                     justify_content="space-between",
+                    align_items="baseline",
                     gap="1 rem",
+                    # layoutable parameters
                     sizing_mode='stretch_width',
                     width_policy="max",
                     #width=300,
