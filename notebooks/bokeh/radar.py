@@ -4,6 +4,7 @@ import numpy as np
 
 class RadarPlot:
     def __init__(self, categories):
+        #print(f"RadarPlot({categories=})")
         self.categories = categories
         self.values = [0] * len(categories)  # Initialize values here
         self.max_value = 1  # Prevent division by zero
@@ -11,6 +12,7 @@ class RadarPlot:
         self.plot = self.create_radar_plot()  # Create the plot
 
     def create_radar_plot(self):
+        #print("RadarPlot::create_radar_plot()")
         radar = figure(
             title="User Activity Distribution",
             width=400,
@@ -26,6 +28,7 @@ class RadarPlot:
         return radar
 
     def update_plot(self, radar=None):
+        #print(f"RadarPlot::update_plot({radar=})")
         if radar is None:
             radar = self.plot  # Use existing plot if not passed
 
@@ -69,6 +72,7 @@ class RadarPlot:
             self.labels.append(label)
 
     def update_values(self, new_values):
+        #print(f"RadarPlot::update_values({new_values=})")
         self.values = new_values
         self.max_value = max(self.values) if self.values else 1  # Update max_value
         self.update_plot()

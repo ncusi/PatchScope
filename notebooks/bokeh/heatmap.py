@@ -6,12 +6,14 @@ from bokeh.models import ColumnDataSource, LabelSet
 
 class Heatmap:
     def __init__(self, year, category, source):
+        #print(f"Heatmap({year=}, {category=}, {source=})")
         self.year = year
         self.category = category
         self.source = source
         self.plot = self.create_heatmap()
 
     def create_heatmap(self):
+        #print("Heatmap::create_heatmap()")
         p = figure(
             title=f"{self.category} Activities Heatmap for {self.year}",
             x_range=(-1, 53),
