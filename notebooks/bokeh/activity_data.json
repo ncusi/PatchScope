@@ -1,0 +1,11 @@
+[
+        {"date": "2024-01-01", "code+": 2, "documentation+": 3, "tests+": 1, "other+": 2,"code-": 2, "documentation-": 3, "tests-": 1, "other-": 2 },
+        {"date": "2024-01-02", "code+": 5, "documentation+": 0, "tests+": 1, "other+": 1,"code-": 5, "documentation-": 0, "tests-": 1, "other-": 1 },
+        {"date": "2023-01-01", "code+": 2, "documentation+": 3, "tests+": 1, "other+": 5,"code-": 2, "documentation-": 3, "tests-": 1, "other-": 5 },
+        {"date": "2023-01-02", "code+": 5, "documentation+": 0, "tests+": 1, "other+": 1,"code-": 5, "documentation-": 0, "tests-": 1, "other-": 1 },
+        {"date": "2022-01-01", "code+": 2, "documentation+": 3, "tests+": 3, "other+": 0,"code-": 2, "documentation-": 3, "tests-": 3, "other-": 0 },
+        {"date": "2022-01-02", "code+": 5, "documentation+": 0, "tests+": 1, "other+": 1,"code-": 5, "documentation-": 0, "tests-": 1, "other-": 1 },
+        {"date": "2021-01-01", "code+": 2, "documentation+": 3, "tests+": 3, "other+": 0,"code-": 2, "documentation-": 3, "tests-": 3, "other-": 0 },
+        {"date": "2021-01-02", "code+": 5, "documentation+": 0, "tests+": 1, "other+": 1,"code-": 5, "documentation-": 0, "tests-": 1, "other-": 1 }
+]
+
