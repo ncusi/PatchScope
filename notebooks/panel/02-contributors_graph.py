@@ -130,7 +130,7 @@ def get_timeline_df(timeline_data: dict, repo: str) -> pd.DataFrame:
 def authors_info_df(timeline_df: pd.DataFrame,
                     column: str = 'n_commits',
                     from_date_str: str = '') -> pd.DataFrame:
-    info_columns = ['n_commits', '+:count', '-:count']
+    info_columns = list(agg_func_mapping().keys())
 
     # sanity check
     if column not in info_columns:
@@ -162,10 +162,24 @@ def agg_func_mapping():
     agg_func_sum = {col: 'sum' for col in columns_agg_sum}
 
     agg_func = 'sum'
-    columns_agg_any = ['+:count', '-:count']
+    columns_agg_any = ['+:count', '-:count', 'file_names', 'diff.patch_size', 'diff.groups_spread']
     agg_func_any = {col: agg_func for col in columns_agg_any}
 
     return agg_func_sum | agg_func_any
+
+
+#: for the select_contribution_type_widget
+contribution_types_map = {
+    "Commits": "n_commits",
+    "Additions": "+:count",
+    "Deletions": "-:count",
+    "Files changed": "file_names",
+    "Patch size (lines)": "diff.patch_size",
+    "Patch spreading (lines)": "diff.groups_spread"
+}
+column_to_contribution = {
+    v: k for k, v in contribution_types_map.items()
+}
 
 
 #@pn.cache
@@ -228,9 +242,15 @@ def filter_df_by_from_date(resampled_df: pd.DataFrame,
 
 
 #@pn.cache
-def get_date_range(timeline_df: pd.DataFrame):
+def get_date_range(timeline_df: pd.DataFrame, from_date_str: str):
+    # TODO: create reactive component or bound function to compute from_date to avoid recalculations
+    min_date = timeline_df['author_date'].min()
+    if from_date_str:
+        from_date = pd.to_datetime(from_date_str, dayfirst=True, utc=True)
+        min_date = max(min_date, from_date)
+
     return (
-        timeline_df['author_date'].min(),
+        min_date,
         timeline_df['author_date'].max(),
     )
 
@@ -262,14 +282,13 @@ def html_date_humane(date: pd.Timestamp) -> str:
 
 
 def html_int_humane(val: int) -> str:
-    thousands_sep = " "  # Unicode thin space, &thinsp;
+    thousands_sep = " "  # Unicode thin space (breakable in HTML), &thinsp;
 
     res = f'{val:,}'
     if thousands_sep != ",":
         res = res.replace(",", thousands_sep)
 
-    #return f'<data value="{val}">res</data>'
-    return res
+    return f'<data value="{val}" style="white-space: nowrap;">{res}</data>'
 
 
 def sampling_info(resample: str, column: str, frequency: dict[str, str], min_max_date) -> str:
@@ -306,6 +325,7 @@ def plot_commits(resampled_df: pd.DataFrame,
                  column: str = 'n_commits',
                  from_date_str: str = '',
                  xlim: Optional[tuple] = None, ylim: Optional[tuple] = None,
+                 marginals: bool = True,
                  kind: str = 'step', autorange: bool = True):
     filtered_df = filter_df_by_from_date(resampled_df, from_date_str)
 
@@ -317,7 +337,7 @@ def plot_commits(resampled_df: pd.DataFrame,
     if kind in {'step', 'line'}:
         hvplot_kwargs.update({
             'line_width': 2,
-            'hover_line_color': '#0060d0',
+            'hover_line_width': 3,
         })
     if autorange:
         # NOTE: doesn't seem to work reliably, compare results in
@@ -331,13 +351,30 @@ def plot_commits(resampled_df: pd.DataFrame,
     if ylim is None:
         ylim = (-1, None)
     else:
-        # this depends on the column(s)
-        ylim = (-1, ylim[1])
+        # the use of (-1, ...) depends on the column(s)
+        # sanity check - TODO: find the source of the bug
+        if ylim[1] == 1:
+            ylim = (-1, None)
+        else:
+            ylim = (-1, ylim[1])
+
+    # via https://oklch-palette.vercel.app/ and https://htmlcolorcodes.com/rgb-to-hex/
+    color_map = {
+        'n_commits': '#006dd8',
+        '+:count':   '#008826',
+        '-:count':   '#d42000', # or '#c43711',
+        # taken from maplotlib/seaborn's 10-hue categorical color palette
+        # https://seaborn.pydata.org/tutorial/color_palettes.html
+        'file_names': '#937860',
+        'diff.patch_size': '#9467bd',
+        'diff.groups_spread': '#e377c2',
+    }
+    color = color_map.get(column, '#006dd8')
 
     plot = filtered_df.hvplot(
         x='author_date', y=column,
         kind=kind,
-        color='#006dd8',
+        color=color,
         responsive=True,
         hover='vline',
         grid=True,
@@ -358,7 +395,25 @@ def plot_commits(resampled_df: pd.DataFrame,
     )
     # manually specifying the default tools gets rid of any preset default tools
     # you also just use an empty list here to use only chosen tools
-    plot.opts(default_tools=[])
+    plot.opts(default_tools=[], responsive=True, toolbar='above')
+
+    # only main plot, and only when turned on
+    if xlim == (None, None) and marginals:
+        hist = filtered_df.hvplot.hist(
+            y=column,
+            color=color,
+            #bins=20,
+            invert=True,
+            width=150,
+            grid=True,
+            xlabel='', xaxis=None,
+            ylabel='', yaxis='right',
+            padding=(0.005, 0),
+            responsive=True,
+        )
+        hist.opts(default_tools=[], align='end', toolbar=None)
+
+        return plot << hist
 
     return plot
 
@@ -430,6 +485,11 @@ find_repos_rx = pn.rx(find_repos)(
 select_repo_widget = pn.widgets.Select(name="repository", options=find_repos_rx, disabled=len(find_repos_rx.rx.value) <= 1)
 
 resample_frequency_widget = pn.widgets.Select(name="frequency", value='W', options=time_series_frequencies)
+
+toggle_marginals_widget = pn.widgets.Checkbox(
+    name="marginals for main plot: hist",
+    value=False,
+)
 
 # might be not a Select widget
 top_n_widget = pn.widgets.Select(name="top N", options=[4,10,32], value=4)
@@ -543,15 +603,6 @@ def select_period_from_widget__callback(*events) -> None:
 
 select_period_from_widget.param.watch(select_period_from_widget__callback, ['value'], onlychanged=True)
 
-#: for the select_contribution_type_widget
-contribution_types_map = {
-    "Commits": "n_commits",
-    "Additions": "+:count",
-    "Deletions": "-:count",
-}
-column_to_contribution = {
-    v: k for k, v in contribution_types_map.items()
-}
 select_contribution_type_widget = pn.widgets.Select(
     name="Contributions:",
     options=contribution_types_map,
@@ -576,19 +627,6 @@ get_timeline_df_rx = pn.rx(get_timeline_df)(
     timeline_data=get_timeline_data_rx,
     repo=select_repo_widget,
 )
-get_date_range_rx = pn.rx(get_date_range)(
-    timeline_df=get_timeline_df_rx,
-)
-get_value_range_rx = pn.rx(get_value_range)(
-    timeline_df=get_timeline_df_rx,
-    column=select_contribution_type_widget,
-)
-sampling_info_rx = pn.rx(sampling_info)(
-    resample=resample_frequency_widget,
-    column=select_contribution_type_widget,
-    frequency=frequency_names,
-    min_max_date=get_date_range_rx,
-)
 
 authors_info_df_rx = pn.rx(authors_info_df)(
     timeline_df=get_timeline_df_rx,
@@ -604,11 +642,27 @@ resample_timeline_by_author_rx = pn.rx(resample_timeline)(
     resample_rate=resample_frequency_widget,
     group_by='author.email',  # TODO: make it configurable (code duplication)
 )
+get_date_range_rx = pn.rx(get_date_range)(
+    timeline_df=get_timeline_df_rx,
+    from_date_str=select_period_from_widget,
+)
+get_value_range_rx = pn.rx(get_value_range)(
+    timeline_df=resample_timeline_all_rx,
+    column=select_contribution_type_widget,
+)
+
+sampling_info_rx = pn.rx(sampling_info)(
+    resample=resample_frequency_widget,
+    column=select_contribution_type_widget,
+    frequency=frequency_names,
+    min_max_date=get_date_range_rx,
+)
 
 plot_commits_rx = pn.rx(plot_commits)(
     resampled_df=resample_timeline_all_rx,
     column=select_contribution_type_widget,
     from_date_str=select_period_from_widget,
+    marginals=toggle_marginals_widget,
     kind=select_plot_kind_widget,
     autorange=toggle_autorange_widget,
 )
@@ -708,7 +762,8 @@ def authors_cards(authors_df: pd.DataFrame,
 
 def update_authors_grid(authors_df: pd.DataFrame,
                         resample_by_author_df: pd.DataFrame,
-                        top_n: int = 4) -> None:
+                        top_n: int = 4,
+                        **_kwargs) -> None:
     authors_grid.clear()
     authors_grid.extend(
         authors_cards(
@@ -729,12 +784,17 @@ bind_update_authors_grid = pn.bind(
     # func
     update_authors_grid,
     # *dependencies
-    authors_df=authors_info_df_rx,
-    resample_by_author_df=resample_timeline_by_author_rx,
+    authors_df=authors_info_df_rx,  # depends: column, from_date_str
+    resample_by_author_df=resample_timeline_by_author_rx,  # depends: resample_rate, group_by
     # NOTE: passing partially bound function (as now) results, for some strange reason, in
     # TypeError: plot_commits() missing 1 required positional argument: 'resampled_df'
     #plot_commits_partial=bind_plot_commits_no_df,
     top_n=top_n_widget,
+    # used only to define dependencies
+    _xlim=get_date_range_rx,
+    _ylim=get_value_range_rx,
+    _kind=select_plot_kind_widget,
+    _autorange=toggle_autorange_widget,
     # keywords
     watch=True,
 )
@@ -763,6 +823,7 @@ template = pn.template.MaterialTemplate(
         select_file_widget,
         select_repo_widget,
         resample_frequency_widget,
+        toggle_marginals_widget,
         top_n_widget,
 
         pn.layout.Divider(), # - - - - - - - - - - - - -
