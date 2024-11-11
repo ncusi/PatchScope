@@ -13,6 +13,11 @@ the [HoloViz Panel][Panel] framework.
 - [`00-panel-Debugger-demo.ipynb`](./00-panel-Debugger-demo.ipynb)
 - ...
 
+## Exploratory code
+
+- [`02-contributors_graph.ipynb`](./02-contributors_graph.ipynb)
+- ...
+
 ## Diffannotator web dashboards
 
 - [`01-timeline.ipynb`](./01-timeline.ipynb)
