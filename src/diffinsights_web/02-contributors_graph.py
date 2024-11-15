@@ -23,7 +23,7 @@ import hvplot.pandas  # noqa
 
 logger = logging.getLogger("panel.contributors_graph")
 pn.extension(
-    "jsoneditor",
+    "jsoneditor", "perspective",
     notifications=True,
     design="material", sizing_mode="stretch_width"
 )
@@ -239,6 +239,10 @@ def filter_df_by_from_date(resampled_df: pd.DataFrame,
                                      f"for column {date_column!r}")
 
     return filtered_df
+
+
+def author_timeline_df(resample_by_author_df: pd.DataFrame, author_id: str) -> pd.DataFrame:
+    return resample_by_author_df.loc[author_id]
 
 
 #@pn.cache
@@ -705,6 +709,16 @@ def gravatar_url(email: str, size: int = 16) -> str:
     return url
 
 
+def authors_list(authors_df: pd.DataFrame,
+                 top_n: Optional[int] = None) -> list[str]:
+    # TODO: return mapping { "[name] <[email]>": "[email]",... },
+    #       instead of returning list of emails [ "[email]",... ]
+    if top_n is None:
+        return authors_df.index.to_list()
+    else:
+        return authors_df.head(top_n).index.to_list()
+
+
 def authors_cards(authors_df: pd.DataFrame,
                   resample_by_author_df: pd.DataFrame,
                   top_n: int = 4) -> list[pn.layout.Card]:
@@ -774,6 +788,10 @@ def update_authors_grid(authors_df: pd.DataFrame,
     )
 
 
+authors_list_rx = pn.rx(authors_list)(
+    authors_df=authors_info_df_rx,  # depends: column, from_date_str
+    top_n=top_n_widget,
+)
 # NOTE: does not work as intended, displays widgets it depends on
 # might be helped by wrapping in pn.ReactiveExpr
 #authors_cards_rx = pn.rx(authors_cards)(
@@ -818,6 +836,7 @@ pn.state.onload(select_period_from_widget__onload)
 template = pn.template.MaterialTemplate(
     site="diffannotator",
     title="Contributors Graph",  # TODO: make title dynamic
+    favicon="favicon.png",
     sidebar_width=350,
     sidebar=[
         select_file_widget,
@@ -850,4 +869,84 @@ template = pn.template.MaterialTemplate(
         authors_grid,
     ],
 )
+
+json_timeline_data_panel = pn.widgets.JSONEditor(
+    value=get_timeline_data_rx,  # or get_timeline_data(), which is @pn.cache'd
+    mode='view',
+    menu=True, search=True,
+    width_policy='max',
+    height=500,
+)
+timeline_all_panel = pn.pane.Perspective(
+    get_timeline_df_rx,
+    title=pn.rx("Perspective: repo={repo!r}") \
+        .format(repo=select_repo_widget),
+    editable=False,
+    width_policy='max',
+    height=500,
+)
+resample_timeline_all_panel = pn.pane.Perspective(
+    resample_timeline_all_rx,  # or use reactive component, maybe
+    title=pn.rx("Perspective: repo={repo!r}, resample={resample!r} all") \
+        .format(repo=select_repo_widget, resample=resample_frequency_widget),
+    editable=False,
+    width_policy='max',
+    height=500,
+)
+resample_timeline_by_author_panel = pn.pane.Perspective(
+    resample_timeline_by_author_rx,
+    title=pn.rx("Perspective: repo={repo!r}, resample={resample!r} by author") \
+        .format(repo=select_repo_widget, resample=resample_frequency_widget),
+    editable=False,
+    width_policy='max',
+    height=500,
+)
+authors_info_panel = pn.pane.Perspective(
+    authors_info_df_rx,
+    title=pn.rx("Authors info for repo={repo!r}, from={from_date!r}") \
+        .format(repo=select_repo_widget, from_date=select_period_from_widget),
+    editable=False,
+    width_policy='max',
+    height=500,
+)
+select_author_widget = pn.widgets.Select(
+    name="author",
+    options=authors_list_rx,
+)
+author_timeline_df_rx = pn.rx(author_timeline_df)(
+    resample_by_author_df=resample_timeline_by_author_rx,
+    author_id=select_author_widget,
+)
+author_timeline_panel = pn.Column(
+    select_author_widget,
+    pn.pane.Perspective(
+        author_timeline_df_rx,
+        title=pn.rx("repo={repo!r}, author={author!r}") \
+            .format(
+                repo=select_repo_widget,
+                author=select_author_widget,
+        ),
+        editable=False,
+        width_policy='max',
+        height=500,
+    ),
+)
+template.main.extend([
+    pn.layout.Divider(),
+    pn.Tabs(
+        ('JSON', json_timeline_data_panel),
+        ('data', timeline_all_panel),
+        ('resampled', resample_timeline_all_panel),
+        ('authors info', authors_info_panel),
+        ('by author+resampled', resample_timeline_by_author_panel),
+        (
+            #pn.rx("author={author}").format(author=select_author_widget).rx.pipe(str),
+            'selected author',
+            author_timeline_panel,
+        ),
+        #dynamic=True,
+        active=1,
+    ),
+])
+
 template.servable()
