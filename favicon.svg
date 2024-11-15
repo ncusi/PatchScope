@@ -33,7 +33,7 @@
      showgrid="true"
      inkscape:zoom="23.92378"
      inkscape:cx="16.552568"
-     inkscape:cy="13.752007"
+     inkscape:cy="13.772907"
      inkscape:window-width="1920"
      inkscape:window-height="1001"
      inkscape:window-x="-9"
@@ -76,7 +76,7 @@
        id="title10">---/+++</title>
     <text
        xml:space="preserve"
-       style="font-size:4.23333px;line-height:1.25;font-family:'Source Code Pro';-inkscape-font-specification:'Source Code Pro';stroke-width:0.264583"
+       style="font-size:4.23333px;line-height:1.25;font-family:'Source Code Pro';-inkscape-font-specification:'Source Code Pro, Heavy';stroke-width:0.264583;font-weight:900;font-style:normal;font-stretch:normal;font-variant:normal;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal"
        x="0.96970445"
        y="41.181156"
        id="text_mmm"
@@ -85,12 +85,12 @@
          id="title9">---</title><tspan
          sodipodi:role="line"
          id="tspan20388"
-         style="fill:#ff0000;fill-opacity:1;stroke-width:0.264583"
+         style="fill:#ff0000;fill-opacity:1;stroke-width:0.264583;-inkscape-font-specification:'Source Code Pro, Heavy';font-family:'Source Code Pro';font-weight:900;font-style:normal;font-stretch:normal;font-variant:normal;font-size:4.2333298px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal"
          x="0.96970445"
          y="41.181156">−−−</tspan></text>
     <text
        xml:space="preserve"
-       style="font-size:4.23333px;line-height:1.25;font-family:'Source Code Pro';-inkscape-font-specification:'Source Code Pro';fill:#009400;fill-opacity:1;stroke-width:0.264583"
+       style="font-size:4.23333px;line-height:1.25;font-family:'Source Code Pro';-inkscape-font-specification:'Source Code Pro, Heavy';fill:#009400;fill-opacity:1;stroke-width:0.264583;font-weight:900;font-style:normal;font-stretch:normal;font-variant:normal;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal"
        x="0.95406407"
        y="43.370811"
        id="text_ppp"
@@ -99,7 +99,7 @@
          id="title8">+++</title><tspan
          sodipodi:role="line"
          id="tspan23998"
-         style="fill:#009400;fill-opacity:1;stroke-width:0.264583"
+         style="fill:#009400;fill-opacity:1;stroke-width:0.264583;-inkscape-font-specification:'Source Code Pro, Heavy';font-family:'Source Code Pro';font-weight:900;font-style:normal;font-stretch:normal;font-variant:normal;font-size:4.2333298px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal"
          x="0.95406407"
          y="43.370811">+++</tspan></text>
   </g>
@@ -107,7 +107,7 @@
      inkscape:groupmode="layer"
      id="layer2"
      inkscape:label="Symbol layer"
-     transform="translate(-1.0595303,-38.226257)">
+     transform="translate(-1.0152926,-38.104603)">
     <ellipse
        style="fill:#ffffff;fill-opacity:1;stroke:#000000;stroke-width:0.327752;stroke-opacity:1"
        id="circle"
@@ -126,7 +126,7 @@
      inkscape:groupmode="layer"
      id="layer3"
      inkscape:label="Inset layer"
-     transform="translate(-1.0595303,-38.226257)">
+     transform="translate(-1.2364812,-38.082484)">
     <path
        style="fill:none;stroke:#8f5100;stroke-width:0.165;stroke-linecap:round;stroke-linejoin:miter;stroke-dasharray:none;stroke-opacity:1;paint-order:normal"
        d="m 5.004926,43.120564 c 0.79766,-0.797661 0.8289409,-0.813301 0.8289409,-0.813301 l 0.7820195,1.423276 0.7820199,-1.032264 v 0"
