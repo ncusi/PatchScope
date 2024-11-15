@@ -818,6 +818,7 @@ pn.state.onload(select_period_from_widget__onload)
 template = pn.template.MaterialTemplate(
     site="diffannotator",
     title="Contributors Graph",  # TODO: make title dynamic
+    favicon="favicon.png",
     sidebar_width=350,
     sidebar=[
         select_file_widget,
