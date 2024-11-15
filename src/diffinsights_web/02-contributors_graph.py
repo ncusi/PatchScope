@@ -23,7 +23,7 @@ import hvplot.pandas  # noqa
 
 logger = logging.getLogger("panel.contributors_graph")
 pn.extension(
-    "jsoneditor",
+    "jsoneditor", "perspective",
     notifications=True,
     design="material", sizing_mode="stretch_width"
 )
@@ -850,4 +850,48 @@ template = pn.template.MaterialTemplate(
         authors_grid,
     ],
 )
+
+json_timeline_data_panel = pn.widgets.JSONEditor(
+    value=get_timeline_data_rx,  # or get_timeline_data(), which is @pn.cache'd
+    mode='view',
+    menu=True, search=True,
+    width_policy='max',
+    height=500,
+)
+timeline_all_panel = pn.pane.Perspective(
+    get_timeline_df_rx,
+    title=pn.rx("Perspective: repo={repo!r}") \
+        .format(repo=select_repo_widget),
+    editable=False,
+    width_policy='max',
+    height=500,
+)
+resample_timeline_all_panel = pn.pane.Perspective(
+    resample_timeline_all_rx,  # or use reactive component, maybe
+    title=pn.rx("Perspective: repo={repo!r}, resample={resample!r} all") \
+        .format(repo=select_repo_widget, resample=resample_frequency_widget),
+    editable=False,
+    width_policy='max',
+    height=500,
+)
+resample_timeline_by_author_panel = pn.pane.Perspective(
+    resample_timeline_by_author_rx,  # or use reactive component, maybe
+    title=pn.rx("Perspective: repo={repo!r}, resample={resample!r} by author") \
+        .format(repo=select_repo_widget, resample=resample_frequency_widget),
+    editable=False,
+    width_policy='max',
+    height=500,
+)
+template.main.extend([
+    pn.layout.Divider(),
+    pn.Tabs(
+        ('JSON', json_timeline_data_panel),
+        ('data', timeline_all_panel),
+        ('resampled', resample_timeline_all_panel),
+        ('by author+resampled', resample_timeline_by_author_panel),
+        #dynamic=True,
+        active=1,
+    ),
+])
+
 template.servable()
