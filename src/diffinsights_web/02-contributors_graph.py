@@ -876,9 +876,17 @@ resample_timeline_all_panel = pn.pane.Perspective(
     height=500,
 )
 resample_timeline_by_author_panel = pn.pane.Perspective(
-    resample_timeline_by_author_rx,  # or use reactive component, maybe
+    resample_timeline_by_author_rx,
     title=pn.rx("Perspective: repo={repo!r}, resample={resample!r} by author") \
         .format(repo=select_repo_widget, resample=resample_frequency_widget),
+    editable=False,
+    width_policy='max',
+    height=500,
+)
+authors_info_panel = pn.pane.Perspective(
+    authors_info_df_rx,
+    title=pn.rx("Authors info for repo={repo!r}, from={from_date!r}") \
+        .format(repo=select_repo_widget, from_date=select_period_from_widget),
     editable=False,
     width_policy='max',
     height=500,
@@ -889,6 +897,7 @@ template.main.extend([
         ('JSON', json_timeline_data_panel),
         ('data', timeline_all_panel),
         ('resampled', resample_timeline_all_panel),
+        ('authors info', authors_info_panel),
         ('by author+resampled', resample_timeline_by_author_panel),
         #dynamic=True,
         active=1,
