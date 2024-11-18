@@ -2,10 +2,19 @@
 # -*- coding: utf-8 -*-
 import panel as pn
 
+import diffinsights_web.utils.notifications as notifications
+from diffinsights_web.utils.notifications import warning_notification, onload_callback
+
 
 pn.extension(
+    notifications=True,
     design="material", sizing_mode="stretch_width"
 )
+pn.state.notifications.position = 'top-center'
+
+notifications.loaded = False  # module is not re-imported on reloading
+pn.state.onload(onload_callback)
+warning_notification("Example warning")
 
 # Create the dashboard layout
 template = pn.template.MaterialTemplate(
