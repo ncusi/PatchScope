@@ -725,7 +725,7 @@ def authors_cards(authors_df: pd.DataFrame,
     result: list[pn.layout.Card] = []
     avatar_size = 20
 
-    row: namedtuple('Pandas', ['Index', 'n_commits', 'p_count', 'm_count', 'author_name'])
+    row: namedtuple('Pandas', ['Index', 'n_commits', 'p_count', 'm_count', 'author_name']) # noqa: F821
     for i, row in enumerate(authors_df.head(top_n).itertuples(), start=1):
         result.append(
             pn.layout.Card(
