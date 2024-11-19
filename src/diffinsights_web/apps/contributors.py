@@ -5,9 +5,10 @@ import panel as pn
 import diffinsights_web.utils.notifications as notifications
 from diffinsights_web.datastore.timeline import TimelineDataStore, find_dataset_dir
 from diffinsights_web.utils.notifications import onload_callback
-
+from diffinsights_web.views.dataexplorer import TimelineJSONViewer
 
 pn.extension(
+    "jsoneditor",
     notifications=True,
     design="material", sizing_mode="stretch_width"
 )
@@ -31,6 +32,10 @@ template = pn.template.MaterialTemplate(
         pn.pane.Markdown("# Contributions")
     ],
 )
+template.main.extend([
+    pn.layout.Divider(),
+    TimelineJSONViewer(data_store=data_store),
+])
 
 # Serve the dashboard
 template.servable()
