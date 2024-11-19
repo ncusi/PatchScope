@@ -60,7 +60,8 @@ dev = ["pytest==8.3.3"]
 pylinguist = ["linguist@git+https://github.com/retanoj/linguist#egg=master"]
 examples = ["dvc==3.56.0"]
 web = [
-  "panel==1.5.4"
+  "panel==1.5.4",
+  "param==2.1.1",
 ]
 
 [tool.setuptools]

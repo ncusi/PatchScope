@@ -3,7 +3,8 @@
 import panel as pn
 
 import diffinsights_web.utils.notifications as notifications
-from diffinsights_web.utils.notifications import warning_notification, onload_callback
+from diffinsights_web.datastore.timeline import TimelineDataStore, find_dataset_dir
+from diffinsights_web.utils.notifications import onload_callback
 
 
 pn.extension(
@@ -14,13 +15,18 @@ pn.state.notifications.position = 'top-center'
 
 notifications.loaded = False  # module is not re-imported on reloading
 pn.state.onload(onload_callback)
-warning_notification("Example warning")
+
+dataset_dir = find_dataset_dir()
+data_store = TimelineDataStore(dataset_dir=dataset_dir)
 
 # Create the dashboard layout
 template = pn.template.MaterialTemplate(
     site="diffannotator",
     title="Contributors Graph",  # TODO: make title dynamic
     favicon="favicon.svg",
+    sidebar=[
+        data_store,
+    ],
     main=[
         pn.pane.Markdown("# Contributions")
     ],
