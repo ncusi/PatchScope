@@ -6,6 +6,7 @@ import diffinsights_web.utils.notifications as notifications
 from diffinsights_web.datastore.timeline import TimelineDataStore, find_dataset_dir
 from diffinsights_web.utils.notifications import onload_callback
 from diffinsights_web.views.dataexplorer import TimelineJSONViewer
+from diffinsights_web.widgets.caching import ClearCacheButton
 
 pn.extension(
     "jsoneditor",
@@ -27,6 +28,8 @@ template = pn.template.MaterialTemplate(
     favicon="favicon.svg",
     sidebar=[
         data_store,
+        pn.layout.Divider(),
+        ClearCacheButton(),
     ],
     main=[
         pn.pane.Markdown("# Contributions")
