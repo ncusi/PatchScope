@@ -11,7 +11,8 @@ pn.config.notifications = True  # just in case the app did not set it
 
 def warning_notification(msg: str) -> None:
     if loaded:
-        pn.state.notifications.warning(msg)
+        if pn.state.notifications is not None:
+            pn.state.notifications.warning(msg)
     else:
         warnings_list.append(msg)
 
@@ -19,8 +20,9 @@ def warning_notification(msg: str) -> None:
 def onload_callback() -> None:
     global loaded, warnings_list
 
-    for warning in warnings_list:
-        pn.state.notifications.warning(warning)
+    if pn.state.notifications is not None:
+        for warning in warnings_list:
+            pn.state.notifications.warning(warning)
 
     warnings_list.clear()
     loaded = True
