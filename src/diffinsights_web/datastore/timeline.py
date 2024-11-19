@@ -57,6 +57,11 @@ def get_timeline_data(json_path: Optional[Path]) -> dict:
         return json.load(json_fp)
 
 
+@pn.cache
+def find_repos(timeline_data: dict) -> list[str]:
+    return list(timeline_data.keys())
+
+
 class TimelineDataStore(pn.viewable.Viewer):
     dataset_dir = param.Path(constant=True,
                              doc="Dataset directory with *.timeline.*.json files")
@@ -64,6 +69,7 @@ class TimelineDataStore(pn.viewable.Viewer):
     def __init__(self, **params):
         super().__init__(**params)
 
+        # select JSON data file
         select_file_widget = pn.widgets.Select(
             name="input JSON file",
             options=find_timeline_files(self.param.dataset_dir)
@@ -71,8 +77,19 @@ class TimelineDataStore(pn.viewable.Viewer):
         self.timeline_data_rx = pn.rx(get_timeline_data)(
             json_path=select_file_widget,
         )
+        # select repo from selected JSON file
+        self.find_repos_rx = pn.rx(find_repos)(
+            timeline_data=self.timeline_data_rx,
+        )
+        select_repo_widget = pn.widgets.Select(
+            name="repository",
+            options=self.find_repos_rx,
+            disabled=len(self.find_repos_rx.rx.value) <= 1,
+        )
+
         self._widgets = [
-            select_file_widget
+            select_file_widget,
+            select_repo_widget,
         ]
 
     def __panel__(self):
