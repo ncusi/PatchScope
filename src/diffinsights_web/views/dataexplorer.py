@@ -12,3 +12,15 @@ class TimelineJSONViewer(TimelineView):
             width_policy='max',
             height=500,
         )
+
+
+class TimelinePerspective(TimelineView):
+    def __panel__(self):
+        return pn.pane.Perspective(
+            self.data_store.timeline_df_rx,
+            title=pn.rx("Perspective: repo={repo!r}") \
+                .format(repo=self.data_store.select_repo_widget),
+            editable=False,
+            width_policy='max',
+            height=500,
+        )

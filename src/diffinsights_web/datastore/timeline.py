@@ -3,9 +3,11 @@ from pathlib import Path
 from typing import Optional, Union
 
 import panel as pn
+import pandas as pd
 import param
 
 from diffinsights_web.utils.notifications import warning_notification
+
 
 DATASET_DIR = 'data/examples/stats'
 
@@ -62,6 +64,22 @@ def find_repos(timeline_data: dict) -> list[str]:
     return list(timeline_data.keys())
 
 
+@pn.cache
+def get_timeline_df(timeline_data: dict, repo: str) -> pd.DataFrame:
+    init_df = pd.DataFrame.from_records(timeline_data[repo])
+
+    # no merges, no roots; add 'n_commits' column; drop rows with N/A for timestamps
+    df = init_df[init_df['n_parents'] == 1]\
+        .dropna(subset=['author.timestamp', 'committer.timestamp'], how='any')\
+        .assign(
+            n_commits =  1,
+            author_date    = lambda x: pd.to_datetime(x['author.timestamp'],    unit='s', utc=True),
+            committer_date = lambda x: pd.to_datetime(x['committer.timestamp'], unit='s', utc=True),
+        )
+
+    return df
+
+
 class TimelineDataStore(pn.viewable.Viewer):
     dataset_dir = param.Path(constant=True,
                              doc="Dataset directory with *.timeline.*.json files")
@@ -70,26 +88,31 @@ class TimelineDataStore(pn.viewable.Viewer):
         super().__init__(**params)
 
         # select JSON data file
-        select_file_widget = pn.widgets.Select(
+        self.select_file_widget = pn.widgets.Select(
             name="input JSON file",
             options=find_timeline_files(self.param.dataset_dir)
         )
         self.timeline_data_rx = pn.rx(get_timeline_data)(
-            json_path=select_file_widget,
+            json_path=self.select_file_widget,
         )
         # select repo from selected JSON file
         self.find_repos_rx = pn.rx(find_repos)(
             timeline_data=self.timeline_data_rx,
         )
-        select_repo_widget = pn.widgets.Select(
+        self.select_repo_widget = pn.widgets.Select(
             name="repository",
             options=self.find_repos_rx,
             disabled=len(self.find_repos_rx.rx.value) <= 1,
         )
+        # convert extracted data to pd.DataFrame
+        self.timeline_df_rx = pn.rx(get_timeline_df)(
+            timeline_data=self.timeline_data_rx,
+            repo=self.select_repo_widget,
+        )
 
         self._widgets = [
-            select_file_widget,
-            select_repo_widget,
+            self.select_file_widget,
+            self.select_repo_widget,
         ]
 
     def __panel__(self):

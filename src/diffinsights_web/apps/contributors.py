@@ -5,11 +5,12 @@ import panel as pn
 import diffinsights_web.utils.notifications as notifications
 from diffinsights_web.datastore.timeline import TimelineDataStore, find_dataset_dir
 from diffinsights_web.utils.notifications import onload_callback
-from diffinsights_web.views.dataexplorer import TimelineJSONViewer
+from diffinsights_web.views.dataexplorer import TimelineJSONViewer, TimelinePerspective
 from diffinsights_web.widgets.caching import ClearCacheButton
 
+
 pn.extension(
-    "jsoneditor",
+    "jsoneditor", "perspective",
     notifications=True,
     design="material", sizing_mode="stretch_width"
 )
@@ -38,6 +39,7 @@ template = pn.template.MaterialTemplate(
 template.main.extend([
     pn.layout.Divider(),
     TimelineJSONViewer(data_store=data_store),
+    TimelinePerspective(data_store=data_store),
 ])
 
 # Serve the dashboard
