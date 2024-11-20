@@ -38,8 +38,10 @@ template = pn.template.MaterialTemplate(
 )
 template.main.extend([
     pn.layout.Divider(),
-    TimelineJSONViewer(data_store=data_store),
-    TimelinePerspective(data_store=data_store),
+    pn.Tabs(
+        ('JSON', TimelineJSONViewer(data_store=data_store)),
+        ('data', TimelinePerspective(data_store=data_store)),
+    ),
 ])
 
 # Serve the dashboard
