@@ -81,8 +81,10 @@ def get_timeline_df(timeline_data: dict, repo: str) -> pd.DataFrame:
 
 
 class TimelineDataStore(pn.viewable.Viewer):
-    dataset_dir = param.Path(constant=True,
-                             doc="Dataset directory with *.timeline.*.json files")
+    dataset_dir = param.Foldername(
+        constant=True,
+        doc="Dataset directory with *.timeline.*.json files",
+    )
 
     def __init__(self, **params):
         super().__init__(**params)
