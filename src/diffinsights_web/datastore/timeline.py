@@ -121,3 +121,123 @@ class TimelineDataStore(pn.viewable.Viewer):
         return pn.WidgetBox(
             *self._widgets,
         )
+
+# ======================================================================
+# ----------------------------------------------------------------------
+# Resampled
+
+
+def agg_func_mapping():
+    columns_agg_sum = ['n_commits']
+    agg_func_sum = {col: 'sum' for col in columns_agg_sum}
+
+    agg_func = 'sum'
+    columns_agg_any = ['+:count', '-:count', 'file_names', 'diff.patch_size', 'diff.groups_spread']
+    agg_func_any = {col: agg_func for col in columns_agg_any}
+
+    return agg_func_sum | agg_func_any
+
+
+@pn.cache
+def resample_timeline(timeline_df: pd.DataFrame,
+                      resample_rate: str,
+                      group_by: Optional[str] = None,
+                      date_column: str = 'author_date') -> pd.DataFrame:
+    # select appropriate aggregation function for specific columns
+    agg_func_map = agg_func_mapping()
+
+    # all columns to aggregate values of
+    columns_agg = list(agg_func_map.keys())
+
+    # aggregate over given period of time, i.e. resample
+    if group_by is None:
+        # resample only
+        df_r = timeline_df.resample(
+            resample_rate,
+            on=date_column,
+        )
+    else:
+        # group by and resample
+        df_r = timeline_df.groupby([
+            group_by,
+            pd.Grouper(
+                freq=resample_rate,
+                key=date_column,
+            )
+        ])
+
+    return df_r[columns_agg].agg(
+        agg_func_map,
+        numeric_only=True
+    )
+
+
+class ResampledTimelineDataStore(pn.viewable.Viewer):
+    # non-parametrized class attributes
+    # - mapping form display name to alias
+    time_series_frequencies = {
+        'calendar day frequency': 'D',
+        'weekly frequency': 'W',
+        'semi-month end frequency (15th and end of month)': 'SME',
+        'month end frequency': 'ME',
+        'quarter end frequency': 'QE',
+    }
+    # - mapping from alias to display stem
+    frequency_names = {
+        'D': 'day',
+        'W': 'week',
+        'SME': 'semi-month',
+        'ME': 'month',
+        'QE': 'quarter',
+    }
+
+    # param-based class attributes and instance attributes
+    data = param.DataFrame(
+        per_instance=False,  # NOTE: share the DataFrame between objects
+        columns={
+            'author_date', 'committer_date', # resample over either of those date columns
+            'author.email', 'committer.email',  # optionally group by either of those
+            *agg_func_mapping().keys(),  # aggregate these columns
+        },
+        allow_refs=True,  # allow for reactive expressions
+        doc="DataFrame with timeline data, extracted from gathered stats in the JSON file",
+    )
+    repo = param.String(
+        allow_refs=True,  # allow for reactive expressions
+        doc="Name of the repository, for documentation purposes only (e.g. in titles)",
+    )
+    group_by = param.String(
+        None, allow_None=True,
+        constant=True,  # can be set only in the constructor (without overrides)
+        regex=r'^(?:author\.email|committer\.email)$',  # NOTE: two possible values, no capturing
+        doc="If None, do only resampling.  If set, do resampling and group by specified column.",
+    )
+
+    def __init__(self, **params):
+        super().__init__(**params)
+
+        self.resample_frequency_widget = pn.widgets.Select(
+            name="frequency",
+            value='W',
+            options=self.time_series_frequencies,
+        )
+        self.resampled_timeline_rx = pn.rx(resample_timeline)(
+            timeline_df=self.param.data.rx(),
+            resample_rate=self.resample_frequency_widget,
+            group_by=self.group_by,
+        )
+        if self.group_by is None:
+            self.title = pn.rx("Perspective: repo={repo!r}, resample={resample!r} all") \
+                .format(repo=self.repo, resample=self.resample_frequency_widget)
+        else:
+            self.title = pn.rx("Perspective: repo={repo!r}, resample={resample!r} by author") \
+                .format(repo=self.repo, resample=self.resample_frequency_widget)
+
+        self._widgets = [
+            self.resample_frequency_widget,
+        ]
+
+    def __panel__(self):
+        return pn.WidgetBox(
+            *self._widgets,
+        )

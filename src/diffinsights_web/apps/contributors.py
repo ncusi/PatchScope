@@ -3,7 +3,7 @@
 import panel as pn
 
 import diffinsights_web.utils.notifications as notifications
-from diffinsights_web.datastore.timeline import TimelineDataStore, find_dataset_dir
+from diffinsights_web.datastore.timeline import TimelineDataStore, find_dataset_dir, ResampledTimelineDataStore
 from diffinsights_web.utils.notifications import onload_callback
 from diffinsights_web.views.dataexplorer import TimelineJSONViewer, TimelinePerspective
 from diffinsights_web.widgets.caching import ClearCacheButton
@@ -20,7 +20,11 @@ notifications.loaded = False  # module is not re-imported on reloading
 pn.state.onload(onload_callback)
 
 dataset_dir = find_dataset_dir()
-data_store = TimelineDataStore(dataset_dir=dataset_dir)
+timeline_data_store = TimelineDataStore(dataset_dir=dataset_dir)
+resampled_data_store = ResampledTimelineDataStore(
+    data=timeline_data_store.timeline_df_rx,
+    repo=timeline_data_store.select_repo_widget,
+)
 
 # Create the dashboard layout
 template = pn.template.MaterialTemplate(
@@ -28,7 +32,8 @@ template = pn.template.MaterialTemplate(
     title="Contributors Graph",  # TODO: make title dynamic
     favicon="favicon.svg",
     sidebar=[
-        data_store,
+        timeline_data_store,
+        resampled_data_store,
         pn.layout.Divider(),
         ClearCacheButton(),
     ],
@@ -39,8 +44,8 @@ template = pn.template.MaterialTemplate(
 template.main.extend([
     pn.layout.Divider(),
     pn.Tabs(
-        ('JSON', TimelineJSONViewer(data_store=data_store)),
-        ('data', TimelinePerspective(data_store=data_store)),
+        ('JSON', TimelineJSONViewer(data_store=timeline_data_store)),
+        ('data', TimelinePerspective(data_store=timeline_data_store)),
     ),
 ])
 
