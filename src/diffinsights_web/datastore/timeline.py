@@ -190,6 +190,7 @@ frequency_names = {
     'QE': 'quarter',
 }
 
+# TODO?: make this widget default value for constructor parameter
 resample_frequency_widget = pn.widgets.Select(
     name="frequency",
     value='W',

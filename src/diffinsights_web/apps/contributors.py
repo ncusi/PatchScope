@@ -3,7 +3,9 @@
 import panel as pn
 
 import diffinsights_web.utils.notifications as notifications
-from diffinsights_web.datastore.timeline import TimelineDataStore, ResampledTimelineDataStore, find_dataset_dir
+from diffinsights_web.datastore.timeline import (
+    TimelineDataStore, ResampledTimelineDataStore, find_dataset_dir, resample_frequency_widget
+)
 from diffinsights_web.utils.notifications import onload_callback
 from diffinsights_web.views.dataexplorer import TimelineJSONViewer, TimelinePerspective
 from diffinsights_web.widgets.caching import ClearCacheButton
@@ -43,8 +45,8 @@ template = pn.template.MaterialTemplate(
     favicon="favicon.svg",
     sidebar=[
         timeline_data_store,
-        resampled_data_store,
-        by_author_data_store,
+        resample_frequency_widget,
+        resample_frequency_widget,
         pn.layout.Divider(),
         test_selector,
         test_selector,
