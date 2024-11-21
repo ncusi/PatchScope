@@ -25,6 +25,11 @@ resampled_data_store = ResampledTimelineDataStore(
     data=timeline_data_store.timeline_df_rx,
     repo=timeline_data_store.select_repo_widget,
 )
+by_author_data_store = ResampledTimelineDataStore(
+    data=timeline_data_store.timeline_df_rx,
+    repo=timeline_data_store.select_repo_widget,
+    group_by='author.email',
+)
 
 # Create the dashboard layout
 template = pn.template.MaterialTemplate(
@@ -34,6 +39,7 @@ template = pn.template.MaterialTemplate(
     sidebar=[
         timeline_data_store,
         resampled_data_store,
+        by_author_data_store,
         pn.layout.Divider(),
         ClearCacheButton(),
     ],
