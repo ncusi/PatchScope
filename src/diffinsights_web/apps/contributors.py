@@ -31,6 +31,11 @@ by_author_data_store = ResampledTimelineDataStore(
     group_by='author.email',
 )
 
+test_selector = pn.widgets.Select(
+    name="test",
+    options=["a", "b", "c"],
+)
+
 # Create the dashboard layout
 template = pn.template.MaterialTemplate(
     site="diffannotator",
@@ -41,6 +46,8 @@ template = pn.template.MaterialTemplate(
         resampled_data_store,
         by_author_data_store,
         pn.layout.Divider(),
+        test_selector,
+        test_selector,
         ClearCacheButton(),
     ],
     main=[

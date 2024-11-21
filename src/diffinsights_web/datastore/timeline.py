@@ -212,15 +212,20 @@ class ResampledTimelineDataStore(pn.viewable.Viewer):
         regex=r'^(?:author\.email|committer\.email)$',  # NOTE: two possible values, no capturing
         doc="If None, do only resampling.  If set, do resampling and group by specified column.",
     )
+    resample_frequency_widget = param.ClassSelector(
+        class_=pn.widgets.Select,
+        readonly=True,  # cannot be set to different value at all, not even in constructor
+        instantiate=False, per_instance=False,  # NOTE: share the between objects; use single selector
+        default=pn.widgets.Select(
+            name="frequency",
+            value='W',
+            options=time_series_frequencies,
+        )
+    )
 
     def __init__(self, **params):
         super().__init__(**params)
 
-        self.resample_frequency_widget = pn.widgets.Select(
-            name="frequency",
-            value='W',
-            options=self.time_series_frequencies,
-        )
         self.resampled_timeline_rx = pn.rx(resample_timeline)(
             timeline_df=self.param.data.rx(),
             resample_rate=self.resample_frequency_widget,
