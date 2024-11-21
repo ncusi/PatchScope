@@ -172,25 +172,33 @@ def resample_timeline(timeline_df: pd.DataFrame,
     )
 
 
-class ResampledTimelineDataStore(pn.viewable.Viewer):
-    # non-parametrized class attributes
-    # - mapping form display name to alias
-    time_series_frequencies = {
-        'calendar day frequency': 'D',
-        'weekly frequency': 'W',
-        'semi-month end frequency (15th and end of month)': 'SME',
-        'month end frequency': 'ME',
-        'quarter end frequency': 'QE',
-    }
-    # - mapping from alias to display stem
-    frequency_names = {
-        'D': 'day',
-        'W': 'week',
-        'SME': 'semi-month',
-        'ME': 'month',
-        'QE': 'quarter',
-    }
+# mapping form display name to frequency alias
+# see table in https://pandas.pydata.org/docs/user_guide/timeseries.html#dateoffset-objects
+time_series_frequencies = {
+    'calendar day frequency': 'D',
+    'weekly frequency': 'W',
+    'semi-month end frequency (15th and end of month)': 'SME',
+    'month end frequency': 'ME',
+    'quarter end frequency': 'QE',
+}
+# mapping from alias to display stem
+frequency_names = {
+    'D': 'day',
+    'W': 'week',
+    'SME': 'semi-month',
+    'ME': 'month',
+    'QE': 'quarter',
+}
 
+resample_frequency_widget = pn.widgets.Select(
+    name="frequency",
+    value='W',
+    options=time_series_frequencies,
+    sizing_mode="stretch_width",
+)
+
+
+class ResampledTimelineDataStore(pn.viewable.Viewer):
     # param-based class attributes and instance attributes
     data = param.DataFrame(
         per_instance=False,  # NOTE: share the DataFrame between objects
@@ -212,34 +220,24 @@ class ResampledTimelineDataStore(pn.viewable.Viewer):
         regex=r'^(?:author\.email|committer\.email)$',  # NOTE: two possible values, no capturing
         doc="If None, do only resampling.  If set, do resampling and group by specified column.",
     )
-    resample_frequency_widget = param.ClassSelector(
-        class_=pn.widgets.Select,
-        readonly=True,  # cannot be set to different value at all, not even in constructor
-        instantiate=False, per_instance=False,  # NOTE: share the between objects; use single selector
-        default=pn.widgets.Select(
-            name="frequency",
-            value='W',
-            options=time_series_frequencies,
-        )
-    )
 
     def __init__(self, **params):
         super().__init__(**params)
 
         self.resampled_timeline_rx = pn.rx(resample_timeline)(
             timeline_df=self.param.data.rx(),
-            resample_rate=self.resample_frequency_widget,
+            resample_rate=resample_frequency_widget,
             group_by=self.group_by,
         )
         if self.group_by is None:
             self.title = pn.rx("Perspective: repo={repo!r}, resample={resample!r} all") \
-                .format(repo=self.repo, resample=self.resample_frequency_widget)
+                .format(repo=self.repo, resample=resample_frequency_widget)
         else:
             self.title = pn.rx("Perspective: repo={repo!r}, resample={resample!r} by author") \
-                .format(repo=self.repo, resample=self.resample_frequency_widget)
+                .format(repo=self.repo, resample=resample_frequency_widget)
 
         self._widgets = [
-            self.resample_frequency_widget,
+            resample_frequency_widget,
         ]
 
     def __panel__(self):

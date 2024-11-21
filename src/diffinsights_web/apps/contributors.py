@@ -3,7 +3,7 @@
 import panel as pn
 
 import diffinsights_web.utils.notifications as notifications
-from diffinsights_web.datastore.timeline import TimelineDataStore, find_dataset_dir, ResampledTimelineDataStore
+from diffinsights_web.datastore.timeline import TimelineDataStore, ResampledTimelineDataStore, find_dataset_dir
 from diffinsights_web.utils.notifications import onload_callback
 from diffinsights_web.views.dataexplorer import TimelineJSONViewer, TimelinePerspective
 from diffinsights_web.widgets.caching import ClearCacheButton
