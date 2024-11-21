@@ -1,4 +1,5 @@
 import panel as pn
+import param
 
 from diffinsights_web.views import TimelineView
 
@@ -15,11 +16,23 @@ class TimelineJSONViewer(TimelineView):
 
 
 class TimelinePerspective(TimelineView):
+    title = param.String(
+        None,  # NOTE: `None` means generate value in constructor
+        allow_refs=True,  # allow for reactive expressions:
+        # https://param.holoviz.org/user_guide/References.html#other-reference-types
+    )
+
+    def __init__(self, **params):
+        super().__init__(**params)
+
+        if self.title is None:
+            self.title = pn.rx("Perspective: repo={repo!r}") \
+                .format(repo=self.data_store.select_repo_widget)
+
     def __panel__(self):
         return pn.pane.Perspective(
             self.data_store.timeline_df_rx,
-            title=pn.rx("Perspective: repo={repo!r}") \
-                .format(repo=self.data_store.select_repo_widget),
+            title=self.title,
             editable=False,
             width_policy='max',
             height=500,
