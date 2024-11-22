@@ -1,7 +1,44 @@
+import datetime
+
 import panel as pn
 import param
+from dateutil.relativedelta import relativedelta
 
 from diffinsights_web.datastore.timeline import frequency_names
+
+
+#: for the ContributorsHeader.select_period_from_widget
+time_range_period = {
+    'All': None,
+    'Last month': 1,
+    'Last 3 months': 3,
+    'Last 6 months': 6,
+    'Last 12 months': 12,
+    'Last 24 months': 24,
+}
+
+
+def time_range_options() -> dict[str, str]:
+    today = datetime.date.today()
+
+    return {
+        k: '' if v is None else (today + relativedelta(months=-v)).strftime('%d.%m.%Y')
+        for k, v in time_range_period.items()
+    }
+
+
+#: for the ContributorsHeader.select_contribution_type_widget
+contribution_types_map = {
+    "Commits": "n_commits",
+    "Additions": "+:count",
+    "Deletions": "-:count",
+    "Files changed": "file_names",
+    "Patch size (lines)": "diff.patch_size",
+    "Patch spreading (lines)": "diff.groups_spread"
+}
+column_to_contribution = {
+    v: k for k, v in contribution_types_map.items()
+}
 
 
 @pn.cache
@@ -29,6 +66,9 @@ class ContributorsHeader(pn.viewable.Viewer):
         'font-size': 'larger',
     }
 
+    widget_top_margin = 20
+    widget_gap_size = 5
+
     def __init__(self, **params):
         super().__init__(**params)
 
@@ -37,10 +77,29 @@ class ContributorsHeader(pn.viewable.Viewer):
             resample_freq=self.param.freq.rx(),
             freq_names=frequency_names,
         )
+        self.select_period_from_widget = pn.widgets.Select(
+            name="Period:",
+            options={'Any': ''},
+            value='Any',
+            # style
+            width=120,
+            margin=(self.widget_top_margin, self.widget_gap_size),
+        )
+        self.select_period_from_widget.options = time_range_options()
+        self.select_period_from_widget.value = ''
+
+        self.select_contribution_type_widget = pn.widgets.Select(
+            name="Contributions:",
+            options=contribution_types_map,
+            value="n_commits",
+            # style
+            width=180,
+            margin=(self.widget_top_margin, 0),  # last widget, use x margin of 0
+        )
 
     def __panel__(self):
         return pn.Row(
             pn.pane.HTML(self.head_text_rx, styles=self.head_styles),
-            # select_period_from_widget,
-            # select_contribution_type_widget,
+            self.select_period_from_widget,
+            self.select_contribution_type_widget,
         )
