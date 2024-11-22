@@ -7,6 +7,7 @@ from diffinsights_web.datastore.timeline import TimelineDataStore, find_dataset_
 from diffinsights_web.utils.notifications import onload_callback
 from diffinsights_web.views.dataexplorer import TimelineJSONViewer, TimelinePerspective, TimelineDataFrameEnum
 from diffinsights_web.views.info import ContributorsHeader
+from diffinsights_web.views.plots.timeseries import TimeseriesPlot
 from diffinsights_web.widgets.caching import ClearCacheButton
 
 
@@ -23,6 +24,11 @@ pn.state.onload(onload_callback)
 dataset_dir = find_dataset_dir()
 data_store = TimelineDataStore(dataset_dir=dataset_dir)
 
+page_header = ContributorsHeader(
+    repo=data_store.select_repo_widget,
+    freq=data_store.resample_frequency_widget,
+)
+
 # Create the dashboard layout
 template = pn.template.MaterialTemplate(
     site="diffannotator",
@@ -35,10 +41,12 @@ template = pn.template.MaterialTemplate(
     ],
     main=[
         pn.Column(
-            ContributorsHeader(
-                repo=data_store.select_repo_widget,
-                freq=data_store.resample_frequency_widget,
-            ),
+            page_header,
+        ),
+        TimeseriesPlot(
+            data_store=data_store,
+            column_name=page_header.select_contribution_type_widget,
+            from_date_str=page_header.select_period_from_widget,
         ),
     ],
 )
