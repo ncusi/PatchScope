@@ -28,6 +28,11 @@ page_header = ContributorsHeader(
     repo=data_store.select_repo_widget,
     freq=data_store.resample_frequency_widget,
 )
+timeseries_plot = TimeseriesPlot(
+    data_store=data_store,
+    column_name=page_header.select_contribution_type_widget,
+    from_date_str=page_header.select_period_from_widget,
+)
 
 # Create the dashboard layout
 template = pn.template.MaterialTemplate(
@@ -37,17 +42,14 @@ template = pn.template.MaterialTemplate(
     sidebar=[
         data_store,
         pn.layout.Divider(),
+        timeseries_plot.select_plot_theme_widget,
         ClearCacheButton(),
     ],
     main=[
         pn.Column(
             page_header,
         ),
-        TimeseriesPlot(
-            data_store=data_store,
-            column_name=page_header.select_contribution_type_widget,
-            from_date_str=page_header.select_period_from_widget,
-        ),
+        timeseries_plot,
     ],
 )
 timeline_perspective = TimelinePerspective(data_store=data_store)

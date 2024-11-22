@@ -124,11 +124,24 @@ class TimeseriesPlot(TimelineView):
             from_date_str=self.param.from_date_str.rx(),
         )
 
+        self.select_plot_theme_widget = pn.widgets.Select(
+            name="Plot theme:",
+            # see https://docs.bokeh.org/en/latest/docs/reference/themes.html
+            options=[
+                'caliber',
+                'carbon',
+                'dark_minimal',
+                'light_minimal',
+                'night_sky',
+                'contrast',
+            ],
+        )
+
     def __panel__(self) -> pn.viewable.Viewable:
         return pn.Card(
             pn.Column(
                 #pn.pane.HTML(sampling_info_rx, styles=head_styles),
-                pn.pane.HoloViews(self.plot_commits_rx)  # theme=select_plot_theme_widget
+                pn.pane.HoloViews(self.plot_commits_rx, theme=self.select_plot_theme_widget)
             ),
             collapsible=False, hide_header=True,
         )
