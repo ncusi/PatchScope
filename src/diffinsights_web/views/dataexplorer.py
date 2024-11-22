@@ -1,7 +1,6 @@
 from enum import Enum
 
 import panel as pn
-import param
 
 from diffinsights_web.views import TimelineView
 
@@ -30,7 +29,7 @@ class TimelinePerspective(TimelineView):
             title = pn.rx("Perspective: repo={repo!r}, resample={resample!r} all") \
                 .format(repo=self.data_store.select_repo_widget, resample=self.data_store.resample_frequency_widget)
         elif dataframe == TimelineDataFrameEnum.BY_AUTHOR_DATA:
-            df_rx = self.data_store.resample_timeline_by_author_rx
+            df_rx = self.data_store.resampled_timeline_by_author_rx
             title = pn.rx("Perspective: repo={repo!r}, resample={resample!r} by author") \
                 .format(repo=self.data_store.select_repo_widget, resample=self.data_store.resample_frequency_widget)
         else:

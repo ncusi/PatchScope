@@ -194,7 +194,7 @@ class TimelineDataStore(pn.viewable.Viewer):
             timeline_df=self.timeline_df_rx,
             resample_rate=self.resample_frequency_widget,
         )
-        self.resample_timeline_by_author_rx = pn.rx(resample_timeline)(
+        self.resampled_timeline_by_author_rx = pn.rx(resample_timeline)(
             timeline_df=self.timeline_df_rx,
             resample_rate=self.resample_frequency_widget,
             group_by=self.group_by,
