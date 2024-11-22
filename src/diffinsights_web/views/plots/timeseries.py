@@ -9,6 +9,25 @@ from diffinsights_web.utils.notifications import warning_notification
 from diffinsights_web.views import TimelineView
 
 
+@pn.cache
+def get_date_range(timeline_df: pd.DataFrame, from_date_str: str):
+    # TODO: create reactive component or bound function to compute from_date to avoid recalculations
+    # TODO: use parsed `from_date` instead of using raw `from_date_str`
+    min_date = timeline_df['author_date'].min()
+    if from_date_str:
+        from_date = pd.to_datetime(from_date_str, dayfirst=True, utc=True)
+        min_date = max(min_date, from_date)
+
+    ## DEBUG
+    #print(f"get_date_range(timeline_df=<{hex(id(timeline_df))}, {from_date_str=}>):")
+    #print(f"  {min_date=}, {timeline_df['author_date'].max()=}")
+
+    return (
+        min_date,
+        timeline_df['author_date'].max(),
+    )
+
+
 # NOTE: consider putting the filter earlier in the pipeline (needs profiling / benchmarking?)
 # TODO: replace `from_date_str` (raw string) with `from_date` (parsed value)
 def filter_df_by_from_date(resampled_df: pd.DataFrame,
@@ -121,6 +140,11 @@ class TimeseriesPlot(TimelineView):
         self.plot_commits_rx = pn.rx(plot_commits)(
             resampled_df=self.data_store.resampled_timeline_all_rx,
             column=self.param.column_name.rx(),
+            from_date_str=self.param.from_date_str.rx(),
+        )
+        # output: ranges
+        self.date_range_rx = pn.rx(get_date_range)(
+            timeline_df=self.data_store.timeline_df_rx,
             from_date_str=self.param.from_date_str.rx(),
         )
 
