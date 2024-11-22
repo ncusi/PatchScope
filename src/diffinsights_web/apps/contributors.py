@@ -39,6 +39,22 @@ by_author_data_store = ResampledTimelineDataStore(
 )
 
 
+# TODO: replace with Pipeline: https://panel.holoviz.org/how_to/pipeline/index.html
+#       instead of using .watch: https://panel.holoviz.org/how_to/links/watchers.html
+def update_resample_stores(value):
+    # change values
+    resampled_data_store.data = value
+    by_author_data_store.data = value
+    # notify changes
+    resampled_data_store.param.trigger('data')
+    by_author_data_store.param.trigger('data')
+
+
+timeline_data_store.timeline_df_rx.rx.watch(
+    update_resample_stores,
+    onlychanged=True,  # ignored by .rx.watch()
+)
+
 # Create the dashboard layout
 template = pn.template.MaterialTemplate(
     site="diffannotator",
