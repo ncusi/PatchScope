@@ -1,6 +1,7 @@
 import panel as pn
 import param
 
+from diffinsights_web.datastore.timeline import ResampledTimelineDataStore
 from diffinsights_web.views import TimelineView
 
 
@@ -33,6 +34,23 @@ class TimelinePerspective(TimelineView):
         return pn.pane.Perspective(
             self.data_store.timeline_df_rx,
             title=self.title,
+            editable=False,
+            width_policy='max',
+            height=500,
+        )
+
+
+# TODO?: remove this code duplication
+class ResampledTimelinePerspective(pn.viewable.Viewer):
+    data_store = param.ClassSelector(class_=ResampledTimelineDataStore)
+
+    def __init__(self, **params):
+        super().__init__(**params)
+
+    def __panel__(self):
+        return pn.pane.Perspective(
+            self.data_store.resampled_timeline_rx,
+            title=self.data_store.title,
             editable=False,
             width_policy='max',
             height=500,

@@ -7,7 +7,9 @@ from diffinsights_web.datastore.timeline import (
     TimelineDataStore, ResampledTimelineDataStore, find_dataset_dir, resample_frequency_widget
 )
 from diffinsights_web.utils.notifications import onload_callback
-from diffinsights_web.views.dataexplorer import TimelineJSONViewer, TimelinePerspective
+from diffinsights_web.views.dataexplorer import (
+    TimelineJSONViewer, TimelinePerspective, ResampledTimelinePerspective
+)
 from diffinsights_web.widgets.caching import ClearCacheButton
 
 
@@ -24,10 +26,12 @@ pn.state.onload(onload_callback)
 dataset_dir = find_dataset_dir()
 timeline_data_store = TimelineDataStore(dataset_dir=dataset_dir)
 resampled_data_store = ResampledTimelineDataStore(
+    name="resampled_all",
     data=timeline_data_store.timeline_df_rx,
     repo=timeline_data_store.select_repo_widget,
 )
 by_author_data_store = ResampledTimelineDataStore(
+    name="resampled_by_author",
     data=timeline_data_store.timeline_df_rx,
     repo=timeline_data_store.select_repo_widget,
     group_by='author.email',
@@ -53,6 +57,8 @@ template.main.extend([
     pn.Tabs(
         ('JSON', TimelineJSONViewer(data_store=timeline_data_store)),
         ('data', TimelinePerspective(data_store=timeline_data_store)),
+        ('resampled', ResampledTimelinePerspective(data_store=resampled_data_store)),
+        ('by author+resampled', ResampledTimelinePerspective(data_store=by_author_data_store)),
     ),
 ])
 
