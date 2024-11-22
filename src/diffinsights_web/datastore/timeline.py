@@ -80,53 +80,6 @@ def get_timeline_df(timeline_data: dict, repo: str) -> pd.DataFrame:
     return df
 
 
-class TimelineDataStore(pn.viewable.Viewer):
-    dataset_dir = param.Foldername(
-        constant=True,
-        doc="Dataset directory with *.timeline.*.json files",
-    )
-
-    def __init__(self, **params):
-        super().__init__(**params)
-
-        # select JSON data file
-        self.select_file_widget = pn.widgets.Select(
-            name="input JSON file",
-            options=find_timeline_files(self.param.dataset_dir)
-        )
-        self.timeline_data_rx = pn.rx(get_timeline_data)(
-            json_path=self.select_file_widget,
-        )
-        # select repo from selected JSON file
-        self.find_repos_rx = pn.rx(find_repos)(
-            timeline_data=self.timeline_data_rx,
-        )
-        self.select_repo_widget = pn.widgets.Select(
-            name="repository",
-            options=self.find_repos_rx,
-            disabled=len(self.find_repos_rx.rx.value) <= 1,
-        )
-        # convert extracted data to pd.DataFrame
-        self.timeline_df_rx = pn.rx(get_timeline_df)(
-            timeline_data=self.timeline_data_rx,
-            repo=self.select_repo_widget,
-        )
-
-        self._widgets = [
-            self.select_file_widget,
-            self.select_repo_widget,
-        ]
-
-    def __panel__(self):
-        return pn.WidgetBox(
-            *self._widgets,
-        )
-
-# ======================================================================
-# ----------------------------------------------------------------------
-# Resampled
-
-
 def agg_func_mapping():
     columns_agg_sum = ['n_commits']
     agg_func_sum = {col: 'sum' for col in columns_agg_sum}
@@ -190,57 +143,72 @@ frequency_names = {
     'QE': 'quarter',
 }
 
-# TODO?: make this widget default value for constructor parameter
-resample_frequency_widget = pn.widgets.Select(
-    name="frequency",
-    value='W',
-    options=time_series_frequencies,
-    sizing_mode="stretch_width",
-)
 
-
-class ResampledTimelineDataStore(pn.viewable.Viewer):
-    # param-based class attributes and instance attributes
-    data = param.DataFrame(
-        per_instance=False,  # NOTE: share the DataFrame between objects
-        columns={
-            'author_date', 'committer_date', # resample over either of those date columns
-            'author.email', 'committer.email',  # optionally group by either of those
-            *agg_func_mapping().keys(),  # aggregate these columns
-        },
-        allow_refs=True,  # allow for reactive expressions
-        doc="DataFrame with timeline data, extracted from gathered stats in the JSON file",
+class TimelineDataStore(pn.viewable.Viewer):
+    dataset_dir = param.Foldername(
+        constant=True,
+        doc="Dataset directory with *.timeline.*.json files",
     )
-    repo = param.String(
-        allow_refs=True,  # allow for reactive expressions
-        doc="Name of the repository, for documentation purposes only (e.g. in titles)",
-    )
-    group_by = param.String(
-        None, allow_None=True,
+    group_by = param.Selector(
+        default='author.email',
+        objects=[
+            'author.email',
+            'committer.email',
+        ],
         constant=True,  # can be set only in the constructor (without overrides)
-        regex=r'^(?:author\.email|committer\.email)$',  # NOTE: two possible values, no capturing
-        doc="If None, do only resampling.  If set, do resampling and group by specified column.",
     )
 
     def __init__(self, **params):
         super().__init__(**params)
 
-        self.resampled_timeline_rx = pn.rx(resample_timeline)(
-            #timeline_df=self.param.data.rx(),  # from https://panel.holoviz.org/tutorials/intermediate/structure_data_store.html
-            timeline_df=pn.rx(self.data),
-            resample_rate=resample_frequency_widget,
+        # select JSON data file, and extract data from it
+        self.select_file_widget = pn.widgets.Select(
+            name="input JSON file",
+            options=find_timeline_files(self.param.dataset_dir)
+        )
+        self.timeline_data_rx = pn.rx(get_timeline_data)(
+            json_path=self.select_file_widget,
+        )
+        # select repo from selected JSON file
+        self.find_repos_rx = pn.rx(find_repos)(
+            timeline_data=self.timeline_data_rx,
+        )
+        self.select_repo_widget = pn.widgets.Select(
+            name="repository",
+            options=self.find_repos_rx,
+            disabled=len(self.find_repos_rx.rx.value) <= 1,
+        )
+        # convert extracted data to pd.DataFrame
+        self.timeline_df_rx = pn.rx(get_timeline_df)(
+            timeline_data=self.timeline_data_rx,
+            repo=self.select_repo_widget,
+        )
+        # select resample frequency, and resample+groupby
+        self.resample_frequency_widget = pn.widgets.Select(
+            name="frequency",
+            value='W',
+            options=time_series_frequencies,
+            sizing_mode="stretch_width",
+        )
+        self.resampled_timeline_all_rx = pn.rx(resample_timeline)(
+            timeline_df=self.timeline_df_rx,
+            resample_rate=self.resample_frequency_widget,
+        )
+        self.resample_timeline_by_author_rx = pn.rx(resample_timeline)(
+            timeline_df=self.timeline_df_rx,
+            resample_rate=self.resample_frequency_widget,
             group_by=self.group_by,
         )
-        if self.group_by is None:
-            self.title = pn.rx("Perspective: repo={repo!r}, resample={resample!r} all") \
-                .format(repo=self.repo, resample=resample_frequency_widget)
-        else:
-            self.title = pn.rx("Perspective: repo={repo!r}, resample={resample!r} by author") \
-                .format(repo=self.repo, resample=resample_frequency_widget)
 
         self._widgets = [
-            resample_frequency_widget,
+            self.select_file_widget,
+            self.select_repo_widget,
+            self.resample_frequency_widget,
         ]
+
+    @param.output(param.DataFrame)
+    def timeline_data(self):
+        return self.timeline_data_rx
 
     def __panel__(self):
         return pn.WidgetBox(

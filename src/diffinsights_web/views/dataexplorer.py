@@ -1,8 +1,15 @@
+from enum import Enum
+
 import panel as pn
 import param
 
-from diffinsights_web.datastore.timeline import ResampledTimelineDataStore
 from diffinsights_web.views import TimelineView
+
+
+class TimelineDataFrameEnum(Enum):
+    TIMELINE_DATA = 'data'
+    RESAMPLED_DATA = 'resampled'
+    BY_AUTHOR_DATA = 'by author+resampled'
 
 
 class TimelineJSONViewer(TimelineView):
@@ -17,40 +24,24 @@ class TimelineJSONViewer(TimelineView):
 
 
 class TimelinePerspective(TimelineView):
-    title = param.String(
-        None,  # NOTE: `None` means generate value in constructor
-        allow_refs=True,  # allow for reactive expressions:
-        # https://param.holoviz.org/user_guide/References.html#other-reference-types
-    )
-
-    def __init__(self, **params):
-        super().__init__(**params)
-
-        if self.title is None:
-            self.title = pn.rx("Perspective: repo={repo!r}") \
+    def panel(self, dataframe: TimelineDataFrameEnum = TimelineDataFrameEnum.TIMELINE_DATA):
+        if dataframe == TimelineDataFrameEnum.RESAMPLED_DATA:
+            df_rx = self.data_store.resampled_timeline_all_rx
+            title = pn.rx("Perspective: repo={repo!r}, resample={resample!r} all") \
+                .format(repo=self.data_store.select_repo_widget, resample=self.data_store.resample_frequency_widget)
+        elif dataframe == TimelineDataFrameEnum.BY_AUTHOR_DATA:
+            df_rx = self.data_store.resample_timeline_by_author_rx
+            title = pn.rx("Perspective: repo={repo!r}, resample={resample!r} by author") \
+                .format(repo=self.data_store.select_repo_widget, resample=self.data_store.resample_frequency_widget)
+        else:
+            # dataframe == TimelineDataFrameEnum.TIMELINE_DATA:
+            df_rx = self.data_store.timeline_df_rx
+            title = pn.rx("Perspective: repo={repo!r}") \
                 .format(repo=self.data_store.select_repo_widget)
 
-    def __panel__(self):
         return pn.pane.Perspective(
-            self.data_store.timeline_df_rx,
-            title=self.title,
-            editable=False,
-            width_policy='max',
-            height=500,
-        )
-
-
-# TODO?: remove this code duplication
-class ResampledTimelinePerspective(pn.viewable.Viewer):
-    data_store = param.ClassSelector(class_=ResampledTimelineDataStore)
-
-    def __init__(self, **params):
-        super().__init__(**params)
-
-    def __panel__(self):
-        return pn.pane.Perspective(
-            self.data_store.resampled_timeline_rx,
-            title=self.data_store.title,
+            df_rx,
+            title=title,
             editable=False,
             width_policy='max',
             height=500,
