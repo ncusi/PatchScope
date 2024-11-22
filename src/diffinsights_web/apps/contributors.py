@@ -10,6 +10,7 @@ from diffinsights_web.utils.notifications import onload_callback
 from diffinsights_web.views.dataexplorer import (
     TimelineJSONViewer, TimelinePerspective, ResampledTimelinePerspective
 )
+from diffinsights_web.views.info import ContributorsHeader
 from diffinsights_web.widgets.caching import ClearCacheButton
 
 
@@ -37,6 +38,7 @@ by_author_data_store = ResampledTimelineDataStore(
     group_by='author.email',
 )
 
+
 # Create the dashboard layout
 template = pn.template.MaterialTemplate(
     site="diffannotator",
@@ -49,7 +51,12 @@ template = pn.template.MaterialTemplate(
         ClearCacheButton(),
     ],
     main=[
-        pn.pane.Markdown("# Contributions")
+        pn.Column(
+            ContributorsHeader(
+                repo=timeline_data_store.select_repo_widget,
+                freq=resample_frequency_widget,
+            ),
+        ),
     ],
 )
 template.main.extend([
