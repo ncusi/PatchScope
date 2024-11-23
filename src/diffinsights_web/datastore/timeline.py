@@ -97,60 +97,6 @@ def agg_func_mapping(pm_count_cols: Optional[list[str]] = None) -> dict[str, str
 
 
 @pn.cache
-def resample_timeline(timeline_df: pd.DataFrame,
-                      resample_rate: str,
-                      group_by: Optional[str] = None,
-                      date_column: str = 'author_date',
-                      pm_count_cols: Optional[list[str]] = None) -> pd.DataFrame:
-    # select appropriate aggregation function for specific columns
-    agg_func_map = agg_func_mapping(pm_count_cols)
-
-    # all columns to aggregate values of
-    columns_agg = list(agg_func_map.keys())
-
-    # aggregate over given period of time, i.e. resample
-    if group_by is None:
-        # resample only
-        df_r = timeline_df.resample(
-            resample_rate,
-            on=date_column,
-        )
-    else:
-        # group by and resample
-        df_r = timeline_df.groupby([
-            group_by,
-            pd.Grouper(
-                freq=resample_rate,
-                key=date_column,
-            )
-        ])
-
-    return df_r[columns_agg].agg(
-        agg_func_map,
-        numeric_only=True
-    )
-
-
-# mapping form display name to frequency alias
-# see table in https://pandas.pydata.org/docs/user_guide/timeseries.html#dateoffset-objects
-time_series_frequencies = {
-    'calendar day frequency': 'D',
-    'weekly frequency': 'W',
-    'semi-month end frequency (15th and end of month)': 'SME',
-    'month end frequency': 'ME',
-    'quarter end frequency': 'QE',
-}
-# mapping from alias to display stem
-frequency_names = {
-    'D': 'day',
-    'W': 'week',
-    'SME': 'semi-month',
-    'ME': 'month',
-    'QE': 'quarter',
-}
-
-
-@pn.cache
 def get_pm_count_cols(timeline_df: pd.DataFrame) -> list[str]:
     print(f"RUNNING get_pm_count_cols(timeline_df={type(timeline_df)}(<{hex(id(timeline_df))}>))")
     print(f"  {timeline_df.columns=}")
@@ -196,6 +142,62 @@ def add_pm_count_perc(resampled_df: pd.DataFrame,
 
     print(f"  returned DataFrame(<{hex(id(resampled_df))}>)")
     return resampled_df
+
+
+@pn.cache
+def resample_timeline(timeline_df: pd.DataFrame,
+                      resample_rate: str,
+                      group_by: Optional[str] = None,
+                      date_column: str = 'author_date',
+                      pm_count_cols: Optional[list[str]] = None) -> pd.DataFrame:
+    # select appropriate aggregation function for specific columns
+    agg_func_map = agg_func_mapping(pm_count_cols)
+
+    # all columns to aggregate values of
+    columns_agg = list(agg_func_map.keys())
+
+    # aggregate over given period of time, i.e. resample
+    if group_by is None:
+        # resample only
+        df_r = timeline_df.resample(
+            resample_rate,
+            on=date_column,
+        )
+    else:
+        # group by and resample
+        df_r = timeline_df.groupby([
+            group_by,
+            pd.Grouper(
+                freq=resample_rate,
+                key=date_column,
+            )
+        ])
+
+    df_agg = df_r[columns_agg].agg(
+        agg_func_map,
+        numeric_only=True
+    )
+    # add [%] columns to resampled timelines
+    return add_pm_count_perc(df_agg, pm_count_cols)
+
+
+# mapping form display name to frequency alias
+# see table in https://pandas.pydata.org/docs/user_guide/timeseries.html#dateoffset-objects
+time_series_frequencies = {
+    'calendar day frequency': 'D',
+    'weekly frequency': 'W',
+    'semi-month end frequency (15th and end of month)': 'SME',
+    'month end frequency': 'ME',
+    'quarter end frequency': 'QE',
+}
+# mapping from alias to display stem
+frequency_names = {
+    'D': 'day',
+    'W': 'week',
+    'SME': 'semi-month',
+    'ME': 'month',
+    'QE': 'quarter',
+}
 
 
 class TimelineDataStore(pn.viewable.Viewer):
@@ -268,13 +270,6 @@ class TimelineDataStore(pn.viewable.Viewer):
               f"rx -> <{hex(id(self.resampled_timeline_all_rx))}>")
         print(f"  resampled_timeline_by_author -> <{hex(id(self.resampled_timeline_by_author_rx.rx.value))}>, "
               f"rx -> <{hex(id(self.resampled_timeline_by_author_rx))}>")
-
-        # add [%] columns to resampled timelines, currently only to all_rx
-        # TODO: NOTE: currently this is not reactive (!)
-        self.resampled_timeline_all_rx.rx.value = \
-            add_pm_count_perc(self.resampled_timeline_all_rx, self.pm_count_cols)
-        self.resampled_timeline_by_author_rx.rx.value = \
-            add_pm_count_perc(self.resampled_timeline_by_author_rx, self.pm_count_cols)
 
         self._widgets = [
             self.select_file_widget,
