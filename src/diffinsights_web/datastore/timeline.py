@@ -80,12 +80,17 @@ def get_timeline_df(timeline_data: dict, repo: str) -> pd.DataFrame:
     return df
 
 
-def agg_func_mapping():
+def agg_func_mapping(pm_count_cols: Optional[list[str]] = None) -> dict[str, str]:
+    if pm_count_cols is None:
+        pm_count_cols = ['+:count', '-:count']
+
+    # there is always one commit per commit; 'n_commits' is always 1 in timeline_df
+    # so any other aggregation function than 'sum' does not make sense for 'n_commits' column
     columns_agg_sum = ['n_commits']
     agg_func_sum = {col: 'sum' for col in columns_agg_sum}
 
-    agg_func = 'sum'
-    columns_agg_any = ['+:count', '-:count', 'file_names', 'diff.patch_size', 'diff.groups_spread']
+    agg_func = 'sum'  # TODO: make it a parameter to this function, and make it selectable
+    columns_agg_any = ['file_names', *pm_count_cols, 'diff.patch_size', 'diff.groups_spread']
     agg_func_any = {col: agg_func for col in columns_agg_any}
 
     return agg_func_sum | agg_func_any
@@ -95,9 +100,10 @@ def agg_func_mapping():
 def resample_timeline(timeline_df: pd.DataFrame,
                       resample_rate: str,
                       group_by: Optional[str] = None,
-                      date_column: str = 'author_date') -> pd.DataFrame:
+                      date_column: str = 'author_date',
+                      pm_count_cols: Optional[list[str]] = None) -> pd.DataFrame:
     # select appropriate aggregation function for specific columns
-    agg_func_map = agg_func_mapping()
+    agg_func_map = agg_func_mapping(pm_count_cols)
 
     # all columns to aggregate values of
     columns_agg = list(agg_func_map.keys())
@@ -144,6 +150,54 @@ frequency_names = {
 }
 
 
+@pn.cache
+def get_pm_count_cols(timeline_df: pd.DataFrame) -> list[str]:
+    print(f"RUNNING get_pm_count_cols(timeline_df={type(timeline_df)}(<{hex(id(timeline_df))}>))")
+    print(f"  {timeline_df.columns=}")
+    # for every '-:column' there should be '+:column'
+    pm_count_cols_set = {
+        col[2:] for col in timeline_df.columns
+        if col.startswith('+:') or col.startswith('-:')
+    }
+    print(f"  {pm_count_cols_set=}")
+    pm_count_cols = [
+        col
+        for col_base in pm_count_cols_set
+        for col in [f"-:{col_base}", f"+:{col_base}"]
+    ]
+    print(f"  {pm_count_cols=}")
+    return pm_count_cols
+
+
+# @pn.cache
+def add_pm_count_perc(resampled_df: pd.DataFrame,
+                      pm_count_cols: list[str]) -> pd.DataFrame:
+    ## DEBUG
+    print(f"RUNNING add_pm_count_perc(resampled_df=DataFrame(<{hex(id(resampled_df))}>, "
+          f"pm_count_cols=[{', '.join(pm_count_cols[:6])},...])")
+    print(f"  {resampled_df.columns=}")
+    for col in pm_count_cols:
+        if col in {'-:count', '+:count'}:  # '-:count' or '+:count'
+            continue
+
+        if col not in resampled_df:
+            print(f"  ZERO {col}")
+            resampled_df.loc[:, col] = 0
+
+        col_perc = f"{col} [%]"
+        if col_perc in resampled_df.columns:
+            print(f"  SKIP {col_perc}")
+            continue
+
+        if col.startswith('+:'):
+            resampled_df.loc[:, col_perc] = resampled_df[col] / resampled_df['+:count']
+        elif col.startswith('-:'):
+            resampled_df.loc[:, col_perc] = resampled_df[col] / resampled_df['-:count']
+
+    print(f"  returned DataFrame(<{hex(id(resampled_df))}>)")
+    return resampled_df
+
+
 class TimelineDataStore(pn.viewable.Viewer):
     dataset_dir = param.Foldername(
         constant=True,
@@ -183,6 +237,11 @@ class TimelineDataStore(pn.viewable.Viewer):
             timeline_data=self.timeline_data_rx,
             repo=self.select_repo_widget,
         )
+
+        # select which extra columns to aggregate over (preserve in resampled dataframe)
+        # NOTE: reactive expression doesn't play well with set(), hence passing .rx.value
+        self.pm_count_cols = get_pm_count_cols(self.timeline_df_rx.rx.value)
+
         # select resample frequency, and resample+groupby
         self.resample_frequency_widget = pn.widgets.Select(
             name="frequency",
@@ -193,12 +252,29 @@ class TimelineDataStore(pn.viewable.Viewer):
         self.resampled_timeline_all_rx = pn.rx(resample_timeline)(
             timeline_df=self.timeline_df_rx,
             resample_rate=self.resample_frequency_widget,
+            pm_count_cols=self.pm_count_cols,
         )
         self.resampled_timeline_by_author_rx = pn.rx(resample_timeline)(
             timeline_df=self.timeline_df_rx,
             resample_rate=self.resample_frequency_widget,
             group_by=self.group_by,
+            pm_count_cols=self.pm_count_cols,
         )
+
+        ## DEBUG
+        print(f"  timeline_df                  -> <{hex(id(self.timeline_df_rx.rx.value))}>, "
+              f"rx -> <{hex(id(self.timeline_df_rx))}>")
+        print(f"  resampled_timeline_all       -> <{hex(id(self.resampled_timeline_all_rx.rx.value))}>, "
+              f"rx -> <{hex(id(self.resampled_timeline_all_rx))}>")
+        print(f"  resampled_timeline_by_author -> <{hex(id(self.resampled_timeline_by_author_rx.rx.value))}>, "
+              f"rx -> <{hex(id(self.resampled_timeline_by_author_rx))}>")
+
+        # add [%] columns to resampled timelines, currently only to all_rx
+        # TODO: NOTE: currently this is not reactive (!)
+        self.resampled_timeline_all_rx.rx.value = \
+            add_pm_count_perc(self.resampled_timeline_all_rx, self.pm_count_cols)
+        self.resampled_timeline_by_author_rx.rx.value = \
+            add_pm_count_perc(self.resampled_timeline_by_author_rx, self.pm_count_cols)
 
         self._widgets = [
             self.select_file_widget,
