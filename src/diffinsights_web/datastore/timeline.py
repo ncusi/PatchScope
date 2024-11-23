@@ -98,20 +98,22 @@ def agg_func_mapping(pm_count_cols: Optional[list[str]] = None) -> dict[str, str
 
 @pn.cache
 def get_pm_count_cols(timeline_df: pd.DataFrame) -> list[str]:
-    print(f"RUNNING get_pm_count_cols(timeline_df={type(timeline_df)}(<{hex(id(timeline_df))}>))")
-    print(f"  {timeline_df.columns=}")
+    ## DEBUG
+    # TODO: replace with logging
+    #print(f"RUNNING get_pm_count_cols(timeline_df={type(timeline_df)}(<{hex(id(timeline_df))}>))")
+    #print(f"  {timeline_df.columns=}")
     # for every '-:column' there should be '+:column'
     pm_count_cols_set = {
         col[2:] for col in timeline_df.columns
         if col.startswith('+:') or col.startswith('-:')
     }
-    print(f"  {pm_count_cols_set=}")
+    #print(f"  {pm_count_cols_set=}")
     pm_count_cols = [
         col
         for col_base in pm_count_cols_set
         for col in [f"-:{col_base}", f"+:{col_base}"]
     ]
-    print(f"  {pm_count_cols=}")
+    #print(f"  {pm_count_cols=}")
     return pm_count_cols
 
 
@@ -119,20 +121,21 @@ def get_pm_count_cols(timeline_df: pd.DataFrame) -> list[str]:
 def add_pm_count_perc(resampled_df: pd.DataFrame,
                       pm_count_cols: list[str]) -> pd.DataFrame:
     ## DEBUG
-    print(f"RUNNING add_pm_count_perc(resampled_df=DataFrame(<{hex(id(resampled_df))}>, "
-          f"pm_count_cols=[{', '.join(pm_count_cols[:6])},...])")
-    print(f"  {resampled_df.columns=}")
+    # TODO: replace with logging
+    #print(f"RUNNING add_pm_count_perc(resampled_df=DataFrame(<{hex(id(resampled_df))}>, "
+    #      f"pm_count_cols=[{', '.join(pm_count_cols[:6])},...])")
+    #print(f"  {resampled_df.columns=}")
     for col in pm_count_cols:
         if col in {'-:count', '+:count'}:  # '-:count' or '+:count'
             continue
 
         if col not in resampled_df:
-            print(f"  ZERO {col}")
+            #print(f"  ZERO {col}")
             resampled_df.loc[:, col] = 0
 
         col_perc = f"{col} [%]"
         if col_perc in resampled_df.columns:
-            print(f"  SKIP {col_perc}")
+            #print(f"  SKIP {col_perc}")
             continue
 
         if col.startswith('+:'):
@@ -140,7 +143,7 @@ def add_pm_count_perc(resampled_df: pd.DataFrame,
         elif col.startswith('-:'):
             resampled_df.loc[:, col_perc] = resampled_df[col] / resampled_df['-:count']
 
-    print(f"  returned DataFrame(<{hex(id(resampled_df))}>)")
+    #print(f"  returned DataFrame(<{hex(id(resampled_df))}>)")
     return resampled_df
 
 
@@ -264,12 +267,13 @@ class TimelineDataStore(pn.viewable.Viewer):
         )
 
         ## DEBUG
-        print(f"  timeline_df                  -> <{hex(id(self.timeline_df_rx.rx.value))}>, "
-              f"rx -> <{hex(id(self.timeline_df_rx))}>")
-        print(f"  resampled_timeline_all       -> <{hex(id(self.resampled_timeline_all_rx.rx.value))}>, "
-              f"rx -> <{hex(id(self.resampled_timeline_all_rx))}>")
-        print(f"  resampled_timeline_by_author -> <{hex(id(self.resampled_timeline_by_author_rx.rx.value))}>, "
-              f"rx -> <{hex(id(self.resampled_timeline_by_author_rx))}>")
+        # TODO: replace with logging
+        #print(f"  timeline_df                  -> <{hex(id(self.timeline_df_rx.rx.value))}>, "
+        #      f"rx -> <{hex(id(self.timeline_df_rx))}>")
+        #print(f"  resampled_timeline_all       -> <{hex(id(self.resampled_timeline_all_rx.rx.value))}>, "
+        #      f"rx -> <{hex(id(self.resampled_timeline_all_rx))}>")
+        #print(f"  resampled_timeline_by_author -> <{hex(id(self.resampled_timeline_by_author_rx.rx.value))}>, "
+        #      f"rx -> <{hex(id(self.resampled_timeline_by_author_rx))}>")
 
         self._widgets = [
             self.select_file_widget,
