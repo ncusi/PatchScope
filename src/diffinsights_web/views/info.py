@@ -34,7 +34,9 @@ contribution_types_map = {
     "Deletions": "-:count",
     "Files changed": "file_names",
     "Patch size (lines)": "diff.patch_size",
-    "Patch spreading (lines)": "diff.groups_spread"
+    "Patch spreading (lines)": "diff.groups_spread",
+    # special cases:
+    "Line types distribution +:[%]": "KIND [%]",
 }
 column_to_contribution = {
     v: k for k, v in contribution_types_map.items()

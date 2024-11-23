@@ -90,6 +90,10 @@ def plot_commits(resampled_df: pd.DataFrame,
         else:
             ylim = (-1, ylim[1])
 
+    # special cases: y range limits
+    if column == "KIND [%]":
+        ylim = (0.0, 1.05)
+
     # via https://oklch-palette.vercel.app/ and https://htmlcolorcodes.com/rgb-to-hex/
     color_map = {
         'n_commits': '#006dd8',
@@ -103,28 +107,80 @@ def plot_commits(resampled_df: pd.DataFrame,
     }
     color = color_map.get(column, '#006dd8')
 
-    plot = filtered_df.hvplot(
-        x='author_date', y=column,
-        kind=kind,
-        color=color,
-        responsive=True,
-        hover='vline',
-        grid=True,
-        xlim=xlim, xlabel='',
-        ylim=ylim, ylabel='Contributions',
-        padding=(0.005, 0),
-        tools=[
-            'xpan',
-            'box_zoom',
-            'save',
-            'reset',
-            'hover',
-        ],
-        **hvplot_kwargs,
-    )
+    # special cases: the plot itself
+    if column == "KIND [%]":
+        kind_perc_columns = [
+            col for col in resampled_df.columns
+            if col.startswith('+:type.') and col.endswith(' [%]')
+        ]
+        if not kind_perc_columns:
+            warning_notification("No columns found for 'KIND [%]' plot")
+            kind_perc_columns = '+:count'  # fallback
+            ylim = (-1, None)
+
+        if kind not in {'bar', 'area'}:  # plots that support `stacked=True`
+            kind = 'area'
+        if kind == 'area':  # 'hover' for area plot with hvplot (bokeh backend) is useless
+            tools = [
+                'xpan',
+                'box_zoom',
+                'save',
+                'reset',
+            ]
+        else:
+            tools = [
+                'xpan',
+                'box_zoom',
+                'save',
+                'reset',
+                'hover',
+            ]
+        # NOTE: somehow the area plot has 'wheel_zoom' and 'hover' tools anyway
+
+        plot = filtered_df.hvplot(
+            x='author_date',
+            y=kind_perc_columns,
+            kind=kind,
+            stacked=True,  # cumulative plot, should stack to 1.0 (to 100.0 %)
+            legend='bottom',
+            responsive=True,
+            hover='vline',
+            grid=True,
+            xlim=xlim, xlabel='',
+            ylim=ylim, ylabel='Line types [%]',
+            padding=(0.005, 0),
+            tools=tools,
+            **hvplot_kwargs,
+        )
+        if kind == 'area':
+            plot.opts(active_tools=['xpan'])
+        else:
+            plot.opts(active_tools=['hover'])
+
+    else:
+        plot = filtered_df.hvplot(
+            x='author_date', y=column,
+            kind=kind,
+            color=color,
+            responsive=True,
+            hover='vline',
+            grid=True,
+            xlim=xlim, xlabel='',
+            ylim=ylim, ylabel='Contributions',
+            padding=(0.005, 0),
+            tools=[
+                'xpan',
+                'box_zoom',
+                'save',
+                'reset',
+                'hover',
+            ],
+            **hvplot_kwargs,
+        )
     # manually specifying the default tools gets rid of any preset default tools
     # you also just use an empty list here to use only chosen tools
     plot.opts(default_tools=[], responsive=True, toolbar='above')
+    # MAYBE: backend_opts={"plot.toolbar.autohide": True}
 
     return plot
 
