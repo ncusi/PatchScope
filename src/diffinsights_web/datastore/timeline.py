@@ -111,6 +111,7 @@ def get_pm_count_cols(timeline_df: pd.DataFrame) -> list[str]:
     pm_count_cols = [
         col
         for col_base in pm_count_cols_set
+        if col_base.startswith('type.') or col_base == 'count'  # only types of lines
         for col in [f"-:{col_base}", f"+:{col_base}"]
     ]
     #print(f"  {pm_count_cols=}")
