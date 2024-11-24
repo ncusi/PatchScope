@@ -7,6 +7,8 @@ vars:
         url: https://github.com/tensorflow/tensorflow.git
       - name: qtile
         url: https://github.com/qtile/qtile.git
+      - name: linux
+        url: git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git
   # repositories, and authors in those repositories, to analyze/annotate
   - authors:
       - repo: tensorflow
@@ -19,6 +21,9 @@ vars:
         nick: all_authors-no_merges
         # --max-parents=1 is the same as --no-merges
         args: --max-parents=1
+      - repo: linux
+        nick: all_authors-last_release
+        args: --max-parents=1 v6.8..v6.9
 
 stages:
   clone:
