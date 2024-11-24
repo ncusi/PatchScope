@@ -59,6 +59,23 @@ def filter_df_by_from_date(resampled_df: pd.DataFrame,
     return filtered_df
 
 
+def line_type_sorting_key(column_name: str) -> int:
+    if 'type.code' in column_name:
+        return 1
+    elif 'type.documentation' in column_name:
+        return 2
+    elif 'type.test' in column_name:
+        return 3
+    elif 'type.data' in column_name:
+        return 4
+    elif 'type.markup' in column_name:
+        return 5
+    elif 'type.other' in column_name:
+        return 99
+    else:
+        return 10
+
+
 def plot_commits(resampled_df: pd.DataFrame,
                  column: str = 'n_commits',
                  from_date_str: str = '',
@@ -113,6 +130,7 @@ def plot_commits(resampled_df: pd.DataFrame,
             col for col in resampled_df.columns
             if col.startswith('+:type.') and col.endswith(' [%]')
         ]
+        kind_perc_columns.sort(key=line_type_sorting_key)
         if not kind_perc_columns:
             warning_notification("No columns found for 'KIND [%]' plot")
             kind_perc_columns = '+:count'  # fallback
@@ -145,7 +163,7 @@ def plot_commits(resampled_df: pd.DataFrame,
             legend='bottom',
             responsive=True,
             hover='vline',
-            grid=True,
+            grid=True,  # hidden under cumulative stacked plot
             xlim=xlim, xlabel='',
             ylim=ylim, ylabel='Line types [%]',
             padding=(0.005, 0),
@@ -158,7 +176,7 @@ def plot_commits(resampled_df: pd.DataFrame,
             # - shows `colormap` option for 'line', 'bar', and some line based plots
             # https://pandas.pydata.org/docs/user_guide/visualization.html#colormaps
             # https://matplotlib.org/stable/gallery/color/colormap_reference.html
-            colormap='Greens',  # ignored for 'area' plots?
+            #colormap='Greens',  # ignored for 'area' plots?
             # end testing
             **hvplot_kwargs,
         )
