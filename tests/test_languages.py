@@ -239,4 +239,3 @@ def test_languages_extra_cases_linux(caplog: LogCaptureFixture):
 
     #actual = langs.annotate('scripts/stackusage')
     #expected = {'language': 'Shell', 'type': 'programming', 'purpose': 'programming'}
-

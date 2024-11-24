@@ -13,17 +13,44 @@ vars:
   - authors:
       - repo: tensorflow
         nick: ezhulenev
+        annotate_args: ''
         args: --author=ezhulenev@google.com
       - repo: tensorflow
         nick: yong.tang
+        annotate_args: ''
         args: --author=yong.tang.github@outlook.com
       - repo: qtile
         nick: all_authors-no_merges
+        annotate_args: ''
         # --max-parents=1 is the same as --no-merges
         args: --max-parents=1
       - repo: linux
         nick: all_authors-last_release
-        args: --max-parents=1 v6.8..v6.9
+        # using folded style (denoted by “>”), with strip chomping mode (denoted by "-")
+        # we could have maybe used DVC dictionary unpacking instead
+        # https://dvc.org/doc/user-guide/project-structure/dvcyaml-files#dictionary-unpacking
+        annotate_args: >-
+          --ext-to-language=.rs:Rust
+          --filename-to-language=Makefile.lib:Makefile
+          --filename-to-language=Makefile.config:Makefile
+          --filename-to-language=Makefile.deps:Makefile
+          --filename-to-language=Makefile.perf:Makefile
+          --filename-to-language=Makefile.ubsan:Makefile
+          --pattern-to-purpose=Makefile.*:project
+          --filename-to-language=Kconfig:Kconfig
+          --filename-to-language=Kconfig.debug:Kconfig
+          --pattern-to-purpose=Kconfig*:project
+          --ext-to-language=".S:Unix Assembly"
+          --ext-to-language=".rules:Udev Rules File"
+          --filename-to-language=README:Text
+          --filename-to-language=CONTRIBUTORS:Text
+          --filename-to-language=MAINTAINERS:Text
+          --ext-to-language=".dts:Device Tree Source"
+          --ext-to-language=".dtsi:Device Tree Source include"
+          --ext-to-language=".dtso:Device Tree Source overlay"
+          --pattern-to-purpose=*.dts:data
+          --pattern-to-purpose=*.dts?:data
+        args:  --max-parents=1 v6.8..v6.9
 
 stages:
   clone:
@@ -46,7 +73,7 @@ stages:
     do:
       desc: 'Generating annotations for ${item.nick} from-repo ${item.repo}'
       cmd: >-
-        diff-annotate from-repo
+        diff-annotate ${item.annotate_args} from-repo
         --output-dir=data/examples/annotations/${item.repo}/${item.nick}/
         ${repos_dir}/${item.repo}
         ${item.args}
