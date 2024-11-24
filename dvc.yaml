@@ -21,7 +21,13 @@ vars:
         args: --author=yong.tang.github@outlook.com
       - repo: qtile
         nick: all_authors-no_merges
-        annotate_args: ''
+        annotate_args: >-
+          --ext-to-language=".hgignore:Ignore List"
+          --filename-to-language=".hgignore:Ignore List"
+          --filename-to-language=README:Text
+          --filename-to-language=PACKAGING:Text
+          --filename-to-language=BUILDING:Text
+          --filename-to-language=changelog:Text
         # --max-parents=1 is the same as --no-merges
         args: --max-parents=1
       - repo: linux
