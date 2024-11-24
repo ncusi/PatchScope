@@ -150,6 +150,16 @@ def plot_commits(resampled_df: pd.DataFrame,
             ylim=ylim, ylabel='Line types [%]',
             padding=(0.005, 0),
             tools=tools,
+            # start testing
+            #interpolation='steps-mid',  # interpolation option not found for area plot with bokeh
+            #drawstyle='steps-mid',  # drawstyle option not found for area plot with boke
+            #step='mid',  # step option not found for area plot with bokeh
+            # https://hvplot.holoviz.org/user_guide/Pandas_API.html#colormaps
+            # - shows `colormap` option for 'line', 'bar', and some line based plots
+            # https://pandas.pydata.org/docs/user_guide/visualization.html#colormaps
+            # https://matplotlib.org/stable/gallery/color/colormap_reference.html
+            colormap='Greens',  # ignored for 'area' plots?
+            # end testing
             **hvplot_kwargs,
         )
         if kind == 'area':
