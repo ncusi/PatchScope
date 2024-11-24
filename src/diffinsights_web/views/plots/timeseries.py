@@ -136,6 +136,28 @@ def plot_commits(resampled_df: pd.DataFrame,
             kind_perc_columns = '+:count'  # fallback
             ylim = (-1, None)
 
+        # no support for mapping from column name to color; single color or list
+        # https://hvplot.holoviz.org/user_guide/Customization.html (color : str or array-like)
+
+        # based on https://sashamaps.net/docs/resources/20-colors/
+        kind_perc_colors = [
+            '#4363d8',  # type.code - blue used for keyword in syntax highlighting
+            '#9A6324',  # type.documentation - brown
+            # alternatives: grey for comments, green for strings, violet for Markown header
+            '#3cb44b',  # type.test - green
+            '#ffe119',  # type.data - yellow
+            '#800000',  # type.markup - maroon
+            '#a9a9a9',  # type.other - grey
+            # reserve
+            '#e6194B',  # red
+            '#f58231',  # orange
+            '#911eb4',  # purple
+            '#42d4f4',  # cyan
+            '#f032e6',  # magenta
+            '#bfef45',  # lime
+            # ...
+        ]
+
         if kind not in {'bar', 'area'}:  # plots that support `stacked=True`
             kind = 'area'
         if kind == 'area':  # 'hover' for area plot with hvplot (bokeh backend) is useless
@@ -158,6 +180,7 @@ def plot_commits(resampled_df: pd.DataFrame,
         plot = filtered_df.hvplot(
             x='author_date',
             y=kind_perc_columns,
+            color=kind_perc_colors,
             kind=kind,
             stacked=True,  # cumulative plot, should stack to 1.0 (to 100.0 %)
             legend='bottom',
@@ -166,6 +189,7 @@ def plot_commits(resampled_df: pd.DataFrame,
             grid=True,  # hidden under cumulative stacked plot
             xlim=xlim, xlabel='',
             ylim=ylim, ylabel='Line types [%]',
+            #clabel='Line types (kinds)',  # NOTE: does not work for legend title
             padding=(0.005, 0),
             tools=tools,
             # start testing
