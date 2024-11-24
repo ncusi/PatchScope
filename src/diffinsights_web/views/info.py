@@ -95,7 +95,7 @@ class ContributorsHeader(pn.viewable.Viewer):
             options=contribution_types_map,
             value="n_commits",
             # style
-            width=180,
+            width=200,
             margin=(self.widget_top_margin, 0),  # last widget, use x margin of 0
         )
 
