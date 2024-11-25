@@ -7,7 +7,7 @@ import param
 import hvplot.pandas  # noqa
 
 from diffinsights_web.datastore.timeline import \
-    get_date_range, get_value_range, filter_df_by_from_date, authors_info_df
+    get_date_range, get_value_range, filter_df_by_from_date, authors_info_df, author_timeline_df_freq
 from diffinsights_web.utils.notifications import warning_notification
 from diffinsights_web.views import TimelineView
 
@@ -252,8 +252,14 @@ class TimeseriesPlotForAuthor(TimelineView):
         #print("TimeseriesPlotForAuthor.__init__()")
         super().__init__(**params)
 
+        self.resampled_df_rx = pn.rx(author_timeline_df_freq)(
+            resample_by_author_df=self.main_plot.data_store.resampled_timeline_by_author_rx,
+            author_id=self.author_email,
+            resample_rate=self.data_store.resample_frequency_widget,
+        )
+
         self.plot_commits_rx = pn.rx(plot_commits)(
-            resampled_df=self.main_plot.data_store.resampled_timeline_by_author_rx.loc[self.author_email],
+            resampled_df=self.resampled_df_rx,
             column=self.main_plot.param.column_name.rx(),
             from_date_str=self.main_plot.param.from_date_str.rx(),
             xlim=self.main_plot.date_range_rx,

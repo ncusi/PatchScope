@@ -173,7 +173,7 @@ class AuthorsGrid(TimelineView):
     @param.depends('authors_info_df', 'top_n', watch=True)
     def update_authors_grid(self) -> None:
         ## DEBUG
-        print(f"RUNNING update_authors_grid(), with repo={self.data_store.select_repo_widget.value}, top_n={self.top_n},...")
+        #print(f"RUNNING update_authors_grid(), with repo={self.data_store.select_repo_widget.value}, top_n={self.top_n},...")
 
         self.authors_grid.clear()
         self.authors_grid.extend(
