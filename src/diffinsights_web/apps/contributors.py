@@ -8,6 +8,7 @@ import panel as pn
 import diffinsights_web.utils.notifications as notifications
 from diffinsights_web.datastore.timeline import TimelineDataStore, find_dataset_dir, author_timeline_df
 from diffinsights_web.utils.notifications import onload_callback
+from diffinsights_web.views.authorsgrid import AuthorInfo
 from diffinsights_web.views.dataexplorer import TimelineJSONViewer, TimelinePerspective, TimelineDataFrameEnum, \
     perspective_pane
 from diffinsights_web.views.info import ContributorsHeader, RepoPlotHeader
@@ -42,31 +43,9 @@ timeseries_plot_header = RepoPlotHeader(
     column_name=page_header.select_contribution_type_widget,
     plot=timeseries_plot,
 )
-
-
-def authors_list(authors_df: pd.DataFrame,
-                 top_n: Optional[int] = None) -> list[str]:
-    # TODO: return mapping { "[name] <[email]>": "[email]",... },
-    #       instead of returning list of emails [ "[email]",... ]
-    if top_n is None:
-        return authors_df.index.to_list()
-    else:
-        return authors_df.head(top_n).index.to_list()
-
-
-# might be not a Select widget
-top_n_widget = pn.widgets.Select(name="top N", options=[4,10,32], value=4)
-authors_list_rx = pn.rx(authors_list)(
-    authors_df=timeseries_plot.authors_info_df_rx,  # depends: column, from_date_str
-    top_n=top_n_widget,
-)
-select_author_widget = pn.widgets.Select(
-    name="author",
-    options=authors_list_rx,
-)
-author_timeline_df_rx = pn.rx(author_timeline_df)(
-    resample_by_author_df=data_store.resampled_timeline_by_author_rx,
-    author_id=select_author_widget,
+authors_info_panel = AuthorInfo(
+    data_store=data_store,
+    authors_info_df=timeseries_plot.authors_info_df_rx,
 )
 
 # Create the dashboard layout
@@ -76,7 +55,7 @@ template = pn.template.MaterialTemplate(
     favicon="favicon.svg",
     sidebar=[
         data_store,
-        top_n_widget,
+        *authors_info_panel.widgets(),
 
         pn.layout.Divider(),  # - - - - - - - - - - - - -
 
@@ -113,19 +92,7 @@ template.main.extend([
                             from_date=page_header.select_period_from_widget)
             )
         ),
-        (
-            'selected author',
-            pn.Column(
-                select_author_widget,
-                perspective_pane(
-                    df=author_timeline_df_rx,
-                    title=pn.rx("repo={repo!r}, author={author!r}").format(
-                        repo=data_store.select_repo_widget,
-                        author=select_author_widget,
-                    ),
-                ),
-            )
-        ),
+        ('selected author', authors_info_panel),
     ),
 ])
 
