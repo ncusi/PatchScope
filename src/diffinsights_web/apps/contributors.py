@@ -6,7 +6,7 @@ import diffinsights_web.utils.notifications as notifications
 from diffinsights_web.datastore.timeline import TimelineDataStore, find_dataset_dir
 from diffinsights_web.utils.notifications import onload_callback
 from diffinsights_web.views.dataexplorer import TimelineJSONViewer, TimelinePerspective, TimelineDataFrameEnum
-from diffinsights_web.views.info import ContributorsHeader
+from diffinsights_web.views.info import ContributorsHeader, RepoPlotHeader
 from diffinsights_web.views.plots.timeseries import TimeseriesPlot
 from diffinsights_web.widgets.caching import ClearCacheButton
 
@@ -33,6 +33,11 @@ timeseries_plot = TimeseriesPlot(
     column_name=page_header.select_contribution_type_widget,
     from_date_str=page_header.select_period_from_widget,
 )
+timeseries_plot_header = RepoPlotHeader(
+    freq=data_store.resample_frequency_widget,
+    column_name=page_header.select_contribution_type_widget,
+    plot=timeseries_plot,
+)
 
 # Create the dashboard layout
 template = pn.template.MaterialTemplate(
@@ -49,7 +54,13 @@ template = pn.template.MaterialTemplate(
         pn.Column(
             page_header,
         ),
-        timeseries_plot,
+        pn.Card(
+            pn.Column(
+                timeseries_plot_header,
+                timeseries_plot,
+            ),
+            collapsible=False, hide_header=True,
+        ),
     ],
 )
 timeline_perspective = TimelinePerspective(data_store=data_store)

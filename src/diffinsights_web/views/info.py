@@ -5,7 +5,14 @@ import param
 from dateutil.relativedelta import relativedelta
 
 from diffinsights_web.datastore.timeline import frequency_names
+from diffinsights_web.utils.humanize import html_date_humane
+from diffinsights_web.views.plots.timeseries import TimeseriesPlot
 
+
+# common for all classes defined here
+head_styles = {
+    'font-size': 'larger',
+}
 
 #: for the ContributorsHeader.select_period_from_widget
 time_range_period = {
@@ -64,10 +71,6 @@ class ContributorsHeader(pn.viewable.Viewer):
         # see table at https://pandas.pydata.org/docs/user_guide/timeseries.html#dateoffset-objects
     )
 
-    head_styles = {
-        'font-size': 'larger',
-    }
-
     widget_top_margin = 20
     widget_gap_size = 5
 
@@ -101,7 +104,53 @@ class ContributorsHeader(pn.viewable.Viewer):
 
     def __panel__(self):
         return pn.Row(
-            pn.pane.HTML(self.head_text_rx, styles=self.head_styles),
+            pn.pane.HTML(self.head_text_rx, styles=head_styles),
             self.select_period_from_widget,
             self.select_contribution_type_widget,
+        )
+
+
+def sampling_info(resample_freq: str,
+                  column: str,
+                  frequency_names_map: dict[str, str],
+                  min_max_date) -> str:
+    contribution_type = column_to_contribution.get(column, "Unknown type of contribution")
+
+    return f"""
+    <strong>{contribution_type} over time</strong>
+    <p>
+    {frequency_names_map.get(resample_freq, 'unknown frequency').title()}ly
+    from {html_date_humane(min_max_date[0])}
+    to {html_date_humane(min_max_date[1])}
+    </p>
+    """
+
+
+class RepoPlotHeader(pn.viewable.Viewer):
+    freq = param.String(
+        allow_refs=True,  # allow for reactive expressions, and widgets
+        doc="Resampling frequency as frequency string, for documentation purposes only",
+        # see table at https://pandas.pydata.org/docs/user_guide/timeseries.html#dateoffset-objects
+    )
+    # allow_refs=True is here to allow widgets
+    column_name = param.String(
+        allow_refs=True,  # allow for reactive expressions, and widgets
+        doc="Contribution type as value: column name in DataFrame, or special name",
+    )
+    plot = param.ClassSelector(class_=TimeseriesPlot)
+
+    def __init__(self, **params):
+        super().__init__(**params)
+
+        self.sampling_info_rx = pn.rx(sampling_info)(
+            resample_freq=self.param.freq.rx(),
+            column=self.param.column_name.rx(),
+            frequency_names_map=frequency_names,
+            min_max_date=self.plot.date_range_rx,
+        )
+
+    def __panel__(self):
+        return pn.pane.HTML(
+            self.sampling_info_rx,
+            styles=head_styles
         )
