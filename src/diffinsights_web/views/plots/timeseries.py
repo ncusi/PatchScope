@@ -270,10 +270,7 @@ class TimeseriesPlot(TimelineView):
         )
 
     def __panel__(self) -> pn.viewable.Viewable:
-        return pn.Card(
-            pn.Column(
-                #pn.pane.HTML(sampling_info_rx, styles=head_styles),
-                pn.pane.HoloViews(self.plot_commits_rx, theme=self.select_plot_theme_widget)
-            ),
-            collapsible=False, hide_header=True,
+        return pn.pane.HoloViews(
+            self.plot_commits_rx,
+            theme=self.select_plot_theme_widget,
         )
