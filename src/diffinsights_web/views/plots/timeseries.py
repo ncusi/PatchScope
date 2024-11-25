@@ -6,7 +6,8 @@ import panel as pn
 import param
 import hvplot.pandas  # noqa
 
-from diffinsights_web.datastore.timeline import get_date_range, filter_df_by_from_date, authors_info_df
+from diffinsights_web.datastore.timeline import \
+    get_date_range, get_value_range, filter_df_by_from_date, authors_info_df
 from diffinsights_web.utils.notifications import warning_notification
 from diffinsights_web.views import TimelineView
 
@@ -211,6 +212,11 @@ class TimeseriesPlot(TimelineView):
             timeline_df=self.data_store.timeline_df_rx,
             from_date_str=self.param.from_date_str.rx(),
         )
+        self.value_range_rx = pn.rx(get_value_range)(
+            timeline_df=self.data_store.resampled_timeline_all_rx,
+            column=self.param.column_name.rx(),
+        )
+
         # authors info for authors grid selection
         self.authors_info_df_rx = pn.rx(authors_info_df)(
             timeline_df=self.data_store.timeline_df_rx,

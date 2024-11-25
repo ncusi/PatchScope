@@ -8,7 +8,7 @@ import panel as pn
 import diffinsights_web.utils.notifications as notifications
 from diffinsights_web.datastore.timeline import TimelineDataStore, find_dataset_dir, author_timeline_df
 from diffinsights_web.utils.notifications import onload_callback
-from diffinsights_web.views.authorsgrid import AuthorInfo
+from diffinsights_web.views.authorsgrid import AuthorInfo, AuthorsGrid
 from diffinsights_web.views.dataexplorer import TimelineJSONViewer, TimelinePerspective, TimelineDataFrameEnum, \
     perspective_pane
 from diffinsights_web.views.info import ContributorsHeader, RepoPlotHeader
@@ -47,6 +47,11 @@ authors_info_panel = AuthorInfo(
     data_store=data_store,
     authors_info_df=timeseries_plot.authors_info_df_rx,
 )
+authors_grid = AuthorsGrid(
+    data_store=data_store,
+    authors_info_df=timeseries_plot.authors_info_df_rx,
+    top_n=authors_info_panel.top_n_widget,
+)
 
 # Create the dashboard layout
 template = pn.template.MaterialTemplate(
@@ -73,6 +78,7 @@ template = pn.template.MaterialTemplate(
             ),
             collapsible=False, hide_header=True,
         ),
+        authors_grid,
     ],
 )
 timeline_perspective = TimelinePerspective(data_store=data_store)

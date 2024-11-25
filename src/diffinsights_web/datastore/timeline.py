@@ -226,6 +226,14 @@ def get_date_range(timeline_df: pd.DataFrame, from_date_str: str):
     )
 
 
+@pn.cache
+def get_value_range(timeline_df: pd.DataFrame, column: str = 'n_commits'):
+    return (
+        timeline_df[column].min(),
+        timeline_df[column].max(),
+    )
+
+
 # NOTE: consider putting the filter earlier in the pipeline (needs profiling / benchmarking?)
 # TODO: replace `from_date_str` (raw string) with `from_date` (parsed value)
 def filter_df_by_from_date(resampled_df: pd.DataFrame,
