@@ -133,7 +133,7 @@ def plot_commits(resampled_df: pd.DataFrame,
     if column == SpecialColumn.LINE_TYPES_PERC.value:
         kind_perc_columns = [
             col for col in resampled_df.columns
-            if col.startswith('+:type.') and col.endswith(' [%]')
+            if col.startswith('type.') and col.endswith(' [%]')
         ]
         kind_perc_columns.sort(key=line_type_sorting_key)
         if not kind_perc_columns:

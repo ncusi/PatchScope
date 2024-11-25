@@ -43,7 +43,7 @@ contribution_types_map = {
     "Patch size (lines)": "diff.patch_size",
     "Patch spreading (lines)": "diff.groups_spread",
     # special cases:
-    "Line types distribution +:[%]": SpecialColumn.LINE_TYPES_PERC.value,
+    "Line types distribution [%]": SpecialColumn.LINE_TYPES_PERC.value,
 }
 column_to_contribution = {
     v: k for k, v in contribution_types_map.items()
