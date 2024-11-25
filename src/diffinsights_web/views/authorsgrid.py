@@ -84,55 +84,6 @@ def author_info(authors_df: pd.DataFrame, author: str) -> str:
     """
 
 
-def authors_cards(authors_df: pd.DataFrame,
-                  resample_by_author_df: pd.DataFrame,  # NOTE: temporarily unused
-                  top_n: int = 4) -> list[pn.layout.Card]:
-    result: list[pn.layout.Card] = []
-    avatar_size = 20
-
-    Row = namedtuple('Pandas', ['Index', 'n_commits', 'p_count', 'm_count', 'author_name'])
-    row: Row
-    for i, row in enumerate(authors_df.head(top_n).itertuples(), start=1):
-        result.append(
-            pn.layout.Card(
-                pn.Column(
-                    pn.FlexBox(
-                        # author.name <author.email>, using most common author.name
-                        pn.pane.HTML(
-                            '<div class="author">'
-                            f'<img src="{gravatar_url(row.Index, avatar_size)}"'
-                            f' width="{avatar_size}" height="{avatar_size}" alt="" /> '
-                            f'{row.author_name} &lt;{row.Index}&gt;'
-                            '</div>'
-                        ),
-                        # position in the top N list
-                        pn.pane.HTML(f'<div class="chip">#{i}</div>', width=20),
-                        # FlexBox parameters:
-                        # https://css-tricks.com/snippets/css/a-guide-to-flexbox/
-                        # https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_flexible_box_layout/Basic_concepts_of_flexbox
-                        flex_direction="row",
-                        flex_wrap="nowrap",
-                        justify_content="space-between",
-                        align_items="baseline",
-                        gap="1 rem",
-                        # layoutable parameters
-                        sizing_mode='stretch_width',
-                        width_policy="max",
-                        # width=300,
-                        # styles={"width": "100%"}
-                    ),
-                    pn.pane.HTML(
-                        author_info(authors_df=authors_df, author=row.Index)
-                    ),
-                ),
-                hide_header=True,
-                collapsible=False,
-            )
-        )
-
-    return result
-
-
 class AuthorsGrid(TimelineView):
     authors_info_df = param.ClassSelector(class_=pd.DataFrame, allow_refs=True)
     top_n = param.Integer(default=4, allow_refs=True)
@@ -148,20 +99,69 @@ class AuthorsGrid(TimelineView):
     def __panel__(self) -> pn.viewable.Viewable:
         return self.authors_grid
 
+    def authors_cards(self):
+        result: list[pn.layout.Card] = []
+        avatar_size = 20  # TODO: make it configurable, eg. via param
+
+        # TODO: pass `field_names` or `Row` as parameters
+        Row = namedtuple(typename='Pandas', field_names=['Index', 'n_commits', 'p_count', 'm_count', 'author_name'])
+        row: Row
+        #print(f"{self.authors_info_df.columns=}")
+        for i, row in enumerate(self.authors_info_df.head(self.top_n).itertuples(), start=1):
+            #print(f"{i=}, {row=}")
+            result.append(
+                pn.layout.Card(
+                    pn.Column(
+                        pn.FlexBox(
+                            # author.name <author.email>, using most common author.name
+                            pn.pane.HTML(
+                                '<div class="author">'
+                                f'<img src="{gravatar_url(row.Index, avatar_size)}"'
+                                f' width="{avatar_size}" height="{avatar_size}" alt="" /> '
+                                f'{row.author_name} &lt;{row.Index}&gt;'
+                                '</div>'
+                            ),
+                            # position in the top N list
+                            pn.pane.HTML(f'<div class="chip">#{i}</div>', width=20),
+                            # FlexBox parameters:
+                            # https://css-tricks.com/snippets/css/a-guide-to-flexbox/
+                            # https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_flexible_box_layout/Basic_concepts_of_flexbox
+                            flex_direction="row",
+                            flex_wrap="nowrap",
+                            justify_content="space-between",
+                            align_items="baseline",
+                            gap="1 rem",
+                            # layoutable parameters
+                            sizing_mode='stretch_width',
+                            width_policy="max",
+                            # width=300,
+                            # styles={"width": "100%"}
+                        ),
+                        pn.pane.HTML(
+                            author_info(
+                                authors_df=self.authors_info_df,
+                                author=row.Index
+                            )
+                        ),
+                    ),
+                    hide_header=True,
+                    collapsible=False,
+                )
+            )
+
+        return result
+
     # NOTE: cannot use 'data_store.resampled_timeline_by_author_rx' as dependency, because of
-    # AttributeError: Attribute 'resampled_timeline_by_author_rx' could not be resolved on <TimelineDataStore ...>
+    #       AttributeError: Attribute 'resampled_timeline_by_author_rx' could not be resolved on <TimelineDataStore ...>
     # NOTE: with `on_init=True`, it looks like this method is run before __init__, and therefore
-    # AttributeError: 'AuthorsGrid' object has no attribute 'authors_grid'
+    #       AttributeError: 'AuthorsGrid' object has no attribute 'authors_grid'
+    # NOTE: updated twice when changing JSON file, but only once when changing top_n, or contributions
     @param.depends('authors_info_df', 'top_n', watch=True)
     def update_authors_grid(self) -> None:
         ## DEBUG
-        print(f"RUNNING update_authors_grid(), with {self.top_n=},...")
-        
+        print(f"RUNNING update_authors_grid(), with repo={self.data_store.select_repo_widget.value}, top_n={self.top_n},...")
+
         self.authors_grid.clear()
         self.authors_grid.extend(
-            authors_cards(
-                authors_df=self.authors_info_df,
-                resample_by_author_df=self.data_store.resampled_timeline_by_author_rx,
-                top_n=self.top_n,
-            )
+            self.authors_cards()
         )
