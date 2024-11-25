@@ -43,14 +43,19 @@ timeseries_plot_header = RepoPlotHeader(
     column_name=page_header.select_contribution_type_widget,
     plot=timeseries_plot,
 )
-authors_info_panel = AuthorInfo(
-    data_store=data_store,
-    authors_info_df=timeseries_plot.authors_info_df_rx,
+#authors_info_panel = AuthorInfo(
+#    data_store=data_store,
+#    authors_info_df=timeseries_plot.authors_info_df_rx,
+#)
+top_n_widget = pn.widgets.Select(
+    name="top N",
+    options=[4, 10, 32],
+    value=4,
 )
 authors_grid = AuthorsGrid(
     data_store=data_store,
     authors_info_df=timeseries_plot.authors_info_df_rx,
-    top_n=authors_info_panel.top_n_widget,
+    top_n=top_n_widget,
 )
 
 # Create the dashboard layout
@@ -60,7 +65,8 @@ template = pn.template.MaterialTemplate(
     favicon="favicon.svg",
     sidebar=[
         data_store,
-        *authors_info_panel.widgets(),
+        #*authors_info_panel.widgets(),
+        top_n_widget,
 
         pn.layout.Divider(),  # - - - - - - - - - - - - -
 
@@ -98,7 +104,7 @@ template.main.extend([
                             from_date=page_header.select_period_from_widget)
             )
         ),
-        ('selected author', authors_info_panel),
+        #('selected author', authors_info_panel),
     ),
 ])
 
