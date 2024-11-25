@@ -6,62 +6,13 @@ import panel as pn
 import param
 import hvplot.pandas  # noqa
 
+from diffinsights_web.datastore.timeline import get_date_range, filter_df_by_from_date, authors_info_df
 from diffinsights_web.utils.notifications import warning_notification
 from diffinsights_web.views import TimelineView
 
 
 class SpecialColumn(Enum):
     LINE_TYPES_PERC = "KIND [%]"
-
-
-@pn.cache
-def get_date_range(timeline_df: pd.DataFrame, from_date_str: str):
-    # TODO: create reactive component or bound function to compute from_date to avoid recalculations
-    # TODO: use parsed `from_date` instead of using raw `from_date_str`
-    min_date = timeline_df['author_date'].min()
-    if from_date_str:
-        from_date = pd.to_datetime(from_date_str, dayfirst=True, utc=True)
-        min_date = max(min_date, from_date)
-
-    ## DEBUG
-    #print(f"get_date_range(timeline_df=<{hex(id(timeline_df))}, {from_date_str=}>):")
-    #print(f"  {min_date=}, {timeline_df['author_date'].max()=}")
-
-    return (
-        min_date,
-        timeline_df['author_date'].max(),
-    )
-
-
-# NOTE: consider putting the filter earlier in the pipeline (needs profiling / benchmarking?)
-# TODO: replace `from_date_str` (raw string) with `from_date` (parsed value)
-def filter_df_by_from_date(resampled_df: pd.DataFrame,
-                           from_date_str: str,
-                           date_column: Optional[str] = None) -> pd.DataFrame:
-    from_date: Optional[pd.Timestamp] = None
-    if from_date_str:
-        try:
-            # the `from_date_str` is in DD.MM.YYYY format
-            from_date = pd.to_datetime(from_date_str, dayfirst=True, utc=True)
-        except ValueError as err:
-            # NOTE: should not happen, value should be validated earlier
-            warning_notification(f"from={from_date_str!r} is not a valid date: {err}")
-
-    filtered_df = resampled_df
-    if from_date is not None:
-        if date_column is None:
-            filtered_df = resampled_df[resampled_df.index >= from_date]
-        else:
-            if pd.api.types.is_timedelta64_dtype(resampled_df[date_column]):
-                filtered_df = resampled_df[resampled_df[date_column] >= from_date]
-            elif pd.api.types.is_numeric_dtype(resampled_df[date_column]):
-                # assume numeric date column is UNIX timestamp
-                filtered_df = resampled_df[resampled_df[date_column] >= from_date.timestamp()]
-            else:
-                warning_notification(f"unsupported type {resampled_df.dtypes[date_column]!r} "
-                                     f"for column {date_column!r}")
-
-    return filtered_df
 
 
 def line_type_sorting_key(column_name: str) -> int:
@@ -258,6 +209,12 @@ class TimeseriesPlot(TimelineView):
         # output: ranges
         self.date_range_rx = pn.rx(get_date_range)(
             timeline_df=self.data_store.timeline_df_rx,
+            from_date_str=self.param.from_date_str.rx(),
+        )
+        # authors info for authors grid selection
+        self.authors_info_df_rx = pn.rx(authors_info_df)(
+            timeline_df=self.data_store.timeline_df_rx,
+            column=self.param.column_name.rx(),
             from_date_str=self.param.from_date_str.rx(),
         )
 

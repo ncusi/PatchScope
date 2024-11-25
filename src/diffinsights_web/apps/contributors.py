@@ -5,7 +5,8 @@ import panel as pn
 import diffinsights_web.utils.notifications as notifications
 from diffinsights_web.datastore.timeline import TimelineDataStore, find_dataset_dir
 from diffinsights_web.utils.notifications import onload_callback
-from diffinsights_web.views.dataexplorer import TimelineJSONViewer, TimelinePerspective, TimelineDataFrameEnum
+from diffinsights_web.views.dataexplorer import TimelineJSONViewer, TimelinePerspective, TimelineDataFrameEnum, \
+    perspective_pane
 from diffinsights_web.views.info import ContributorsHeader, RepoPlotHeader
 from diffinsights_web.views.plots.timeseries import TimeseriesPlot
 from diffinsights_web.widgets.caching import ClearCacheButton
@@ -71,6 +72,15 @@ template.main.extend([
         ('data', timeline_perspective.panel(TimelineDataFrameEnum.TIMELINE_DATA)),
         ('resampled', timeline_perspective.panel(TimelineDataFrameEnum.RESAMPLED_DATA)),
         ('by author+resampled', timeline_perspective.panel(TimelineDataFrameEnum.BY_AUTHOR_DATA)),
+        (
+            'authors info',
+            perspective_pane(
+                df=timeseries_plot.authors_info_df_rx,
+                title=pn.rx("Authors info for repo={repo!r}, from={from_date!r}") \
+                    .format(repo=data_store.select_repo_widget,
+                            from_date=page_header.select_period_from_widget)
+            )
+         )
     ),
 ])
 
