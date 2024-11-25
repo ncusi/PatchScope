@@ -76,7 +76,10 @@ template = pn.template.MaterialTemplate(
     favicon="favicon.svg",
     sidebar=[
         data_store,
-        pn.layout.Divider(),
+        top_n_widget,
+
+        pn.layout.Divider(),  # - - - - - - - - - - - - -
+
         timeseries_plot.select_plot_theme_widget,
         ClearCacheButton(),
     ],
