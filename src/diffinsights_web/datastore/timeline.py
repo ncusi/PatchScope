@@ -203,6 +203,10 @@ def resample_timeline(timeline_df: pd.DataFrame,
     return add_pm_count_perc(df_agg, pm_count_cols)
 
 
+def author_timeline_df(resample_by_author_df: pd.DataFrame, author_id: str) -> pd.DataFrame:
+    return resample_by_author_df.loc[author_id]
+
+
 @pn.cache
 def get_date_range(timeline_df: pd.DataFrame, from_date_str: str):
     # TODO: create reactive component or bound function to compute from_date to avoid recalculations
