@@ -54,6 +54,7 @@ top_n_widget = pn.widgets.Select(
 )
 authors_grid = AuthorsGrid(
     data_store=data_store,
+    main_plot=timeseries_plot,
     authors_info_df=timeseries_plot.authors_info_df_rx,
     top_n=top_n_widget,
 )

@@ -242,3 +242,33 @@ class TimeseriesPlot(TimelineView):
             self.plot_commits_rx,
             theme=self.select_plot_theme_widget,
         )
+
+
+class TimeseriesPlotForAuthor(TimelineView):
+    main_plot = param.ClassSelector(class_=TimeseriesPlot)
+    author_email = param.String()
+
+    def __init__(self, **params):
+        #print("TimeseriesPlotForAuthor.__init__()")
+        super().__init__(**params)
+
+        self.plot_commits_rx = pn.rx(plot_commits)(
+            resampled_df=self.main_plot.data_store.resampled_timeline_by_author_rx.loc[self.author_email],
+            column=self.main_plot.param.column_name.rx(),
+            from_date_str=self.main_plot.param.from_date_str.rx(),
+            xlim=self.main_plot.date_range_rx,
+            ylim=self.main_plot.value_range_rx,  # TODO: allow to switch between totals, max N, and own
+        )
+
+    def __panel__(self) -> pn.viewable.Viewable:
+        #print("TimeseriesPlotForAuthor.__panel__()")
+        return pn.pane.HoloViews(
+            self.plot_commits_rx,
+            theme=self.main_plot.select_plot_theme_widget,
+            # sizing configuration
+            height=256,  # TODO: find a better way than fixed height
+            sizing_mode='stretch_width',
+            # sizing_mode='scale_both',  # NOTE: does not work, and neither does 'stretch_both'
+            # aspect_ratio=1.5,  # NOTE: does not help to use 'scale_both'/'stretch_both'
+            margin=5,
+        )

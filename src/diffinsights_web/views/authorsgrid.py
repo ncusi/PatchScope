@@ -10,6 +10,7 @@ from diffinsights_web.utils.avatars import gravatar_url
 from diffinsights_web.utils.humanize import html_int_humane
 from diffinsights_web.views import TimelineView
 from diffinsights_web.views.dataexplorer import perspective_pane
+from diffinsights_web.views.plots.timeseries import TimeseriesPlotForAuthor, TimeseriesPlot
 
 
 def authors_list(authors_df: pd.DataFrame,
@@ -85,11 +86,17 @@ def author_info(authors_df: pd.DataFrame, author: str) -> str:
 
 
 class AuthorsGrid(TimelineView):
-    authors_info_df = param.ClassSelector(class_=pd.DataFrame, allow_refs=True)
+    main_plot = param.ClassSelector(class_=TimeseriesPlot, allow_refs=True)
+    # NOTE: needed only because of @params.depends works only with _parameters_
+    # TODO: replace with a .rx.watch(...), or @pn.depends(...), or something
+    authors_info_df=param.ClassSelector(class_=pd.DataFrame, allow_refs=True)
     top_n = param.Integer(default=4, allow_refs=True)
 
     def __init__(self, **params):
+        #print(f"AuthorsGrid::__init__(self, **{params=})")
         super().__init__(**params)
+
+        #self.authors_info_df = self.main_plot.authors_info_df_rx
 
         self.authors_grid = pn.layout.GridBox(
            ncols=2,
@@ -100,12 +107,13 @@ class AuthorsGrid(TimelineView):
         return self.authors_grid
 
     def authors_cards(self):
+        #print("RUNNING AuthorsGrid::authors_cards()")
         result: list[pn.layout.Card] = []
         avatar_size = 20  # TODO: make it configurable, eg. via param
 
         # TODO: pass `field_names` or `Row` as parameters
-        Row = namedtuple(typename='Pandas', field_names=['Index', 'n_commits', 'p_count', 'm_count', 'author_name'])
-        row: Row
+        RowT = namedtuple(typename='Pandas', field_names=['Index', 'n_commits', 'p_count', 'm_count', 'author_name'])
+        row: RowT
         #print(f"{self.authors_info_df.columns=}")
         for i, row in enumerate(self.authors_info_df.head(self.top_n).itertuples(), start=1):
             #print(f"{i=}, {row=}")
@@ -138,10 +146,16 @@ class AuthorsGrid(TimelineView):
                             # styles={"width": "100%"}
                         ),
                         pn.pane.HTML(
+                            # TODO: pass tuple instead
                             author_info(
                                 authors_df=self.authors_info_df,
                                 author=row.Index
                             )
+                        ),
+                        TimeseriesPlotForAuthor(
+                            data_store=self.data_store,
+                            main_plot=self.main_plot,
+                            author_email=row.Index,
                         ),
                     ),
                     hide_header=True,
