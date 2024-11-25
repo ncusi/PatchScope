@@ -144,6 +144,25 @@ def add_pm_count_perc(resampled_df: pd.DataFrame,
         elif col.startswith('-:'):
             resampled_df.loc[:, col_perc] = resampled_df[col] / resampled_df['-:count']
 
+    for col in pm_count_cols:
+        if col in {'-:count', '+:count'}:  # '-:count' or '+:count'
+            continue
+
+        # previous loop ensured that both "-:<column>" and "+:<column>" exists
+        if col.startswith('-:'):  # we need only one of those
+            continue
+
+        col_base = col[2:]  # remove "+:" prefix
+        col_base_perc = f"{col_base} [%]"
+        if col_base_perc in resampled_df.columns:
+            # print(f"  SKIP {col_base_perc}")
+            continue
+
+        resampled_df.loc[:, col_base_perc] = (
+                (resampled_df[f"-:{col_base}"] + resampled_df[f"+:{col_base}"]) /
+                (resampled_df['-:count'] + resampled_df['+:count'])
+        )
+
     #print(f"  returned DataFrame(<{hex(id(resampled_df))}>)")
     return resampled_df
 
