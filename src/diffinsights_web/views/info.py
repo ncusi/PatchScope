@@ -6,7 +6,7 @@ from dateutil.relativedelta import relativedelta
 
 from diffinsights_web.datastore.timeline import frequency_names
 from diffinsights_web.utils.humanize import html_date_humane
-from diffinsights_web.views.plots.timeseries import TimeseriesPlot
+from diffinsights_web.views.plots.timeseries import SpecialColumn, TimeseriesPlot
 
 
 # common for all classes defined here
@@ -43,7 +43,7 @@ contribution_types_map = {
     "Patch size (lines)": "diff.patch_size",
     "Patch spreading (lines)": "diff.groups_spread",
     # special cases:
-    "Line types distribution +:[%]": "KIND [%]",
+    "Line types distribution +:[%]": SpecialColumn.LINE_TYPES_PERC.value,
 }
 column_to_contribution = {
     v: k for k, v in contribution_types_map.items()
