@@ -54,6 +54,7 @@ if TYPE_CHECKING:
 from joblib import Parallel, delayed
 from pygments.token import Token
 import unidiff
+from unidiff.patch import Line as PatchLine
 import tqdm
 from tqdm.contrib.logging import logging_redirect_tqdm
 import typer
@@ -989,6 +990,26 @@ class AnnotatedHunk:
 
         self.patch_data = defaultdict(lambda: defaultdict(list))
 
+    @staticmethod
+    def file_line_no(line: PatchLine) -> int:
+        """Line number in source file (for '-') or target file (for '+' and ' ')
+
+        This line number is 1-based (first line in file has file line no equal 1,
+        not 0), and is _not unique_.  For example, for changed line there might be
+        added line with the same file line no in target as removed line in source.
+
+        Similar code is used in AnnotatedPatchedFile.hunk_tokens_for_type() method.
+
+        NOTE: Might be made into a function, instead of static method
+        (it does not use `self`), or method or property monkey-patched onto PatchLine.
+
+        :param line: PatchLine from Hunk from PatchedFile from PatchSet (unidiff)
+        :return: 1-based line number of changed line in source or target file, respectively
+        """
+        return line.source_line_no \
+            if line.line_type == unidiff.LINE_TYPE_REMOVED \
+            else line.target_line_no
+
     def tokens_for_type(self, line_type: Literal['-','+']) -> Optional[dict[int, list[tuple]]]:
         """Lexing results for removed ('-')/added ('+') lines in hunk, if possible
 
@@ -1219,6 +1240,7 @@ class AnnotatedHunk:
         if file_purpose in PURPOSE_TO_ANNOTATION:
             for line_idx_hunk, line in enumerate(self.hunk):
                 self.add_line_annotation(line_idx_hunk,
+                                         self.file_line_no(line),
                                          self.patched_file.source_file,
                                          self.patched_file.target_file,
                                          line.line_type,
@@ -1235,6 +1257,7 @@ class AnnotatedHunk:
                 i: {
                     'value': line.value,
                     'hunk_line_no': i,
+                    'file_line_no': self.file_line_no(line),
                     'line_type': line.line_type,
                 } for i, line in enumerate(self.hunk)
                 # unexpectedly, there is no need to check for unidiff.LINE_TYPE_EMPTY
@@ -1274,6 +1297,7 @@ class AnnotatedHunk:
 
                 self.add_line_annotation(
                     line_no=line_info['hunk_line_no'],
+                    file_line_no=line_info['file_line_no'],
                     source_file=self.patched_file.source_file,
                     target_file=self.patched_file.target_file,
                     change_type=line_info['line_type'],
@@ -1284,12 +1308,15 @@ class AnnotatedHunk:
 
         return self.patch_data
 
-    def add_line_annotation(self, line_no: int, source_file: str, target_file: str,
+    def add_line_annotation(self, line_no: int,
+                            file_line_no: int,
+                            source_file: str, target_file: str,
                             change_type: str, line_annotation: str, purpose: str,
                             tokens: list[tuple]) -> None:
         """Add line annotations for a given line in a hunk
 
         :param line_no: line number (line index) in a diff hunk body, 0-based
+        :param file_line_no: line number in a file the line came from, 1-based
         :param source_file: name of changed file in pre-image of diff,
             before changes
         :param target_file: name of changed file in post-image of diff,
@@ -1302,6 +1329,7 @@ class AnnotatedHunk:
         """
         data = {
             'id': line_no,
+            'file_line_no': file_line_no,
             'type': line_annotation,
             'purpose': purpose,
             'tokens': tokens
