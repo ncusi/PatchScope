@@ -205,12 +205,26 @@ def resample_timeline(timeline_df: pd.DataFrame,
 
 
 def author_timeline_df(resample_by_author_df: pd.DataFrame, author_id: str) -> pd.DataFrame:
+    # WORKAROUND
+    if author_id not in resample_by_author_df.index:
+        print(f"WARNING: author_timeline_df(): {author_id=}"
+              f" not in resample_by_author_df=<{hex(id(resample_by_author_df))}> index")
+        author_id = resample_by_author_df.index[0][0]  # this dataframe has multiindex
+        print(f"         using {author_id=} instead")
+
     return resample_by_author_df.loc[author_id]
 
 
 def author_timeline_df_freq(resample_by_author_df: pd.DataFrame,
                             author_id: str,
                             resample_rate: str) -> pd.DataFrame:
+    # WORKAROUND
+    if author_id not in resample_by_author_df.index:
+        print(f"WARNING: author_timeline_df_freq(): {author_id=}"
+              f" not in resample_by_author_df=<{hex(id(resample_by_author_df))}> index")
+        author_id = resample_by_author_df.index[0][0]  # this dataframe has multiindex
+        print(f"         using {author_id=} instead")
+
     # NOTE: instead of .asfreq(<freq>) one can use .resample(<freq>).first() instead
     return resample_by_author_df.loc[author_id].asfreq(resample_rate).fillna(0)
 
