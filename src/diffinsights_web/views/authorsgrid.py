@@ -10,6 +10,7 @@ from diffinsights_web.utils.avatars import gravatar_url
 from diffinsights_web.utils.humanize import html_int_humane
 from diffinsights_web.views import TimelineView
 from diffinsights_web.views.dataexplorer import perspective_pane
+from diffinsights_web.views.info import ContributionsPercHeader
 from diffinsights_web.views.plots.timeseries import TimeseriesPlotForAuthor, TimeseriesPlot
 
 
@@ -151,6 +152,12 @@ class AuthorsGrid(TimelineView):
                                 authors_df=self.authors_info_df,
                                 author=row.Index
                             )
+                        ),
+                        ContributionsPercHeader(
+                            data_store=self.data_store,
+                            from_date_str=self.main_plot.param.from_date_str.rx(),
+                            author_id=row.Index,
+                            show_descr=False,
                         ),
                         TimeseriesPlotForAuthor(
                             data_store=self.data_store,
