@@ -1,3 +1,4 @@
+from enum import Enum
 from typing import Optional
 
 import pandas as pd
@@ -5,58 +6,14 @@ import panel as pn
 import param
 import hvplot.pandas  # noqa
 
+from diffinsights_web.datastore.timeline import \
+    get_date_range, get_value_range, filter_df_by_from_date, authors_info_df
 from diffinsights_web.utils.notifications import warning_notification
 from diffinsights_web.views import TimelineView
 
 
-@pn.cache
-def get_date_range(timeline_df: pd.DataFrame, from_date_str: str):
-    # TODO: create reactive component or bound function to compute from_date to avoid recalculations
-    # TODO: use parsed `from_date` instead of using raw `from_date_str`
-    min_date = timeline_df['author_date'].min()
-    if from_date_str:
-        from_date = pd.to_datetime(from_date_str, dayfirst=True, utc=True)
-        min_date = max(min_date, from_date)
-
-    ## DEBUG
-    #print(f"get_date_range(timeline_df=<{hex(id(timeline_df))}, {from_date_str=}>):")
-    #print(f"  {min_date=}, {timeline_df['author_date'].max()=}")
-
-    return (
-        min_date,
-        timeline_df['author_date'].max(),
-    )
-
-
-# NOTE: consider putting the filter earlier in the pipeline (needs profiling / benchmarking?)
-# TODO: replace `from_date_str` (raw string) with `from_date` (parsed value)
-def filter_df_by_from_date(resampled_df: pd.DataFrame,
-                           from_date_str: str,
-                           date_column: Optional[str] = None) -> pd.DataFrame:
-    from_date: Optional[pd.Timestamp] = None
-    if from_date_str:
-        try:
-            # the `from_date_str` is in DD.MM.YYYY format
-            from_date = pd.to_datetime(from_date_str, dayfirst=True, utc=True)
-        except ValueError as err:
-            # NOTE: should not happen, value should be validated earlier
-            warning_notification(f"from={from_date_str!r} is not a valid date: {err}")
-
-    filtered_df = resampled_df
-    if from_date is not None:
-        if date_column is None:
-            filtered_df = resampled_df[resampled_df.index >= from_date]
-        else:
-            if pd.api.types.is_timedelta64_dtype(resampled_df[date_column]):
-                filtered_df = resampled_df[resampled_df[date_column] >= from_date]
-            elif pd.api.types.is_numeric_dtype(resampled_df[date_column]):
-                # assume numeric date column is UNIX timestamp
-                filtered_df = resampled_df[resampled_df[date_column] >= from_date.timestamp()]
-            else:
-                warning_notification(f"unsupported type {resampled_df.dtypes[date_column]!r} "
-                                     f"for column {date_column!r}")
-
-    return filtered_df
+class SpecialColumn(Enum):
+    LINE_TYPES_PERC = "KIND [%]"
 
 
 def line_type_sorting_key(column_name: str) -> int:
@@ -108,7 +65,7 @@ def plot_commits(resampled_df: pd.DataFrame,
             ylim = (-1, ylim[1])
 
     # special cases: y range limits
-    if column == "KIND [%]":
+    if column == SpecialColumn.LINE_TYPES_PERC.value:
         ylim = (0.0, 1.05)
 
     # via https://oklch-palette.vercel.app/ and https://htmlcolorcodes.com/rgb-to-hex/
@@ -125,10 +82,10 @@ def plot_commits(resampled_df: pd.DataFrame,
     color = color_map.get(column, '#006dd8')
 
     # special cases: the plot itself
-    if column == "KIND [%]":
+    if column == SpecialColumn.LINE_TYPES_PERC.value:
         kind_perc_columns = [
             col for col in resampled_df.columns
-            if col.startswith('+:type.') and col.endswith(' [%]')
+            if col.startswith('type.') and col.endswith(' [%]')
         ]
         kind_perc_columns.sort(key=line_type_sorting_key)
         if not kind_perc_columns:
@@ -255,6 +212,17 @@ class TimeseriesPlot(TimelineView):
             timeline_df=self.data_store.timeline_df_rx,
             from_date_str=self.param.from_date_str.rx(),
         )
+        self.value_range_rx = pn.rx(get_value_range)(
+            timeline_df=self.data_store.resampled_timeline_all_rx,
+            column=self.param.column_name.rx(),
+        )
+
+        # authors info for authors grid selection
+        self.authors_info_df_rx = pn.rx(authors_info_df)(
+            timeline_df=self.data_store.timeline_df_rx,
+            column=self.param.column_name.rx(),
+            from_date_str=self.param.from_date_str.rx(),
+        )
 
         self.select_plot_theme_widget = pn.widgets.Select(
             name="Plot theme:",
@@ -270,10 +238,37 @@ class TimeseriesPlot(TimelineView):
         )
 
     def __panel__(self) -> pn.viewable.Viewable:
-        return pn.Card(
-            pn.Column(
-                #pn.pane.HTML(sampling_info_rx, styles=head_styles),
-                pn.pane.HoloViews(self.plot_commits_rx, theme=self.select_plot_theme_widget)
-            ),
-            collapsible=False, hide_header=True,
+        return pn.pane.HoloViews(
+            self.plot_commits_rx,
+            theme=self.select_plot_theme_widget,
+        )
+
+
+class TimeseriesPlotForAuthor(TimelineView):
+    main_plot = param.ClassSelector(class_=TimeseriesPlot)
+    author_email = param.String()
+
+    def __init__(self, **params):
+        #print("TimeseriesPlotForAuthor.__init__()")
+        super().__init__(**params)
+
+        self.plot_commits_rx = pn.rx(plot_commits)(
+            resampled_df=self.main_plot.data_store.resampled_timeline_by_author_rx.loc[self.author_email],
+            column=self.main_plot.param.column_name.rx(),
+            from_date_str=self.main_plot.param.from_date_str.rx(),
+            xlim=self.main_plot.date_range_rx,
+            ylim=self.main_plot.value_range_rx,  # TODO: allow to switch between totals, max N, and own
+        )
+
+    def __panel__(self) -> pn.viewable.Viewable:
+        #print("TimeseriesPlotForAuthor.__panel__()")
+        return pn.pane.HoloViews(
+            self.plot_commits_rx,
+            theme=self.main_plot.select_plot_theme_widget,
+            # sizing configuration
+            height=256,  # TODO: find a better way than fixed height
+            sizing_mode='stretch_width',
+            # sizing_mode='scale_both',  # NOTE: does not work, and neither does 'stretch_both'
+            # aspect_ratio=1.5,  # NOTE: does not help to use 'scale_both'/'stretch_both'
+            margin=5,
         )

@@ -1,5 +1,6 @@
 from enum import Enum
 
+import pandas as pd
 import panel as pn
 
 from diffinsights_web.views import TimelineView
@@ -22,6 +23,16 @@ class TimelineJSONViewer(TimelineView):
         )
 
 
+def perspective_pane(df: pd.DataFrame, title: str):
+    return pn.pane.Perspective(
+        df,
+        title=title,
+        editable=False,
+        width_policy='max',
+        height=500,
+    )
+
+
 class TimelinePerspective(TimelineView):
     def panel(self, dataframe: TimelineDataFrameEnum = TimelineDataFrameEnum.TIMELINE_DATA):
         if dataframe == TimelineDataFrameEnum.RESAMPLED_DATA:
@@ -38,10 +49,7 @@ class TimelinePerspective(TimelineView):
             title = pn.rx("Perspective: repo={repo!r}") \
                 .format(repo=self.data_store.select_repo_widget)
 
-        return pn.pane.Perspective(
-            df_rx,
+        return perspective_pane(
+            df=df_rx,
             title=title,
-            editable=False,
-            width_policy='max',
-            height=500,
         )

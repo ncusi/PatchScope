@@ -8,7 +8,6 @@ import param
 
 from diffinsights_web.utils.notifications import warning_notification
 
-
 DATASET_DIR = 'data/examples/stats'
 
 
@@ -144,6 +143,25 @@ def add_pm_count_perc(resampled_df: pd.DataFrame,
         elif col.startswith('-:'):
             resampled_df.loc[:, col_perc] = resampled_df[col] / resampled_df['-:count']
 
+    for col in pm_count_cols:
+        if col in {'-:count', '+:count'}:  # '-:count' or '+:count'
+            continue
+
+        # previous loop ensured that both "-:<column>" and "+:<column>" exists
+        if col.startswith('-:'):  # we need only one of those
+            continue
+
+        col_base = col[2:]  # remove "+:" prefix
+        col_base_perc = f"{col_base} [%]"
+        if col_base_perc in resampled_df.columns:
+            # print(f"  SKIP {col_base_perc}")
+            continue
+
+        resampled_df.loc[:, col_base_perc] = (
+                (resampled_df[f"-:{col_base}"] + resampled_df[f"+:{col_base}"]) /
+                (resampled_df['-:count'] + resampled_df['+:count'])
+        )
+
     #print(f"  returned DataFrame(<{hex(id(resampled_df))}>)")
     return resampled_df
 
@@ -185,6 +203,68 @@ def resample_timeline(timeline_df: pd.DataFrame,
     return add_pm_count_perc(df_agg, pm_count_cols)
 
 
+def author_timeline_df(resample_by_author_df: pd.DataFrame, author_id: str) -> pd.DataFrame:
+    return resample_by_author_df.loc[author_id]
+
+
+@pn.cache
+def get_date_range(timeline_df: pd.DataFrame, from_date_str: str):
+    # TODO: create reactive component or bound function to compute from_date to avoid recalculations
+    # TODO: use parsed `from_date` instead of using raw `from_date_str`
+    min_date = timeline_df['author_date'].min()
+    if from_date_str:
+        from_date = pd.to_datetime(from_date_str, dayfirst=True, utc=True)
+        min_date = max(min_date, from_date)
+
+    ## DEBUG
+    #print(f"get_date_range(timeline_df=<{hex(id(timeline_df))}, {from_date_str=}>):")
+    #print(f"  {min_date=}, {timeline_df['author_date'].max()=}")
+
+    return (
+        min_date,
+        timeline_df['author_date'].max(),
+    )
+
+
+@pn.cache
+def get_value_range(timeline_df: pd.DataFrame, column: str = 'n_commits'):
+    return (
+        timeline_df[column].min(),
+        timeline_df[column].max(),
+    )
+
+
+# NOTE: consider putting the filter earlier in the pipeline (needs profiling / benchmarking?)
+# TODO: replace `from_date_str` (raw string) with `from_date` (parsed value)
+def filter_df_by_from_date(resampled_df: pd.DataFrame,
+                           from_date_str: str,
+                           date_column: Optional[str] = None) -> pd.DataFrame:
+    from_date: Optional[pd.Timestamp] = None
+    if from_date_str:
+        try:
+            # the `from_date_str` is in DD.MM.YYYY format
+            from_date = pd.to_datetime(from_date_str, dayfirst=True, utc=True)
+        except ValueError as err:
+            # NOTE: should not happen, value should be validated earlier
+            warning_notification(f"from={from_date_str!r} is not a valid date: {err}")
+
+    filtered_df = resampled_df
+    if from_date is not None:
+        if date_column is None:
+            filtered_df = resampled_df[resampled_df.index >= from_date]
+        else:
+            if pd.api.types.is_timedelta64_dtype(resampled_df[date_column]):
+                filtered_df = resampled_df[resampled_df[date_column] >= from_date]
+            elif pd.api.types.is_numeric_dtype(resampled_df[date_column]):
+                # assume numeric date column is UNIX timestamp
+                filtered_df = resampled_df[resampled_df[date_column] >= from_date.timestamp()]
+            else:
+                warning_notification(f"unsupported type {resampled_df.dtypes[date_column]!r} "
+                                     f"for column {date_column!r}")
+
+    return filtered_df
+
+
 # mapping form display name to frequency alias
 # see table in https://pandas.pydata.org/docs/user_guide/timeseries.html#dateoffset-objects
 time_series_frequencies = {
@@ -202,6 +282,37 @@ frequency_names = {
     'ME': 'month',
     'QE': 'quarter',
 }
+
+
+def authors_info_df(timeline_df: pd.DataFrame,
+                    column: str = 'n_commits',
+                    from_date_str: str = '') -> pd.DataFrame:
+    info_columns = list(agg_func_mapping().keys())
+
+    # sanity check
+    if column not in info_columns:
+        column = info_columns[0]
+
+    filtered_df = filter_df_by_from_date(timeline_df, from_date_str,
+                                         date_column='author.timestamp')
+
+    df = filtered_df\
+        .groupby(by='author.email')[info_columns + ['author.name']]\
+        .agg({
+            col: 'sum' for col in info_columns
+        } | {
+            # https://stackoverflow.com/questions/15222754/groupby-pandas-dataframe-and-select-most-common-value
+            'author.name': pd.Series.mode,
+        })\
+        .sort_values(by=column, ascending=False)\
+        .rename(columns={
+            '+:count': 'p_count',
+            '-:count': 'm_count',
+            'author.name': 'author_name',
+        })
+
+    #print(f" -> {df.columns=}, {df.index.name=}")
+    return df
 
 
 class TimelineDataStore(pn.viewable.Viewer):
