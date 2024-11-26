@@ -12,8 +12,9 @@ from diffinsights_web.utils.notifications import warning_notification
 from diffinsights_web.views import TimelineView
 
 
-class SpecialColumn(Enum):
+class SpecialColumnEnum(Enum):
     LINE_TYPES_PERC = "KIND [%]"
+    NO_PLOT = "<NO PLOT>"
 
 
 def line_type_sorting_key(column_name: str) -> int:
@@ -39,6 +40,10 @@ def plot_commits(resampled_df: pd.DataFrame,
                  xlim: Optional[tuple] = None,
                  ylim: Optional[tuple] = None,
                  kind: str = 'step'):
+    # super special case
+    if column == SpecialColumnEnum.NO_PLOT.value:
+        return
+
     filtered_df = filter_df_by_from_date(resampled_df, from_date_str)
 
     hvplot_kwargs = {}
@@ -65,7 +70,7 @@ def plot_commits(resampled_df: pd.DataFrame,
             ylim = (-1, ylim[1])
 
     # special cases: y range limits
-    if column == SpecialColumn.LINE_TYPES_PERC.value:
+    if column == SpecialColumnEnum.LINE_TYPES_PERC.value:
         ylim = (0.0, 1.05)
 
     # via https://oklch-palette.vercel.app/ and https://htmlcolorcodes.com/rgb-to-hex/
@@ -82,7 +87,7 @@ def plot_commits(resampled_df: pd.DataFrame,
     color = color_map.get(column, '#006dd8')
 
     # special cases: the plot itself
-    if column == SpecialColumn.LINE_TYPES_PERC.value:
+    if column == SpecialColumnEnum.LINE_TYPES_PERC.value:
         kind_perc_columns = [
             col for col in resampled_df.columns
             if col.startswith('type.') and col.endswith(' [%]')
@@ -238,6 +243,9 @@ class TimeseriesPlot(TimelineView):
         )
 
     def __panel__(self) -> pn.viewable.Viewable:
+        if self.column_name == SpecialColumnEnum.NO_PLOT.value:
+            return pn.Spacer(height=0)
+
         return pn.pane.HoloViews(
             self.plot_commits_rx,
             theme=self.select_plot_theme_widget,
@@ -271,6 +279,9 @@ class TimeseriesPlotForAuthor(TimelineView):
 
     def __panel__(self) -> pn.viewable.Viewable:
         #print("TimeseriesPlotForAuthor.__panel__()")
+        if self.main_plot.column_name == SpecialColumnEnum.NO_PLOT.value:
+            return pn.Spacer(height=0)
+
         return pn.pane.HoloViews(
             self.plot_commits_rx,
             theme=self.main_plot.select_plot_theme_widget,

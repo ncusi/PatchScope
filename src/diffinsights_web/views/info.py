@@ -6,7 +6,7 @@ from dateutil.relativedelta import relativedelta
 
 from diffinsights_web.datastore.timeline import frequency_names
 from diffinsights_web.utils.humanize import html_date_humane
-from diffinsights_web.views.plots.timeseries import SpecialColumn, TimeseriesPlot
+from diffinsights_web.views.plots.timeseries import SpecialColumnEnum, TimeseriesPlot
 
 
 # common for all classes defined here
@@ -43,7 +43,8 @@ contribution_types_map = {
     "Patch size (lines)": "diff.patch_size",
     "Patch spreading (lines)": "diff.groups_spread",
     # special cases:
-    "Line types distribution [%]": SpecialColumn.LINE_TYPES_PERC.value,
+    "Line types distribution [%]": SpecialColumnEnum.LINE_TYPES_PERC.value,
+    "No plot": SpecialColumnEnum.NO_PLOT.value  # this special value should be last
 }
 column_to_contribution = {
     v: k for k, v in contribution_types_map.items()
@@ -117,7 +118,7 @@ def sampling_info(resample_freq: str,
     contribution_type = column_to_contribution.get(column, "Unknown type of contribution")
 
     return f"""
-    <strong>{contribution_type} over time</strong>
+    <strong>{contribution_type}{' over time' if column != SpecialColumnEnum.NO_PLOT.value else ''}</strong>
     <p>
     {frequency_names_map.get(resample_freq, 'unknown frequency').title()}ly
     from {html_date_humane(min_max_date[0])}

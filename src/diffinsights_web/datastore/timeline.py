@@ -236,6 +236,11 @@ def get_date_range(timeline_df: pd.DataFrame, from_date_str: str):
 
 @pn.cache
 def get_value_range(timeline_df: pd.DataFrame, column: str = 'n_commits'):
+    # problems importing SpecialColumnsEnum - circular dependency
+    # therefore use more generic solution: protect against all key errors
+    if column not in timeline_df.columns:
+        return 0.0, 1.0
+
     return (
         timeline_df[column].min(),
         timeline_df[column].max(),
