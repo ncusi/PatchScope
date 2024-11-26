@@ -11,7 +11,7 @@ from diffinsights_web.utils.notifications import onload_callback
 from diffinsights_web.views.authorsgrid import AuthorInfo, AuthorsGrid
 from diffinsights_web.views.dataexplorer import TimelineJSONViewer, TimelinePerspective, TimelineDataFrameEnum, \
     perspective_pane
-from diffinsights_web.views.info import ContributorsHeader, RepoPlotHeader
+from diffinsights_web.views.info import ContributorsHeader, RepoPlotHeader, ContributionsPercHeader
 from diffinsights_web.views.plots.timeseries import TimeseriesPlot
 from diffinsights_web.widgets.caching import ClearCacheButton
 
@@ -42,6 +42,10 @@ timeseries_plot_header = RepoPlotHeader(
     freq=data_store.resample_frequency_widget,
     column_name=page_header.select_contribution_type_widget,
     plot=timeseries_plot,
+)
+contributions_perc_header = ContributionsPercHeader(
+    data_store=data_store,
+    from_date_str=page_header.select_period_from_widget,
 )
 #authors_info_panel = AuthorInfo(
 #    data_store=data_store,
@@ -81,6 +85,7 @@ template = pn.template.MaterialTemplate(
         pn.Card(
             pn.Column(
                 timeseries_plot_header,
+                contributions_perc_header,
                 timeseries_plot,
             ),
             collapsible=False, hide_header=True,
