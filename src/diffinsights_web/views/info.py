@@ -202,6 +202,7 @@ def contributions_perc_info(timeline_df: pd.DataFrame,
     ul.horizontal {
         list-style: none !important;
         display: flex;
+        flex-wrap: wrap;
         margin-left: 0px;
         padding-left: 0rem;
     }
@@ -268,7 +269,7 @@ def contributions_perc_info(timeline_df: pd.DataFrame,
     return pn.pane.HTML(
         '\n'.join(html_parts),
         stylesheets=[css],
-        sizing_mode='stretch_width',
+        #sizing_mode='stretch_width',
     )
 
 
