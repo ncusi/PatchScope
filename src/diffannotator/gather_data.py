@@ -431,7 +431,8 @@ def map_diff_to_purpose_dict(_diff_file_path: str, data: dict,
 
 def map_diff_to_lines_stats(annotation_file_basename: str,
                             annotation_data: dict,
-                            data_format: JSONFormat = JSONFormat.V1_5) -> dict:
+                            data_format: JSONFormat = JSONFormat.V1_5,
+                            purpose_to_annotation: Optional[list] = None) -> dict:
     """Mapper passed by line_stats() to *.gather_data_dict() method
 
     It gathers information about file, and counts information about
@@ -465,6 +466,13 @@ def map_diff_to_lines_stats(annotation_file_basename: str,
     # TODO: replace commented out DEBUG lines with logging (info or debug)
     # DEBUG
     #print(f"map_diff_to_lines_stats('{annotation_file_basename}', {{...}}):")
+    # TODO: reduce code duplication wrt. purpose_to_annotation, if possible
+    if purpose_to_annotation is None:
+        purpose_to_annotation = []
+    purpose_to_type_dict = dict([elem
+                                 for elem in purpose_to_annotation
+                                 if len(elem) == 2])
+
     maybe_changes = _extract_maybe_changes(annotation_data, data_format=data_format)
 
     for filename, file_data in maybe_changes.changes.items():
@@ -507,7 +515,12 @@ def map_diff_to_lines_stats(annotation_file_basename: str,
                 result[filename][line_type]["count"] += 1  # count of added/removed lines
 
                 for data_type in ["type", "purpose"]:  # ignore "id" and "tokens" fields
-                    line_data = line[data_type]
+                    # handle --purpose-to-annotation PURPOSE:LINE_TYPE
+                    if data_type == "type" and file_data["purpose"] in purpose_to_type_dict:
+                        line_data = purpose_to_type_dict[file_data["purpose"]]
+                    else:
+                        line_data = line[data_type]
+
                     result[filename][line_type][f"{data_type}.{line_data}"] += 1
                     result[filename]["+/-"][f"{data_type}.{line_data}"] += 1
 
@@ -900,6 +913,21 @@ def lines_stats(
             help="list of dirs with datasets to process"
         )
     ],
+    # TODO: make it a common option, ~~or share it with lines_stats()~~
+    purpose_to_annotation: Annotated[
+        # see https://github.com/fastapi/typer/issues/387#issuecomment-1927465075
+        Optional[list[click.Tuple]],
+        typer.Option(
+            help="""Mapping from file PURPOSE to line type LINE_TYPE.
+                    Each line of such file will be treated as if it had given type.
+                    As a shortcut, giving PURPOSE is the same as PURPOSE:PURPOSE.
+                    Can be given multiple times.""",
+            metavar="PURPOSE:LINE_TYPE|PURPOSE",
+            # `parser` and `click_type` may not both be provided
+            #click_type=click.Tuple([str, str]),
+            parser=parse_colon_separated_pair,
+        )
+    ] = None,
 ) -> None:
     """Calculate per-bug and per-file count of line types in provided datasets
 
@@ -917,7 +945,8 @@ def lines_stats(
         tqdm.tqdm.write(f"Dataset {dataset}")
         annotated_bugs = AnnotatedBugDataset(dataset)
         data = annotated_bugs.gather_data_dict(map_diff_to_lines_stats,
-                                               annotations_dir=ctx.obj.annotations_dir)
+                                               annotations_dir=ctx.obj.annotations_dir,
+                                               purpose_to_annotation=purpose_to_annotation)
 
         result[str(dataset)] = data
 

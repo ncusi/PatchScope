@@ -78,3 +78,164 @@ def test_Languages(caplog: LogCaptureFixture):
     assert actual == expected, "for unknown file"
     assert "Unknown file type" in caplog.text, "warn about unknown file"
     assert file_name in caplog.text, "mention file name in the warning"
+
+
+# TODO?: Make `langs = Languages()` into a fixture
+def test_languages_extra_cases_linux(caplog: LogCaptureFixture):
+    caplog.set_level(logging.WARNING)
+    langs = Languages()
+
+    # NOTE: when running only this test, everything works,
+    # when running all tests, this test fail because of the reason below
+    if not languages.EXT_TO_LANGUAGES:
+        pytest.skip("Something wrong: languages.EXT_TO_LANGUAGES is empty")
+
+    if not languages.FILENAME_TO_LANGUAGES:
+        pytest.skip("Something wrong: languages.FILENAME_TO_LANGUAGES is empty")
+
+    # TODO: run cleanup at exit code with something that runs also on test failure
+    #       like https://stackoverflow.com/a/52873379/,
+    #       or create fixture with cleanup after yield
+
+    languages.EXT_TO_LANGUAGES['.rs'] = ['Rust']
+    actual = langs.annotate("rust/kernel/sync/condvar.rs")
+    if caplog.text:
+        print(caplog.text)
+
+    expected = {'language': 'Rust', 'type': 'programming', 'purpose': 'programming'}
+    assert actual == expected, \
+        "resolved Rust programming language ('.rs' extension collision: ['RenderScript', 'Rust', 'XML'])"
+
+    # there could have been similar test for 'scripts/Makefile.vmlinux_o'
+    # maybe 'tools/lib/bpf/Build' should be treated as Makefile [fragment]?
+    languages.FILENAME_TO_LANGUAGES['Makefile.lib'] = ['Makefile']
+    languages.FILENAME_TO_LANGUAGES['Makefile.config'] = ['Makefile']
+    languages.FILENAME_TO_LANGUAGES['Makefile.deps'] = ['Makefile']
+    languages.FILENAME_TO_LANGUAGES['Makefile.perf'] = ['Makefile']  # kernel-specific
+    languages.FILENAME_TO_LANGUAGES['Makefile.ubsan'] = ['Makefile']  # kernel-specific
+    languages.PATTERN_TO_PURPOSE['Makefile.*'] = 'project'
+    actual = langs.annotate("scripts/Makefile.lib")
+    if caplog.text:
+        print(caplog.text)
+
+    expected = {'language': 'Makefile', 'type': 'programming', 'purpose': 'project'}
+    assert actual == expected, \
+        "Makefile.lib configured to be detected as 'Makefile', and as file with 'project' purpose"
+
+    # Pygments recognizes this language, but GitHub Linguist does not
+    languages.FILENAME_TO_LANGUAGES['Kconfig'] = ['Kconfig']
+    languages.FILENAME_TO_LANGUAGES['Kconfig.debug'] = ['Kconfig']
+    languages.PATTERN_TO_PURPOSE['Kconfig*'] = 'project'  # NOTE: should it be 'project'?
+    actual = langs.annotate("arch/x86/Kconfig")  # and "mm/Kconfig.debug"
+    if caplog.text:
+        print(caplog.text)
+
+    # should probably be type 'data' or 'prose', not 'other'
+    # but GitHub Linguist's languages.yml does not include Kconfig
+    expected = {'language': 'Kconfig', 'type': 'other', 'purpose': 'project'}
+    assert actual == expected, \
+        "Kconfig configured to be detected as 'Kconfig', and as file with 'project' purpose"
+
+    # as of 2024.11.24, GitHub Linguist's languages.yml includes only ".s", ".ms"
+    # extensions for 'Unix Assembly', also known as GAS, from GNU Assembler (gas)
+    languages.EXT_TO_LANGUAGES['.S'] = ['Unix Assembly']
+    actual = langs.annotate("arch/x86/kernel/acpi/wakeup_64.S")
+    if caplog.text:
+        print(caplog.text)
+
+    expected = {'language': 'Unix Assembly', 'type': 'programming', 'purpose': 'programming'}
+    assert actual == expected, \
+        "*.S files configured to be detected as 'Unix Assembly' programming language"
+
+    # see https://www.perplexity.ai/search/what-are-rules-files-in-linux-jYxo8Kn6R3CKfRpPTF5Oew
+    languages.EXT_TO_LANGUAGES['.rules'] = ['Udev Rules File']
+    actual = langs.annotate("drivers/gpu/drm/xe/xe_wa_oob.rules")
+    if caplog.text:
+        print(caplog.text)
+
+    expected = {'language': languages.EXT_TO_LANGUAGES['.rules'][0]}
+    assert actual['language'] == expected['language'], \
+        f".rules files configured to be detected as {languages.EXT_TO_LANGUAGES['.rules'][0]!r} language"
+
+    languages.FILENAME_TO_LANGUAGES['README'] = ['Text']
+    languages.FILENAME_TO_LANGUAGES['CREDITS'] = ['Text']  # custom format
+    languages.FILENAME_TO_LANGUAGES['MAINTAINERS'] = ['Text']  # custom format
+    actual = langs.annotate("MAINTAINERS")
+    if caplog.text:
+        print(caplog.text)
+
+    expected = {'language': 'Text', 'type': 'prose', 'purpose': 'documentation'}
+    assert actual == expected, \
+        "MAINTAINERS file configured to be a text file (type=prose, purpose=documentation)"
+
+    # https://git-scm.com/docs/gitmailmap
+    # GitHub Linguist's languages.yml includes 'Git Config' (also .gitmodules), 'Git Attributes',
+    # and 'Git Revision List'/'Git Blame Ignore Revs',, but nothing for '.mailmap'
+    languages.FILENAME_TO_LANGUAGES['.mailmap'] = ['Git Mailmap']
+    languages.PATTERN_TO_PURPOSE['.mailmap'] = 'data'
+    actual = langs.annotate('.mailmap')
+    print(f".mailmap -> {actual=}")
+    if caplog.text:
+        print(caplog.text)
+
+    expected = {'language': 'Git Mailmap', 'type': 'other', 'purpose': 'data'}
+    assert actual == expected, \
+        "'.mailmap' file is configured to be 'data', etc."
+
+    # here there are multiple choice for *defconfig and 'config' format name:
+    # - Unix/Linux config files (UnixConfigLexer)
+    # - Shell (BashLexer)
+    # noinspection PyUnusedLocal
+    actual = langs.annotate("arch/x86/configs/i386_defconfig")
+    #print(f"{actual=}")
+    if caplog.text:
+        print(caplog.text)
+    caplog.clear()
+
+    # https://www.devicetree.org/specifications/
+    languages.EXT_TO_LANGUAGES['.dts'] = ['Device Tree Source']  # format name taken from file header
+    languages.PATTERN_TO_PURPOSE['*.dts'] = 'data'
+    # almost the same for 'arch/arm/boot/dts/renesas/r8a73a4.dtsi', for example
+    # https://www.nxp.com/docs/en/application-note/AN5125.pdf
+    # https://stackoverflow.com/questions/48420126/what-is-the-difference-between-dts-file-and-dtsi-file
+    languages.EXT_TO_LANGUAGES['.dtsi'] = ['Device Tree Source include']  # format name taken from file header
+    languages.PATTERN_TO_PURPOSE['*.dtsi'] = 'data'
+    # almost the same for 'arch/arm64/boot/dts/xilinx/zynqmp-sck-kv-g-revB.dtso', for example
+    # https://developer.toradex.com/software/linux-resources/device-tree/device-tree-overlays-overview/#file-formats
+    # why different extensions: https://lore.kernel.org/all/20221024173434.32518-2-afd@ti.com/
+    languages.EXT_TO_LANGUAGES['.dtso'] = ['Device Tree Source overlay']  # format name taken from file header
+    languages.PATTERN_TO_PURPOSE['*.dtso'] = 'data'
+    # noinspection PyUnusedLocal
+    actual = langs.annotate('arch/arm/boot/dts/renesas/r8a73a4-ape6evm.dts')
+    #print(f"{actual=}")
+    if caplog.text:
+        print(caplog.text)
+
+    languages.PATTERN_TO_PURPOSE['Documentation/*'] = 'documentation'
+    languages.PATTERN_TO_PURPOSE['Documentation/**'] = 'documentation'
+    # noinspection PyUnusedLocal
+    actual = langs.annotate('Documentation/ABI/testing/gpio-cdev')
+    #print(f"{actual=}")
+    if caplog.text:
+        print(caplog.text)
+
+    # expected failure
+    #assert actual['purpose'] == 'documentation', \
+    #    "files in 'Documentation/' directory are 'documentation' purpose files"
+
+    # TODO: needs look at the she-bang line, or run GitHub Linguist on file contents
+    # NOTE: all those files are from the Linux kernel repository
+    #actual = langs.annotate('scripts/ver_linux')
+    #expected = {'language': 'Awk', 'type': 'programming', 'purpose': 'programming'}
+
+    #actual = langs.annotate('scripts/kernel-doc')
+    #expected = {'language': 'Perl', 'type': 'programming', 'purpose': 'programming'}
+
+    #actual = langs.annotate('scripts/show_delta')
+    #expected = {'language': 'Python', 'type': 'programming', 'purpose': 'programming'}
+
+    #actual = langs.annotate('scripts/mksysmap')
+    #expected = {'language': 'sed', 'type': 'programming', 'purpose': 'programming'}
+
+    #actual = langs.annotate('scripts/stackusage')
+    #expected = {'language': 'Shell', 'type': 'programming', 'purpose': 'programming'}
