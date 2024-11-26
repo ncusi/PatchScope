@@ -13,3 +13,12 @@
 /linux.lines-stats.json
 /linux.timeline.json
 /linux.timeline.purpose-to-type.json
+/git.purpose-counter.json
+/git.purpose-per-file.json
+/git.lines-stats.json
+/tensorflow.lines-stats.purpose-to-type.json
+/qtile.lines-stats.purpose-to-type.json
+/linux.lines-stats.purpose-to-type.json
+/git.lines-stats.purpose-to-type.json
+/git.timeline.json
+/git.timeline.purpose-to-type.json

@@ -60,8 +60,8 @@ stages:
       nfiles: 3345
     - path: src/diffannotator/gather_data.py
       hash: md5
-      md5: 040a904e687a066d9312a6c90d8804de
-      size: 38865
+      md5: 5793a85a43837207dcc383c67c9bdead
+      size: 40387
       isexec: true
     outs:
     - path: data/examples/stats/tensorflow.purpose-counter.json
@@ -79,8 +79,8 @@ stages:
       nfiles: 3345
     - path: src/diffannotator/gather_data.py
       hash: md5
-      md5: 040a904e687a066d9312a6c90d8804de
-      size: 38865
+      md5: 5793a85a43837207dcc383c67c9bdead
+      size: 40387
       isexec: true
     outs:
     - path: data/examples/stats/tensorflow.purpose-per-file.json
@@ -98,8 +98,8 @@ stages:
       nfiles: 3345
     - path: src/diffannotator/gather_data.py
       hash: md5
-      md5: 040a904e687a066d9312a6c90d8804de
-      size: 38865
+      md5: 5793a85a43837207dcc383c67c9bdead
+      size: 40387
       isexec: true
     outs:
     - path: data/examples/stats/tensorflow.lines-stats.json
@@ -117,8 +117,8 @@ stages:
       nfiles: 3345
     - path: src/diffannotator/gather_data.py
       hash: md5
-      md5: 040a904e687a066d9312a6c90d8804de
-      size: 38865
+      md5: 5793a85a43837207dcc383c67c9bdead
+      size: 40387
       isexec: true
     outs:
     - path: data/examples/stats/tensorflow.timeline.json
@@ -138,8 +138,8 @@ stages:
       nfiles: 3345
     - path: src/diffannotator/gather_data.py
       hash: md5
-      md5: 040a904e687a066d9312a6c90d8804de
-      size: 38865
+      md5: 5793a85a43837207dcc383c67c9bdead
+      size: 40387
       isexec: true
     outs:
     - path: data/examples/stats/tensorflow.timeline.purpose-to-type.json
@@ -190,8 +190,8 @@ stages:
       nfiles: 5351
     - path: src/diffannotator/gather_data.py
       hash: md5
-      md5: 040a904e687a066d9312a6c90d8804de
-      size: 38865
+      md5: 5793a85a43837207dcc383c67c9bdead
+      size: 40387
       isexec: true
     outs:
     - path: data/examples/stats/qtile.purpose-counter.json
@@ -209,8 +209,8 @@ stages:
       nfiles: 5351
     - path: src/diffannotator/gather_data.py
       hash: md5
-      md5: 040a904e687a066d9312a6c90d8804de
-      size: 38865
+      md5: 5793a85a43837207dcc383c67c9bdead
+      size: 40387
       isexec: true
     outs:
     - path: data/examples/stats/qtile.purpose-per-file.json
@@ -228,8 +228,8 @@ stages:
       nfiles: 5351
     - path: src/diffannotator/gather_data.py
       hash: md5
-      md5: 040a904e687a066d9312a6c90d8804de
-      size: 38865
+      md5: 5793a85a43837207dcc383c67c9bdead
+      size: 40387
       isexec: true
     outs:
     - path: data/examples/stats/qtile.lines-stats.json
@@ -247,8 +247,8 @@ stages:
       nfiles: 5351
     - path: src/diffannotator/gather_data.py
       hash: md5
-      md5: 040a904e687a066d9312a6c90d8804de
-      size: 38865
+      md5: 5793a85a43837207dcc383c67c9bdead
+      size: 40387
       isexec: true
     outs:
     - path: data/examples/stats/qtile.timeline.json
@@ -268,8 +268,8 @@ stages:
       nfiles: 5351
     - path: src/diffannotator/gather_data.py
       hash: md5
-      md5: 040a904e687a066d9312a6c90d8804de
-      size: 38865
+      md5: 5793a85a43837207dcc383c67c9bdead
+      size: 40387
       isexec: true
     outs:
     - path: data/examples/stats/qtile.timeline.purpose-to-type.json
@@ -327,8 +327,8 @@ stages:
       nfiles: 14481
     - path: src/diffannotator/gather_data.py
       hash: md5
-      md5: 040a904e687a066d9312a6c90d8804de
-      size: 38865
+      md5: 5793a85a43837207dcc383c67c9bdead
+      size: 40387
       isexec: true
     outs:
     - path: data/examples/stats/linux.purpose-counter.json
@@ -346,8 +346,8 @@ stages:
       nfiles: 14481
     - path: src/diffannotator/gather_data.py
       hash: md5
-      md5: 040a904e687a066d9312a6c90d8804de
-      size: 38865
+      md5: 5793a85a43837207dcc383c67c9bdead
+      size: 40387
       isexec: true
     outs:
     - path: data/examples/stats/linux.purpose-per-file.json
@@ -365,8 +365,8 @@ stages:
       nfiles: 14481
     - path: src/diffannotator/gather_data.py
       hash: md5
-      md5: 040a904e687a066d9312a6c90d8804de
-      size: 38865
+      md5: 5793a85a43837207dcc383c67c9bdead
+      size: 40387
       isexec: true
     outs:
     - path: data/examples/stats/linux.lines-stats.json
@@ -384,8 +384,8 @@ stages:
       nfiles: 14481
     - path: src/diffannotator/gather_data.py
       hash: md5
-      md5: 040a904e687a066d9312a6c90d8804de
-      size: 38865
+      md5: 5793a85a43837207dcc383c67c9bdead
+      size: 40387
       isexec: true
     outs:
     - path: data/examples/stats/linux.timeline.json
@@ -405,11 +405,223 @@ stages:
       nfiles: 14481
     - path: src/diffannotator/gather_data.py
       hash: md5
-      md5: 040a904e687a066d9312a6c90d8804de
-      size: 38865
+      md5: 5793a85a43837207dcc383c67c9bdead
+      size: 40387
       isexec: true
     outs:
     - path: data/examples/stats/linux.timeline.purpose-to-type.json
       hash: md5
       md5: 0ee3c88ef88ce51aec95ea05e300c0e1
       size: 19515897
+  clone@3:
+    cmd:
+    - "if [ -d ~/example_repositories/git ]; then\n   echo 'Repository git already
+      cloned, skipping';\nelse\n   git clone https://github.com/git/git.git ~/example_repositories/git;\n\
+      fi"
+    - echo https://github.com/git/git.git >data/examples/git.url
+    outs:
+    - path: data/examples/git.url
+      hash: md5
+      md5: 6e4523af8d6455e694d66f7046520608
+      size: 31
+  annotate@4:
+    cmd: diff-annotate --ext-to-language=.cgi:Perl --filename-to-language=config.mak.in:Makefile
+      --filename-to-language="git.spec.in:RPM Spec" from-repo --output-dir=data/examples/annotations/git/jnareb/
+      ~/example_repositories/git --max-parents=1 --author=jnareb
+    deps:
+    - path: data/examples/git.url
+      hash: md5
+      md5: 6e4523af8d6455e694d66f7046520608
+      size: 31
+    - path: src/diffannotator/annotate.py
+      hash: md5
+      md5: d49a7fbd89f66d8ad2f0b6222e26287a
+      size: 108097
+      isexec: true
+    outs:
+    - path: data/examples/annotations/git/jnareb/
+      hash: md5
+      md5: 269857edaabeb157683441cef840f1b5.dir
+      size: 8982997
+      nfiles: 512
+  purpose-counter@3:
+    cmd: diff-gather-stats --annotations-dir='' purpose-counter --output=data/examples/stats/git.purpose-counter.json
+      data/examples/annotations/git/
+    deps:
+    - path: data/examples/annotations/git
+      hash: md5
+      md5: fad98540718815915d593ad5b3f52644.dir
+      size: 8983005
+      nfiles: 513
+    - path: src/diffannotator/gather_data.py
+      hash: md5
+      md5: 5793a85a43837207dcc383c67c9bdead
+      size: 40387
+      isexec: true
+    outs:
+    - path: data/examples/stats/git.purpose-counter.json
+      hash: md5
+      md5: 4cc8182de8dfb960b8afae616541f022
+      size: 52426
+  purpose-per-file@3:
+    cmd: diff-gather-stats --annotations-dir='' purpose-per-file data/examples/stats/git.purpose-per-file.json
+      data/examples/annotations/git/
+    deps:
+    - path: data/examples/annotations/git
+      hash: md5
+      md5: fad98540718815915d593ad5b3f52644.dir
+      size: 8983005
+      nfiles: 513
+    - path: src/diffannotator/gather_data.py
+      hash: md5
+      md5: 5793a85a43837207dcc383c67c9bdead
+      size: 40387
+      isexec: true
+    outs:
+    - path: data/examples/stats/git.purpose-per-file.json
+      hash: md5
+      md5: 7c1fd38ca1f9949e0da79cd0640ad83f
+      size: 100370
+  lines-stats@3:
+    cmd: diff-gather-stats --annotations-dir='' lines-stats data/examples/stats/git.lines-stats.json
+      data/examples/annotations/git/
+    deps:
+    - path: data/examples/annotations/git
+      hash: md5
+      md5: fad98540718815915d593ad5b3f52644.dir
+      size: 8983005
+      nfiles: 513
+    - path: src/diffannotator/gather_data.py
+      hash: md5
+      md5: 5793a85a43837207dcc383c67c9bdead
+      size: 40387
+      isexec: true
+    outs:
+    - path: data/examples/stats/git.lines-stats.json
+      hash: md5
+      md5: 1c61d666cf375549c5dc6f804715de44
+      size: 479720
+  lines-stats.purpose-to-type@0:
+    cmd: diff-gather-stats --annotations-dir='' lines-stats --purpose-to-annotation=data
+      --purpose-to-annotation=documentation --purpose-to-annotation=markup --purpose-to-annotation=other
+      --purpose-to-annotation=project --purpose-to-annotation=test data/examples/stats/tensorflow.lines-stats.purpose-to-type.json
+      data/examples/annotations/tensorflow/
+    deps:
+    - path: data/examples/annotations/tensorflow
+      hash: md5
+      md5: 1df409d38808f2cfb8c11cd67b94426a.dir
+      size: 477518355
+      nfiles: 3345
+    - path: src/diffannotator/gather_data.py
+      hash: md5
+      md5: 5793a85a43837207dcc383c67c9bdead
+      size: 40387
+      isexec: true
+    outs:
+    - path: data/examples/stats/tensorflow.lines-stats.purpose-to-type.json
+      hash: md5
+      md5: 0a108ac98b6e989e4f28fa90cc20f8e3
+      size: 14210870
+  lines-stats.purpose-to-type@1:
+    cmd: diff-gather-stats --annotations-dir='' lines-stats --purpose-to-annotation=data
+      --purpose-to-annotation=documentation --purpose-to-annotation=markup --purpose-to-annotation=other
+      --purpose-to-annotation=project --purpose-to-annotation=test data/examples/stats/qtile.lines-stats.purpose-to-type.json
+      data/examples/annotations/qtile/
+    deps:
+    - path: data/examples/annotations/qtile
+      hash: md5
+      md5: 78618edca311d5ff742912dbfb7a13cc.dir
+      size: 119378728
+      nfiles: 5351
+    - path: src/diffannotator/gather_data.py
+      hash: md5
+      md5: 5793a85a43837207dcc383c67c9bdead
+      size: 40387
+      isexec: true
+    outs:
+    - path: data/examples/stats/qtile.lines-stats.purpose-to-type.json
+      hash: md5
+      md5: a6ed6ddfaf395ded9b826209d3a20035
+      size: 9943546
+  lines-stats.purpose-to-type@2:
+    cmd: diff-gather-stats --annotations-dir='' lines-stats --purpose-to-annotation=data
+      --purpose-to-annotation=documentation --purpose-to-annotation=markup --purpose-to-annotation=other
+      --purpose-to-annotation=project --purpose-to-annotation=test data/examples/stats/linux.lines-stats.purpose-to-type.json
+      data/examples/annotations/linux/
+    deps:
+    - path: data/examples/annotations/linux
+      hash: md5
+      md5: dffb770bcd1348514387a55b1762cbbc.dir
+      size: 332340955
+      nfiles: 14481
+    - path: src/diffannotator/gather_data.py
+      hash: md5
+      md5: 5793a85a43837207dcc383c67c9bdead
+      size: 40387
+      isexec: true
+    outs:
+    - path: data/examples/stats/linux.lines-stats.purpose-to-type.json
+      hash: md5
+      md5: 9d8adf351a8e6d6aa494ef3c29c8a0ec
+      size: 20720671
+  lines-stats.purpose-to-type@3:
+    cmd: diff-gather-stats --annotations-dir='' lines-stats --purpose-to-annotation=data
+      --purpose-to-annotation=documentation --purpose-to-annotation=markup --purpose-to-annotation=other
+      --purpose-to-annotation=project --purpose-to-annotation=test data/examples/stats/git.lines-stats.purpose-to-type.json
+      data/examples/annotations/git/
+    deps:
+    - path: data/examples/annotations/git
+      hash: md5
+      md5: fad98540718815915d593ad5b3f52644.dir
+      size: 8983005
+      nfiles: 513
+    - path: src/diffannotator/gather_data.py
+      hash: md5
+      md5: 5793a85a43837207dcc383c67c9bdead
+      size: 40387
+      isexec: true
+    outs:
+    - path: data/examples/stats/git.lines-stats.purpose-to-type.json
+      hash: md5
+      md5: 236ad79f86fd8ed4b0812b03923328a7
+      size: 476194
+  timeline@3:
+    cmd: diff-gather-stats --annotations-dir='' timeline data/examples/stats/git.timeline.json
+      data/examples/annotations/git/
+    deps:
+    - path: data/examples/annotations/git
+      hash: md5
+      md5: fad98540718815915d593ad5b3f52644.dir
+      size: 8983005
+      nfiles: 513
+    - path: src/diffannotator/gather_data.py
+      hash: md5
+      md5: 5793a85a43837207dcc383c67c9bdead
+      size: 40387
+      isexec: true
+    outs:
+    - path: data/examples/stats/git.timeline.json
+      hash: md5
+      md5: 2177778b4ec27ff551baca5742e53fd8
+      size: 683464
+  timeline.purpose-to-type@3:
+    cmd: diff-gather-stats --annotations-dir='' timeline --purpose-to-annotation=data
+      --purpose-to-annotation=documentation --purpose-to-annotation=markup --purpose-to-annotation=other
+      --purpose-to-annotation=project --purpose-to-annotation=test data/examples/stats/git.timeline.purpose-to-type.json
+      data/examples/annotations/git/
+    deps:
+    - path: data/examples/annotations/git
+      hash: md5
+      md5: fad98540718815915d593ad5b3f52644.dir
+      size: 8983005
+      nfiles: 513
+    - path: src/diffannotator/gather_data.py
+      hash: md5
+      md5: 5793a85a43837207dcc383c67c9bdead
+      size: 40387
+      isexec: true
+    outs:
+    - path: data/examples/stats/git.timeline.purpose-to-type.json
+      hash: md5
+      md5: 4c2586d70049be0f374c5d1cebc71264
+      size: 684616
