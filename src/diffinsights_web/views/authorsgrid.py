@@ -10,6 +10,7 @@ from diffinsights_web.utils.avatars import gravatar_url
 from diffinsights_web.utils.humanize import html_int_humane
 from diffinsights_web.views import TimelineView
 from diffinsights_web.views.dataexplorer import perspective_pane
+from diffinsights_web.views.info import ContributionsPercHeader
 from diffinsights_web.views.plots.timeseries import TimeseriesPlotForAuthor, TimeseriesPlot
 
 
@@ -152,6 +153,12 @@ class AuthorsGrid(TimelineView):
                                 author=row.Index
                             )
                         ),
+                        ContributionsPercHeader(
+                            data_store=self.data_store,
+                            from_date_str=self.main_plot.param.from_date_str.rx(),
+                            author_id=row.Index,
+                            show_descr=False,
+                        ),
                         TimeseriesPlotForAuthor(
                             data_store=self.data_store,
                             main_plot=self.main_plot,
@@ -173,7 +180,7 @@ class AuthorsGrid(TimelineView):
     @param.depends('authors_info_df', 'top_n', watch=True)
     def update_authors_grid(self) -> None:
         ## DEBUG
-        print(f"RUNNING update_authors_grid(), with repo={self.data_store.select_repo_widget.value}, top_n={self.top_n},...")
+        #print(f"RUNNING update_authors_grid(), with repo={self.data_store.select_repo_widget.value}, top_n={self.top_n},...")
 
         self.authors_grid.clear()
         self.authors_grid.extend(

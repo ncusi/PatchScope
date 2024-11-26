@@ -8,6 +8,7 @@ import param
 
 from diffinsights_web.utils.notifications import warning_notification
 
+
 DATASET_DIR = 'data/examples/stats'
 
 
@@ -207,6 +208,13 @@ def author_timeline_df(resample_by_author_df: pd.DataFrame, author_id: str) -> p
     return resample_by_author_df.loc[author_id]
 
 
+def author_timeline_df_freq(resample_by_author_df: pd.DataFrame,
+                            author_id: str,
+                            resample_rate: str) -> pd.DataFrame:
+    # NOTE: instead of .asfreq(<freq>) one can use .resample(<freq>).first() instead
+    return resample_by_author_df.loc[author_id].asfreq(resample_rate).fillna(0)
+
+
 @pn.cache
 def get_date_range(timeline_df: pd.DataFrame, from_date_str: str):
     # TODO: create reactive component or bound function to compute from_date to avoid recalculations
@@ -228,6 +236,11 @@ def get_date_range(timeline_df: pd.DataFrame, from_date_str: str):
 
 @pn.cache
 def get_value_range(timeline_df: pd.DataFrame, column: str = 'n_commits'):
+    # problems importing SpecialColumnsEnum - circular dependency
+    # therefore use more generic solution: protect against all key errors
+    if column not in timeline_df.columns:
+        return 0.0, 1.0
+
     return (
         timeline_df[column].min(),
         timeline_df[column].max(),

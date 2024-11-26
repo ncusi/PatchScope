@@ -1,12 +1,16 @@
 import datetime
+from collections import Counter
+from typing import Optional
 
+import pandas as pd
 import panel as pn
 import param
 from dateutil.relativedelta import relativedelta
 
-from diffinsights_web.datastore.timeline import frequency_names
+from diffinsights_web.datastore.timeline import frequency_names, filter_df_by_from_date, get_pm_count_cols
 from diffinsights_web.utils.humanize import html_date_humane
-from diffinsights_web.views.plots.timeseries import SpecialColumn, TimeseriesPlot
+from diffinsights_web.views import TimelineView
+from diffinsights_web.views.plots.timeseries import SpecialColumnEnum, TimeseriesPlot
 
 
 # common for all classes defined here
@@ -43,7 +47,8 @@ contribution_types_map = {
     "Patch size (lines)": "diff.patch_size",
     "Patch spreading (lines)": "diff.groups_spread",
     # special cases:
-    "Line types distribution [%]": SpecialColumn.LINE_TYPES_PERC.value,
+    "Line types distribution [%]": SpecialColumnEnum.LINE_TYPES_PERC.value,
+    "No plot": SpecialColumnEnum.NO_PLOT.value  # this special value should be last
 }
 column_to_contribution = {
     v: k for k, v in contribution_types_map.items()
@@ -117,7 +122,7 @@ def sampling_info(resample_freq: str,
     contribution_type = column_to_contribution.get(column, "Unknown type of contribution")
 
     return f"""
-    <strong>{contribution_type} over time</strong>
+    <strong>{contribution_type}{' over time' if column != SpecialColumnEnum.NO_PLOT.value else ''}</strong>
     <p>
     {frequency_names_map.get(resample_freq, 'unknown frequency').title()}ly
     from {html_date_humane(min_max_date[0])}
@@ -154,3 +159,134 @@ class RepoPlotHeader(pn.viewable.Viewer):
             self.sampling_info_rx,
             styles=head_styles
         )
+
+
+def contributions_perc_info(timeline_df: pd.DataFrame,
+                            from_date_str: str,
+                            author_id: Optional[str] = None,
+                            show_descr: bool = False):
+    types = [
+        'code',
+        'documentation',
+        'test',
+        'data',
+        'markup',
+        'other'
+    ]
+    css = """
+    .bar-container {
+        width: 100%;
+        height: 8px;
+        border-radius: 6px;
+        border: 1px solid;
+        display: flex;
+    }
+    .bar {
+        height: 6px;
+        display: block;
+        outline: 2px solid #0000;
+        padding: 1px 0px;
+    }
+    .bar-code { background-color: #4363d8; }
+    .bar-documentation { background-color: #9A6324; }
+    .bar-test { background-color: #3cb44b; }
+    .bar-data { background-color: #ffe119; }
+    .bar-markup { background-color: #800000; }
+    .bar-other { background-color: #a9a9a9; }
+    .svg-code { fill: #4363d8; }
+    .svg-documentation { fill: #9A6324; }
+    .svg-test { fill: #3cb44b; }
+    .svg-data { fill: #ffe119; }
+    .svg-markup { fill: #800000; }
+    .svg-other { fill: #a9a9a9; }
+    ul.horizontal {
+        list-style: none !important;
+        display: flex;
+        margin-left: 0px;
+        padding-left: 0rem;
+    }
+    ul.horizontal li {
+        display: inline-flex;
+        padding-right: 1rem;
+    }
+    """
+    filtered_df = filter_df_by_from_date(timeline_df, from_date_str)
+    if author_id is not None:
+        filtered_df = filtered_df[filtered_df['author.email'] == author_id]
+
+    pm_count_cols = get_pm_count_cols(timeline_df)
+    pm_count_sum = filtered_df[pm_count_cols].sum().to_dict()
+
+    line_kind_sum = Counter()
+    for line_kind in types:
+        for pm in list("-+"):
+            col_name = f"{pm}:type.{line_kind}"
+            if col_name in pm_count_sum:
+                line_kind_sum[line_kind] += pm_count_sum[col_name]
+            else:
+                line_kind_sum[line_kind] += 0
+
+    # NOTE: could be used as alternative way of computing
+    for col_name, col_sum in pm_count_sum.items():
+        line_kind = col_name[len("+:type."):]
+        if line_kind in types:
+            continue  # already counted
+
+        # catch every line type not in `types` into "other" category
+        if col_name.startswith('-:type.') or col_name.startswith('+:type.'):
+            line_kind_sum["other"] += col_sum
+
+    total_lines = 0
+    for pm in list("-+"):
+        if f"{pm}:count" in pm_count_sum:
+            total_lines += pm_count_sum[f"{pm}:count"]
+
+    html_parts = ['<div class="bar-container">']
+    for line_kind in types:
+        val_perc = 100.0*line_kind_sum[line_kind]/total_lines
+        html_parts.append(
+            f'<span class="bar bar-{line_kind}"'
+            f' style="width: {val_perc:.1f}%;" title="{line_kind}: {val_perc:.1f}%"></span>'
+        )
+    html_parts.append('</div>')
+
+    if show_descr:
+        html_parts.append('<ul class="horizontal">')
+        for line_kind in types:
+            val_perc = 100.0 * line_kind_sum[line_kind] / total_lines
+            html_parts.append(
+                '<li>'
+                f'<svg class="svg-{line_kind}" aria-hidden="true"'
+                ' width="16" height="16" viewBox="0 0 16 16" version="1.1">'
+                '<circle cx="8" cy="8" r="4" />'
+                '</svg>'
+                f'{line_kind}:&nbsp;{val_perc:.1f}%'
+                '</li>'
+            )
+        html_parts.append('</ul>')
+
+    return pn.pane.HTML(
+        '\n'.join(html_parts),
+        stylesheets=[css],
+        sizing_mode='stretch_width',
+    )
+
+
+class ContributionsPercHeader(TimelineView):
+    author_id = param.String(None)
+    from_date_str = param.String(allow_refs=True)  # allow_refs=True is here to allow widgets
+    show_descr = param.Boolean(True)
+
+    def __init__(self, **params):
+        super().__init__(**params)
+
+        # TODO: fix the bug with the output not updating on updated `from_date_str` widget
+        self.contributions_perc_info_rx = pn.rx(contributions_perc_info)(
+            timeline_df=self.data_store.timeline_df_rx,
+            from_date_str=self.param.from_date_str.rx(),
+            author_id=self.author_id,
+            show_descr=self.show_descr,
+        )
+
+    def __panel__(self) -> pn.viewable.Viewable:
+        return self.contributions_perc_info_rx.rx.value
