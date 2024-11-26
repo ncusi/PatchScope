@@ -163,7 +163,8 @@ class RepoPlotHeader(pn.viewable.Viewer):
 
 def contributions_perc_info(timeline_df: pd.DataFrame,
                             from_date_str: str,
-                            author_id: Optional[str] = None):
+                            author_id: Optional[str] = None,
+                            show_descr: bool = False):
     types = [
         'code',
         'documentation',
@@ -192,11 +193,21 @@ def contributions_perc_info(timeline_df: pd.DataFrame,
     .bar-data { background-color: #ffe119; }
     .bar-markup { background-color: #800000; }
     .bar-other { background-color: #a9a9a9; }
+    .svg-code { fill: #4363d8; }
+    .svg-documentation { fill: #9A6324; }
+    .svg-test { fill: #3cb44b; }
+    .svg-data { fill: #ffe119; }
+    .svg-markup { fill: #800000; }
+    .svg-other { fill: #a9a9a9; }
     ul.horizontal {
         list-style: none !important;
         display: flex;
         margin-left: 0px;
-        padding-left: 2rem;
+        padding-left: 0rem;
+    }
+    ul.horizontal li {
+        display: inline-flex;
+        padding-right: 1rem;
     }
     """
     filtered_df = filter_df_by_from_date(timeline_df, from_date_str)
@@ -239,6 +250,21 @@ def contributions_perc_info(timeline_df: pd.DataFrame,
         )
     html_parts.append('</div>')
 
+    if show_descr:
+        html_parts.append('<ul class="horizontal">')
+        for line_kind in types:
+            val_perc = 100.0 * line_kind_sum[line_kind] / total_lines
+            html_parts.append(
+                '<li>'
+                f'<svg class="svg-{line_kind}" aria-hidden="true"'
+                ' width="16" height="16" viewBox="0 0 16 16" version="1.1">'
+                '<circle cx="8" cy="8" r="4" />'
+                '</svg>'
+                f'{line_kind}:&nbsp;{val_perc:.1f}%'
+                '</li>'
+            )
+        html_parts.append('</ul>')
+
     return pn.pane.HTML(
         '\n'.join(html_parts),
         stylesheets=[css],
@@ -249,6 +275,7 @@ def contributions_perc_info(timeline_df: pd.DataFrame,
 class ContributionsPercHeader(TimelineView):
     author_id = param.String(None)
     from_date_str = param.String(allow_refs=True)  # allow_refs=True is here to allow widgets
+    show_descr = param.Boolean(True)
 
     def __init__(self, **params):
         super().__init__(**params)
@@ -258,6 +285,7 @@ class ContributionsPercHeader(TimelineView):
             timeline_df=self.data_store.timeline_df_rx,
             from_date_str=self.param.from_date_str.rx(),
             author_id=self.author_id,
+            show_descr=self.show_descr,
         )
 
     def __panel__(self) -> pn.viewable.Viewable:
