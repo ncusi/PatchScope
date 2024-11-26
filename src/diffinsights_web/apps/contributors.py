@@ -53,7 +53,7 @@ contributions_perc_header = ContributionsPercHeader(
 #)
 top_n_widget = pn.widgets.Select(
     name="top N",
-    options=[4, 10, 32],
+    options=[2, 4, 10, 32],
     value=4,
 )
 authors_grid = AuthorsGrid(
