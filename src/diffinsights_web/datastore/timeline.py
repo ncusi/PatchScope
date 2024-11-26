@@ -8,6 +8,7 @@ import param
 
 from diffinsights_web.utils.notifications import warning_notification
 
+
 DATASET_DIR = 'data/examples/stats'
 
 

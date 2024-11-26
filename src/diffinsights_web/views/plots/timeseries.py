@@ -241,6 +241,9 @@ class TimeseriesPlot(TimelineView):
         return pn.pane.HoloViews(
             self.plot_commits_rx,
             theme=self.select_plot_theme_widget,
+            # sizing configuration
+            height=350,  # TODO: find a better way than fixed height
+            sizing_mode='stretch_width',
         )
 
 
