@@ -157,7 +157,7 @@ class AuthorsGrid(TimelineView):
                             data_store=self.data_store,
                             from_date_str=self.main_plot.param.from_date_str.rx(),
                             author_id=row.Index,
-                            show_descr=False,
+                            show_descr=True,
                         ),
                         TimeseriesPlotForAuthor(
                             data_store=self.data_store,
