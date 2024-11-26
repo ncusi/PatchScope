@@ -134,6 +134,27 @@ stages:
       outs:
         - data/examples/stats/${item.name}.lines-stats.json
 
+  lines-stats.purpose-to-type:
+    foreach: ${repos}
+    do:
+      desc: 'Running `diff-gather-stats lines-stats --purpose-to-annotation...` on ${item.name} repo'
+      cmd: >-
+        diff-gather-stats --annotations-dir=''
+        lines-stats
+        --purpose-to-annotation=data
+        --purpose-to-annotation=documentation
+        --purpose-to-annotation=markup
+        --purpose-to-annotation=other
+        --purpose-to-annotation=project
+        --purpose-to-annotation=test
+        data/examples/stats/${item.name}.lines-stats.purpose-to-type.json
+        data/examples/annotations/${item.name}/
+      deps:
+        - data/examples/annotations/${item.name}
+        - src/diffannotator/gather_data.py
+      outs:
+        - data/examples/stats/${item.name}.lines-stats.purpose-to-type.json
+
   timeline:
     foreach: ${repos}
     do:
