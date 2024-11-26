@@ -9,6 +9,9 @@ vars:
         url: https://github.com/qtile/qtile.git
       - name: linux
         url: git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git
+      - name: git
+        # Git Source Code Mirror
+        url: https://github.com/git/git.git
   # repositories, and authors in those repositories, to analyze/annotate
   - authors:
       - repo: tensorflow
@@ -57,6 +60,10 @@ vars:
           --pattern-to-purpose=*.dts:data
           --pattern-to-purpose=*.dts?:data
         args:  --max-parents=1 v6.8..v6.9
+      - repo: git
+        nick: jnareb
+        annotate_args: ''
+        args: --max-parents=1 --author=jnareb
 
 stages:
   clone:
