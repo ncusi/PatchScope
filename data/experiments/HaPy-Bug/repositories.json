@@ -1,0 +1,402 @@
+[
+  {
+    "project": "pandas",
+    "repository_url": "https://github.com/pandas-dev/pandas",
+    "repository_path": "/mnt/data/python_bug_localization_data/repositories/pandas"
+  },
+  {
+    "project": "ansible",
+    "repository_url": "https://github.com/ansible/ansible",
+    "repository_path": "/mnt/data/python_bug_localization_data/repositories/ansible"
+  },
+  {
+    "project": "black",
+    "repository_url": "https://github.com/psf/black",
+    "repository_path": "/mnt/data/python_bug_localization_data/repositories/black"
+  },
+  {
+    "project": "cookiecutter",
+    "repository_url": "https://github.com/cookiecutter/cookiecutter",
+    "repository_path": "/mnt/data/python_bug_localization_data/repositories/cookiecutter"
+  },
+  {
+    "project": "fastapi",
+    "repository_url": "https://github.com/tiangolo/fastapi",
+    "repository_path": "/mnt/data/python_bug_localization_data/repositories/fastapi"
+  },
+  {
+    "project": "httpie",
+    "repository_url": "https://github.com/jakubroztocil/httpie",
+    "repository_path": "/mnt/data/python_bug_localization_data/repositories/httpie"
+  },
+  {
+    "project": "keras",
+    "repository_url": "https://github.com/keras-team/keras",
+    "repository_path": "/mnt/data/python_bug_localization_data/repositories/keras"
+  },
+  {
+    "project": "luigi",
+    "repository_url": "https://github.com/spotify/luigi",
+    "repository_path": "/mnt/data/python_bug_localization_data/repositories/luigi"
+  },
+  {
+    "project": "matplotlib",
+    "repository_url": "https://github.com/matplotlib/matplotlib",
+    "repository_path": "/mnt/data/python_bug_localization_data/repositories/matplotlib"
+  },
+  {
+    "project": "PySnooper",
+    "repository_url": "https://github.com/cool-RR/PySnooper",
+    "repository_path": "/mnt/data/python_bug_localization_data/repositories/PySnooper"
+  },
+  {
+    "project": "sanic",
+    "repository_url": "https://github.com/huge-success/sanic",
+    "repository_path": "/mnt/data/python_bug_localization_data/repositories/sanic"
+  },
+  {
+    "project": "scrapy",
+    "repository_url": "https://github.com/scrapy/scrapy",
+    "repository_path": "/mnt/data/python_bug_localization_data/repositories/scrapy"
+  },
+  {
+    "project": "spacy",
+    "repository_url": "https://github.com/explosion/spaCy",
+    "repository_path": "/mnt/data/python_bug_localization_data/repositories/spacy"
+  },
+  {
+    "project": "thefuck",
+    "repository_url": "https://github.com/nvbn/thefuck",
+    "repository_path": "/mnt/data/python_bug_localization_data/repositories/thefuck"
+  },
+  {
+    "project": "tornado",
+    "repository_url": "https://github.com/tornadoweb/tornado",
+    "repository_path": "/mnt/data/python_bug_localization_data/repositories/tornado"
+  },
+  {
+    "project": "tqdm",
+    "repository_url": "https://github.com/tqdm/tqdm",
+    "repository_path": "/mnt/data/python_bug_localization_data/repositories/tqdm"
+  },
+  {
+    "project": "youtube-dl",
+    "repository_url": "https://github.com/ytdl-org/youtube-dl",
+    "repository_path": "/mnt/data/python_bug_localization_data/repositories/youtube-dl"
+  },
+  {
+    "project": "Yamale",
+    "repository_url": "https://github.com/23andMe/Yamale.git",
+    "repository_path": "/mnt/data/python_bug_localization_data/repositories/Yamale"
+  },
+  {
+    "project": "abrt",
+    "repository_url": "https://github.com/abrt/abrt.git",
+    "repository_path": "/mnt/data/python_bug_localization_data/repositories/abrt"
+  },
+  {
+    "project": "rencode",
+    "repository_url": "https://github.com/aresch/rencode.git",
+    "repository_path": "/mnt/data/python_bug_localization_data/repositories/rencode"
+  },
+  {
+    "project": "hub-rest-api-python",
+    "repository_url": "https://github.com/blackducksoftware/hub-rest-api-python.git",
+    "repository_path": "/mnt/data/python_bug_localization_data/repositories/hub-rest-api-python"
+  },
+  {
+    "project": "ceph-iscsi-cli",
+    "repository_url": "https://github.com/ceph/ceph-iscsi-cli.git",
+    "repository_path": "/mnt/data/python_bug_localization_data/repositories/ceph-iscsi-cli"
+  },
+  {
+    "project": "ceph",
+    "repository_url": "https://github.com/ceph/ceph.git",
+    "repository_path": "/mnt/data/python_bug_localization_data/repositories/ceph"
+  },
+  {
+    "project": "buildah",
+    "repository_url": "https://github.com/containers/buildah.git",
+    "repository_path": "/mnt/data/python_bug_localization_data/repositories/buildah"
+  },
+  {
+    "project": "autobahn-python",
+    "repository_url": "https://github.com/crossbario/autobahn-python.git",
+    "repository_path": "/mnt/data/python_bug_localization_data/repositories/autobahn-python"
+  },
+  {
+    "project": "lookatme",
+    "repository_url": "https://github.com/d0c-s4vage/lookatme.git",
+    "repository_path": "/mnt/data/python_bug_localization_data/repositories/lookatme"
+  },
+  {
+    "project": "dependabot-core",
+    "repository_url": "https://github.com/dependabot/dependabot-core.git",
+    "repository_path": "/mnt/data/python_bug_localization_data/repositories/dependabot-core"
+  },
+  {
+    "project": "freeradius-server",
+    "repository_url": "https://github.com/FreeRADIUS/freeradius-server.git",
+    "repository_path": "/mnt/data/python_bug_localization_data/repositories/freeradius-server"
+  },
+  {
+    "project": "psutil",
+    "repository_url": "https://github.com/giampaolo/psutil.git",
+    "repository_path": "/mnt/data/python_bug_localization_data/repositories/psutil"
+  },
+  {
+    "project": "grafana",
+    "repository_url": "https://github.com/grafana/grafana.git",
+    "repository_path": "/mnt/data/python_bug_localization_data/repositories/grafana"
+  },
+  {
+    "project": "httplib2",
+    "repository_url": "https://github.com/httplib2/httplib2.git",
+    "repository_path": "/mnt/data/python_bug_localization_data/repositories/httplib2"
+  },
+  {
+    "project": "jquery",
+    "repository_url": "https://github.com/jquery/jquery.git",
+    "repository_path": "/mnt/data/python_bug_localization_data/repositories/jquery"
+  },
+  {
+    "project": "katello",
+    "repository_url": "https://github.com/Katello/katello.git",
+    "repository_path": "/mnt/data/python_bug_localization_data/repositories/katello"
+  },
+  {
+    "project": "keycloak",
+    "repository_url": "https://github.com/keycloak/keycloak.git",
+    "repository_path": "/mnt/data/python_bug_localization_data/repositories/keycloak"
+  },
+  {
+    "project": "kubernetes",
+    "repository_url": "https://github.com/kubernetes/kubernetes.git",
+    "repository_path": "/mnt/data/python_bug_localization_data/repositories/kubernetes"
+  },
+  {
+    "project": "lxml",
+    "repository_url": "https://github.com/lxml/lxml.git",
+    "repository_path": "/mnt/data/python_bug_localization_data/repositories/lxml"
+  },
+  {
+    "project": "marshmallow",
+    "repository_url": "https://github.com/marshmallow-code/marshmallow.git",
+    "repository_path": "/mnt/data/python_bug_localization_data/repositories/marshmallow"
+  },
+  {
+    "project": "synapse",
+    "repository_url": "https://github.com/matrix-org/synapse.git",
+    "repository_path": "/mnt/data/python_bug_localization_data/repositories/synapse"
+  },
+  {
+    "project": "zsh-autoswitch-virtualenv",
+    "repository_url": "https://github.com/MichaelAquilina/zsh-autoswitch-virtualenv.git",
+    "repository_path": "/mnt/data/python_bug_localization_data/repositories/zsh-autoswitch-virtualenv"
+  },
+  {
+    "project": "sopel-channelmgnt",
+    "repository_url": "https://github.com/MirahezeBots/sopel-channelmgnt.git",
+    "repository_path": "/mnt/data/python_bug_localization_data/repositories/sopel-channelmgnt"
+  },
+  {
+    "project": "python-jose",
+    "repository_url": "https://github.com/mpdavis/python-jose.git",
+    "repository_path": "/mnt/data/python_bug_localization_data/repositories/python-jose"
+  },
+  {
+    "project": "netty",
+    "repository_url": "https://github.com/netty/netty.git",
+    "repository_path": "/mnt/data/python_bug_localization_data/repositories/netty"
+  },
+  {
+    "project": "nltk",
+    "repository_url": "https://github.com/nltk/nltk.git",
+    "repository_path": "/mnt/data/python_bug_localization_data/repositories/nltk"
+  },
+  {
+    "project": "rrdtool-1.x",
+    "repository_url": "https://github.com/oetiker/rrdtool-1.x.git",
+    "repository_path": "/mnt/data/python_bug_localization_data/repositories/rrdtool-1.x"
+  },
+  {
+    "project": "runc",
+    "repository_url": "https://github.com/opencontainers/runc.git",
+    "repository_path": "/mnt/data/python_bug_localization_data/repositories/runc"
+  },
+  {
+    "project": "rtslib-fb",
+    "repository_url": "https://github.com/open-iscsi/rtslib-fb.git",
+    "repository_path": "/mnt/data/python_bug_localization_data/repositories/rtslib-fb"
+  },
+  {
+    "project": "origin",
+    "repository_url": "https://github.com/openshift/origin.git",
+    "repository_path": "/mnt/data/python_bug_localization_data/repositories/origin"
+  },
+  {
+    "project": "libsolv",
+    "repository_url": "https://github.com/openSUSE/libsolv.git",
+    "repository_path": "/mnt/data/python_bug_localization_data/repositories/libsolv"
+  },
+  {
+    "project": "flask",
+    "repository_url": "https://github.com/pallets/flask.git",
+    "repository_path": "/mnt/data/python_bug_localization_data/repositories/flask"
+  },
+  {
+    "project": "werkzeug",
+    "repository_url": "https://github.com/pallets/werkzeug.git",
+    "repository_path": "/mnt/data/python_bug_localization_data/repositories/werkzeug"
+  },
+  {
+    "project": "pulp",
+    "repository_url": "https://github.com/pulp/pulp.git",
+    "repository_path": "/mnt/data/python_bug_localization_data/repositories/pulp"
+  },
+  {
+    "project": "cryptography",
+    "repository_url": "https://github.com/pyca/cryptography.git",
+    "repository_path": "/mnt/data/python_bug_localization_data/repositories/cryptography"
+  },
+  {
+    "project": "pyopenssl",
+    "repository_url": "https://github.com/pyca/pyopenssl.git",
+    "repository_path": "/mnt/data/python_bug_localization_data/repositories/pyopenssl"
+  },
+  {
+    "project": "waitress",
+    "repository_url": "https://github.com/Pylons/waitress.git",
+    "repository_path": "/mnt/data/python_bug_localization_data/repositories/waitress"
+  },
+  {
+    "project": "PyPDF2",
+    "repository_url": "https://github.com/py-pdf/PyPDF2.git",
+    "repository_path": "/mnt/data/python_bug_localization_data/repositories/PyPDF2"
+  },
+  {
+    "project": "py",
+    "repository_url": "https://github.com/pytest-dev/py.git",
+    "repository_path": "/mnt/data/python_bug_localization_data/repositories/py"
+  },
+  {
+    "project": "babel",
+    "repository_url": "https://github.com/python-babel/babel.git",
+    "repository_path": "/mnt/data/python_bug_localization_data/repositories/babel"
+  },
+  {
+    "project": "cpython",
+    "repository_url": "https://github.com/python/cpython.git",
+    "repository_path": "/mnt/data/python_bug_localization_data/repositories/cpython"
+  },
+  {
+    "project": "Pillow",
+    "repository_url": "https://github.com/python-pillow/Pillow.git",
+    "repository_path": "/mnt/data/python_bug_localization_data/repositories/Pillow"
+  },
+  {
+    "project": "requests",
+    "repository_url": "https://github.com/requests/requests.git",
+    "repository_path": "/mnt/data/python_bug_localization_data/repositories/requests"
+  },
+  {
+    "project": "pysaml2",
+    "repository_url": "https://github.com/rohe/pysaml2.git",
+    "repository_path": "/mnt/data/python_bug_localization_data/repositories/pysaml2"
+  },
+  {
+    "project": "actionlib",
+    "repository_url": "https://github.com/ros/actionlib.git",
+    "repository_path": "/mnt/data/python_bug_localization_data/repositories/actionlib"
+  },
+  {
+    "project": "yum-utils",
+    "repository_url": "https://github.com/rpm-software-management/yum-utils.git",
+    "repository_path": "/mnt/data/python_bug_localization_data/repositories/yum-utils"
+  },
+  {
+    "project": "ruby-net-ldap",
+    "repository_url": "https://github.com/ruby-ldap/ruby-net-ldap.git",
+    "repository_path": "/mnt/data/python_bug_localization_data/repositories/ruby-net-ldap"
+  },
+  {
+    "project": "openssh_key_parser",
+    "repository_url": "https://github.com/scottcwang/openssh_key_parser.git",
+    "repository_path": "/mnt/data/python_bug_localization_data/repositories/openssh_key_parser"
+  },
+  {
+    "project": "flask-caching",
+    "repository_url": "https://github.com/sh4nks/flask-caching.git",
+    "repository_path": "/mnt/data/python_bug_localization_data/repositories/flask-caching"
+  },
+  {
+    "project": "python-oauth2",
+    "repository_url": "https://github.com/simplegeo/python-oauth2.git",
+    "repository_path": "/mnt/data/python_bug_localization_data/repositories/python-oauth2"
+  },
+  {
+    "project": "electrum",
+    "repository_url": "https://github.com/spesmilo/electrum.git",
+    "repository_path": "/mnt/data/python_bug_localization_data/repositories/electrum"
+  },
+  {
+    "project": "systemd",
+    "repository_url": "https://github.com/systemd/systemd.git",
+    "repository_path": "/mnt/data/python_bug_localization_data/repositories/systemd"
+  },
+  {
+    "project": "api",
+    "repository_url": "https://github.com/Tendrl/api.git",
+    "repository_path": "/mnt/data/python_bug_localization_data/repositories/api"
+  },
+  {
+    "project": "foreman",
+    "repository_url": "https://github.com/theforeman/foreman.git",
+    "repository_path": "/mnt/data/python_bug_localization_data/repositories/foreman"
+  },
+  {
+    "project": "oreman_remote_execution",
+    "repository_url": "https://github.com/theforeman/foreman_remote_execution.git",
+    "repository_path": "/mnt/data/python_bug_localization_data/repositories/oreman_remote_execution"
+  },
+  {
+    "project": "tuf",
+    "repository_url": "https://github.com/theupdateframework/tuf.git",
+    "repository_path": "/mnt/data/python_bug_localization_data/repositories/tuf"
+  },
+  {
+    "project": "tlslite-ng",
+    "repository_url": "https://github.com/tlsfuzzer/tlslite-ng.git",
+    "repository_path": "/mnt/data/python_bug_localization_data/repositories/tlslite-ng"
+  },
+  {
+    "project": "bootstrap",
+    "repository_url": "https://github.com/twbs/bootstrap.git",
+    "repository_path": "/mnt/data/python_bug_localization_data/repositories/bootstrap"
+  },
+  {
+    "project": "secure_headers",
+    "repository_url": "https://github.com/twitter/secure_headers.git",
+    "repository_path": "/mnt/data/python_bug_localization_data/repositories/secure_headers"
+  },
+  {
+    "project": "urllib3",
+    "repository_url": "https://github.com/urllib3/urllib3.git",
+    "repository_path": "/mnt/data/python_bug_localization_data/repositories/urllib3"
+  },
+  {
+    "project": "vyper",
+    "repository_url": "https://github.com/vyperlang/vyper.git",
+    "repository_path": "/mnt/data/python_bug_localization_data/repositories/vyper"
+  },
+  {
+    "project": "pyyaml",
+    "repository_url": "https://github.com/yaml/pyyaml.git",
+    "repository_path": "/mnt/data/python_bug_localization_data/repositories/pyyaml"
+  },
+  {
+    "project": "zeroclipboard",
+    "repository_url": "https://github.com/zeroclipboard/zeroclipboard.git",
+    "repository_path": "/mnt/data/python_bug_localization_data/repositories/zeroclipboard"
+  }
+]
