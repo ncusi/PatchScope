@@ -60,6 +60,13 @@ vars:
           --pattern-to-purpose=*.dts:data
           --pattern-to-purpose=*.dts?:data
         args:  --max-parents=1 v6.8..v6.9
+      - repo: git
+        nick: jnareb
+        annotate_args: >-
+          --ext-to-language=.cgi:Perl
+          --filename-to-language=config.mak.in:Makefile
+          --filename-to-language="git.spec.in:RPM Spec"
+        args: --max-parents=1 --author=jnareb
       - repo: linux
         nick: all_authors-2021_2023
         annotate_args: >-
@@ -84,13 +91,6 @@ vars:
           --pattern-to-purpose=*.dts:data
           --pattern-to-purpose=*.dts?:data
         args: --max-parents=1 --after=2021.01.01 --before=2023.12.31
-      - repo: git
-        nick: jnareb
-        annotate_args: >-
-          --ext-to-language=.cgi:Perl
-          --filename-to-language=config.mak.in:Makefile
-          --filename-to-language="git.spec.in:RPM Spec"
-        args: --max-parents=1 --author=jnareb
 
 stages:
   clone:
