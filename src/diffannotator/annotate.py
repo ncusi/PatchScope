@@ -290,6 +290,9 @@ def line_is_comment(tokens_list: Iterable[tuple]) -> bool:
     for _, token_type, text_fragment in tokens_list:
         if token_type in Token.Comment:
             can_be_comment = True
+        elif token_type in Token.Literal.String.Doc:
+            # docstrings are considered documentation / comments
+            can_be_comment = True
         elif token_type in Token.Text.Whitespace:
             # white space in line is also ok
             can_be_comment = True
