@@ -823,7 +823,7 @@ def test_line_callback_trivial():
 
     # trivial callback
     line_type = "any"
-    AnnotatedPatchedFile.line_callback = lambda tokens: line_type
+    AnnotatedPatchedFile.line_callback = lambda file_purpose, tokens: line_type
     patch = annotate_single_diff(file_path, missing_ok=False,
                                  ignore_diff_parse_errors=False,
                                  ignore_annotation_errors=False)
@@ -840,7 +840,7 @@ def test_line_callback_trivial():
 
     # use exec
     code_str = f"""return '{line_type}'"""
-    callback_code_str = ("def callback_x(tokens):\n" +
+    callback_code_str = ("def callback_x(file_purpose, tokens):\n" +
                          "  " + "\n  ".join(code_str.splitlines()) + "\n")
     exec(callback_code_str, globals())
     AnnotatedPatchedFile.line_callback = \
@@ -861,7 +861,7 @@ def test_line_callback_whitespace():
     file_path = Path('tests/test_dataset_structured/keras-10/patches/c1c4afe60b1355a6c0e83577791a0423f37a3324.diff')
 
     # complex callback, untyped
-    def detect_all_whitespace_line(tokens):
+    def detect_all_whitespace_line(_file_purpose, tokens):
         if len(tokens) == 0:
             return "empty"
         elif all([token_type in Token.Text.Whitespace or

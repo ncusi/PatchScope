@@ -13,7 +13,7 @@ This script provides the following subcommands:
   annotate a single PATCH_FILE, writing results to RESULT_JSON,
 - `diff-annotate dataset [OPTIONS] DATASETS...`:
   annotate all bugs in provided DATASETS,
-- `diff-anotate from-repo [OPTIONS] REPO_PATH [REVISION_RANGE...]`:
+- `diff-annotate from-repo [OPTIONS] REPO_PATH [REVISION_RANGE...]`:
   create annotation data for commits from local Git repository
   (with `REVISION_RANGE...` passed as arguments to the `git log` command);
 
@@ -119,7 +119,7 @@ logger = logging.getLogger(__name__)
 
 T = TypeVar('T')
 PathLike = TypeVar("PathLike", str, bytes, Path, os.PathLike)
-LineCallback = Callable[[Iterable[tuple]], str]
+LineCallback = Callable[[str, Iterable[tuple]], str]
 OptionalLineCallback = Optional[LineCallback]
 
 PURPOSE_TO_ANNOTATION = {"documentation": "documentation"}
@@ -563,7 +563,11 @@ class AnnotatedPatchedFile:
             return None
 
         match = re.match(pattern=r"def\s+(?P<func_name>\w+)"
-                                 r"\((?P<param>\w+)(?P<type_info>\s*:\s*[^)]*?)?\)"
+                                 r"\("
+                                 r"(?P<param1>\w+)(?P<type_info1>\s*:\s*[^)]*?)?"
+                                 r",\s*"
+                                 r"(?P<param2>\w+)(?P<type_info2>\s*:\s*[^)]*?)?"
+                                 r"\)"
                                  r"\s*(?P<rtype_info>->\s*[^:]*?\s*)?:\s*$",
                          string=code_str, flags=re.MULTILINE)
         if match:
@@ -577,7 +581,7 @@ class AnnotatedPatchedFile:
             logger.debug("Using provided code string as body of callback function", code_str)
 
             callback_name = "_line_callback"
-            callback_code_str = (f"def {callback_name}(tokens):\n" +
+            callback_code_str = (f"def {callback_name}(file_purpose, tokens):\n" +
                                  "  " + "\n  ".join(code_str.splitlines()) + "\n")
         # TODO?: wrap with try: ... except SyntaxError: ...
         exec(callback_code_str, globals())
@@ -1309,7 +1313,7 @@ class AnnotatedHunk:
                 line_annotation: Optional[str] = None
                 if AnnotatedPatchedFile.line_callback is not None:
                     try:
-                        line_annotation = AnnotatedPatchedFile.line_callback(line_tokens)
+                        line_annotation = AnnotatedPatchedFile.line_callback(file_purpose, line_tokens)
                     except:
                         # TODO: log problems with line callback
                         pass
