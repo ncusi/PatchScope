@@ -23,6 +23,7 @@ example_C_code = r'''
   * brief       Calculate approximate memory requirements for raw encoder
   *
   */
+
   int i = 1; /* an int */
 '''
 
@@ -970,13 +971,21 @@ class TestCLexer:
             for i, line_tokens in tokens_grouped.items()
         }
 
+        # from pprint import pprint
+        # pprint(actual)
+        # print("<<<")
+        # for i, code_line in enumerate(example_C_code.splitlines(keepends=True)):
+        #     print(f"{i:d}: {actual[i]!s:5}: {code_line}", end='')
+        # print("<<<")
+
         assert len(actual) == len(example_C_code.splitlines(keepends=True)), \
             "numbers of lines matches with code"
 
         # NOTE: these tests *must* be updated it example_C_code changes
         assert not actual[len(actual)-1], \
             "last line in example code is not a comment"
-        assert all([v for k, v in actual.items() if k != len(actual)-1]), \
-            "all but last line in example code is a comment"
+        assert all([v for k, v in actual.items()
+                    if (0 < k < len(actual) - 2)]), \
+            "all but first line and last 2 lines in example code is a comment"
 
 # end of test_annotate.py

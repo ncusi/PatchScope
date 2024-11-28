@@ -294,11 +294,11 @@ def line_is_comment(tokens_list: Iterable[tuple]) -> bool:
             # docstrings are considered documentation / comments
             can_be_comment = True
         elif token_type in Token.Text.Whitespace:
-            # white space in line is also ok
-            can_be_comment = True
-        elif token_type in Token.Text and text_fragment.isspace():
-            # white space in line is also ok
-            can_be_comment = True
+            # white space in line is also ok, but only whitespace is not a comment
+            pass  # does not change the status f the line
+        elif token_type in Token.Text and text_fragment.isspace():  # just in case
+            # white space in line is also ok, but only whitespace is not a comment
+            pass  # does not change the status of the line
         else:
             # other tokens
             cannot_be_comment = True
