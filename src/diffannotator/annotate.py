@@ -307,6 +307,12 @@ def line_is_comment(tokens_list: Iterable[tuple]) -> bool:
     return can_be_comment and not cannot_be_comment
 
 
+def purpose_to_default_annotation(file_purpose: str) -> str:
+    """Mapping from file purpose to default line annotation"""
+    return "code" if file_purpose == "programming" else file_purpose
+
+
+
 class AnnotatedPatchSet:
     """Annotations for whole patch / diff
 
@@ -1296,7 +1302,9 @@ class AnnotatedHunk:
                         # TODO: log problems with line callback
                         pass
                 if line_annotation is None:
-                    line_annotation = 'documentation' if line_is_comment(line_tokens) else 'code'
+                    line_annotation = 'documentation' \
+                        if line_is_comment(line_tokens) \
+                        else purpose_to_default_annotation(file_purpose)
 
                 self.add_line_annotation(
                     line_no=line_info['hunk_line_no'],
