@@ -276,6 +276,18 @@ def clean_text(text: str) -> str:
     return ret
 
 
+def line_is_empty(tokens_list: Iterable[tuple]) -> bool:
+    """Given results of parsing a line, find if it is empty
+
+    :param tokens_list: An iterable of (index, token_type, text_fragment) tuples,
+        supposedly created by parsing some line of source code text
+    :return: Whether set of tokens in `tokens_list` can be all
+        considered to come from empty line
+    """
+    tokens_list = list(tokens_list)
+    return len(tokens_list) == 1 and (tokens_list[0][2] == '\n' or tokens_list[0][2] == '\r\n')
+
+
 def line_is_comment(tokens_list: Iterable[tuple]) -> bool:
     """Given results of parsing line, find if it is comment
 
