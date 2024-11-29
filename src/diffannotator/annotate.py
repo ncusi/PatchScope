@@ -13,7 +13,7 @@ This script provides the following subcommands:
   annotate a single PATCH_FILE, writing results to RESULT_JSON,
 - `diff-annotate dataset [OPTIONS] DATASETS...`:
   annotate all bugs in provided DATASETS,
-- `diff-anotate from-repo [OPTIONS] REPO_PATH [REVISION_RANGE...]`:
+- `diff-annotate from-repo [OPTIONS] REPO_PATH [REVISION_RANGE...]`:
   create annotation data for commits from local Git repository
   (with `REVISION_RANGE...` passed as arguments to the `git log` command);
 
@@ -119,7 +119,7 @@ logger = logging.getLogger(__name__)
 
 T = TypeVar('T')
 PathLike = TypeVar("PathLike", str, bytes, Path, os.PathLike)
-LineCallback = Callable[[Iterable[tuple]], str]
+LineCallback = Callable[[str, Iterable[tuple]], str]
 OptionalLineCallback = Optional[LineCallback]
 
 PURPOSE_TO_ANNOTATION = {"documentation": "documentation"}
@@ -276,6 +276,18 @@ def clean_text(text: str) -> str:
     return ret
 
 
+def line_is_empty(tokens_list: Iterable[tuple]) -> bool:
+    """Given results of parsing a line, find if it is empty
+
+    :param tokens_list: An iterable of (index, token_type, text_fragment) tuples,
+        supposedly created by parsing some line of source code text
+    :return: Whether set of tokens in `tokens_list` can be all
+        considered to come from empty line
+    """
+    tokens_list = list(tokens_list)
+    return len(tokens_list) == 1 and (tokens_list[0][2] == '\n' or tokens_list[0][2] == '\r\n')
+
+
 def line_is_comment(tokens_list: Iterable[tuple]) -> bool:
     """Given results of parsing line, find if it is comment
 
@@ -294,11 +306,11 @@ def line_is_comment(tokens_list: Iterable[tuple]) -> bool:
             # docstrings are considered documentation / comments
             can_be_comment = True
         elif token_type in Token.Text.Whitespace:
-            # white space in line is also ok
-            can_be_comment = True
-        elif token_type in Token.Text and text_fragment.isspace():
-            # white space in line is also ok
-            can_be_comment = True
+            # white space in line is also ok, but only whitespace is not a comment
+            pass  # does not change the status f the line
+        elif token_type in Token.Text and text_fragment.isspace():  # just in case
+            # white space in line is also ok, but only whitespace is not a comment
+            pass  # does not change the status of the line
         else:
             # other tokens
             cannot_be_comment = True
@@ -551,7 +563,11 @@ class AnnotatedPatchedFile:
             return None
 
         match = re.match(pattern=r"def\s+(?P<func_name>\w+)"
-                                 r"\((?P<param>\w+)(?P<type_info>\s*:\s*[^)]*?)?\)"
+                                 r"\("
+                                 r"(?P<param1>\w+)(?P<type_info1>\s*:\s*[^)]*?)?"
+                                 r",\s*"
+                                 r"(?P<param2>\w+)(?P<type_info2>\s*:\s*[^)]*?)?"
+                                 r"\)"
                                  r"\s*(?P<rtype_info>->\s*[^:]*?\s*)?:\s*$",
                          string=code_str, flags=re.MULTILINE)
         if match:
@@ -565,7 +581,7 @@ class AnnotatedPatchedFile:
             logger.debug("Using provided code string as body of callback function", code_str)
 
             callback_name = "_line_callback"
-            callback_code_str = (f"def {callback_name}(tokens):\n" +
+            callback_code_str = (f"def {callback_name}(file_purpose, tokens):\n" +
                                  "  " + "\n  ".join(code_str.splitlines()) + "\n")
         # TODO?: wrap with try: ... except SyntaxError: ...
         exec(callback_code_str, globals())
@@ -1297,7 +1313,7 @@ class AnnotatedHunk:
                 line_annotation: Optional[str] = None
                 if AnnotatedPatchedFile.line_callback is not None:
                     try:
-                        line_annotation = AnnotatedPatchedFile.line_callback(line_tokens)
+                        line_annotation = AnnotatedPatchedFile.line_callback(file_purpose, line_tokens)
                     except:
                         # TODO: log problems with line callback
                         pass
