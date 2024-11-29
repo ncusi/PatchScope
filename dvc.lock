@@ -322,9 +322,9 @@ stages:
     deps:
     - path: data/examples/annotations/linux
       hash: md5
-      md5: dffb770bcd1348514387a55b1762cbbc.dir
-      size: 332340955
-      nfiles: 14481
+      md5: 55ad48b9d4b15be61fe1564bf924cd0a.dir
+      size: 7074564312
+      nfiles: 258119
     - path: src/diffannotator/gather_data.py
       hash: md5
       md5: 5793a85a43837207dcc383c67c9bdead
@@ -333,17 +333,17 @@ stages:
     outs:
     - path: data/examples/stats/linux.purpose-counter.json
       hash: md5
-      md5: a3f16fa38dd7044b08e5c5182d11c17e
-      size: 1752905
+      md5: 994552bc3a8d9425fa6ca5b4d16b2a86
+      size: 30502216
   purpose-per-file@2:
     cmd: diff-gather-stats --annotations-dir='' purpose-per-file data/examples/stats/linux.purpose-per-file.json
       data/examples/annotations/linux/
     deps:
     - path: data/examples/annotations/linux
       hash: md5
-      md5: dffb770bcd1348514387a55b1762cbbc.dir
-      size: 332340955
-      nfiles: 14481
+      md5: 55ad48b9d4b15be61fe1564bf924cd0a.dir
+      size: 7074564312
+      nfiles: 258119
     - path: src/diffannotator/gather_data.py
       hash: md5
       md5: 5793a85a43837207dcc383c67c9bdead
@@ -352,17 +352,17 @@ stages:
     outs:
     - path: data/examples/stats/linux.purpose-per-file.json
       hash: md5
-      md5: 7413e3aba612ce3028231c30536a9560
-      size: 4244726
+      md5: 39aa8132f02aa357d22d4fe8d44c6bd4
+      size: 80285113
   lines-stats@2:
     cmd: diff-gather-stats --annotations-dir='' lines-stats data/examples/stats/linux.lines-stats.json
       data/examples/annotations/linux/
     deps:
     - path: data/examples/annotations/linux
       hash: md5
-      md5: dffb770bcd1348514387a55b1762cbbc.dir
-      size: 332340955
-      nfiles: 14481
+      md5: 55ad48b9d4b15be61fe1564bf924cd0a.dir
+      size: 7074564312
+      nfiles: 258119
     - path: src/diffannotator/gather_data.py
       hash: md5
       md5: 5793a85a43837207dcc383c67c9bdead
@@ -371,17 +371,17 @@ stages:
     outs:
     - path: data/examples/stats/linux.lines-stats.json
       hash: md5
-      md5: 448196eeff00860b6357b4fe43fc575d
-      size: 20914254
+      md5: 6dbc359193fa6b691206df2a26fb1945
+      size: 392902395
   timeline@2:
     cmd: diff-gather-stats --annotations-dir='' timeline data/examples/stats/linux.timeline.json
       data/examples/annotations/linux/
     deps:
     - path: data/examples/annotations/linux
       hash: md5
-      md5: dffb770bcd1348514387a55b1762cbbc.dir
-      size: 332340955
-      nfiles: 14481
+      md5: 55ad48b9d4b15be61fe1564bf924cd0a.dir
+      size: 7074564312
+      nfiles: 258119
     - path: src/diffannotator/gather_data.py
       hash: md5
       md5: 5793a85a43837207dcc383c67c9bdead
@@ -390,8 +390,8 @@ stages:
     outs:
     - path: data/examples/stats/linux.timeline.json
       hash: md5
-      md5: a0740906c53228e04fc1e115f7c46214
-      size: 19545066
+      md5: 6af741778f469349688ab8a51e0b7849
+      size: 346768745
   timeline.purpose-to-type@2:
     cmd: diff-gather-stats --annotations-dir='' timeline --purpose-to-annotation=data
       --purpose-to-annotation=documentation --purpose-to-annotation=markup --purpose-to-annotation=other
@@ -400,9 +400,9 @@ stages:
     deps:
     - path: data/examples/annotations/linux
       hash: md5
-      md5: dffb770bcd1348514387a55b1762cbbc.dir
-      size: 332340955
-      nfiles: 14481
+      md5: 55ad48b9d4b15be61fe1564bf924cd0a.dir
+      size: 7074564312
+      nfiles: 258119
     - path: src/diffannotator/gather_data.py
       hash: md5
       md5: 5793a85a43837207dcc383c67c9bdead
@@ -411,8 +411,8 @@ stages:
     outs:
     - path: data/examples/stats/linux.timeline.purpose-to-type.json
       hash: md5
-      md5: 0ee3c88ef88ce51aec95ea05e300c0e1
-      size: 19515897
+      md5: d53326493f8c7dce1f28d7cca0c27b11
+      size: 346362657
   clone@3:
     cmd:
     - "if [ -d ~/example_repositories/git ]; then\n   echo 'Repository git already
@@ -551,9 +551,9 @@ stages:
     deps:
     - path: data/examples/annotations/linux
       hash: md5
-      md5: dffb770bcd1348514387a55b1762cbbc.dir
-      size: 332340955
-      nfiles: 14481
+      md5: 55ad48b9d4b15be61fe1564bf924cd0a.dir
+      size: 7074564312
+      nfiles: 258119
     - path: src/diffannotator/gather_data.py
       hash: md5
       md5: 5793a85a43837207dcc383c67c9bdead
@@ -562,8 +562,8 @@ stages:
     outs:
     - path: data/examples/stats/linux.lines-stats.purpose-to-type.json
       hash: md5
-      md5: 9d8adf351a8e6d6aa494ef3c29c8a0ec
-      size: 20720671
+      md5: 80bf709b48769c44833c671e4549f8ed
+      size: 389423138
   lines-stats.purpose-to-type@3:
     cmd: diff-gather-stats --annotations-dir='' lines-stats --purpose-to-annotation=data
       --purpose-to-annotation=documentation --purpose-to-annotation=markup --purpose-to-annotation=other
@@ -625,3 +625,32 @@ stages:
       hash: md5
       md5: 4c2586d70049be0f374c5d1cebc71264
       size: 684616
+  annotate@5:
+    cmd: diff-annotate --ext-to-language=.rs:Rust --filename-to-language=Makefile.lib:Makefile
+      --filename-to-language=Makefile.config:Makefile --filename-to-language=Makefile.deps:Makefile
+      --filename-to-language=Makefile.perf:Makefile --filename-to-language=Makefile.ubsan:Makefile
+      --pattern-to-purpose=Makefile.*:project --filename-to-language=Kconfig:Kconfig
+      --filename-to-language=Kconfig.debug:Kconfig --pattern-to-purpose=Kconfig*:project
+      --ext-to-language=".S:Unix Assembly" --ext-to-language=".rules:Udev Rules File"
+      --filename-to-language=README:Text --filename-to-language=CONTRIBUTORS:Text
+      --filename-to-language=MAINTAINERS:Text --ext-to-language=".dts:Device Tree
+      Source" --ext-to-language=".dtsi:Device Tree Source include" --ext-to-language=".dtso:Device
+      Tree Source overlay" --pattern-to-purpose=*.dts:data --pattern-to-purpose=*.dts?:data
+      from-repo --output-dir=data/examples/annotations/linux/all_authors-2021_2023/
+      ~/example_repositories/linux --max-parents=1 --after=2021.01.01 --before=2023.12.31
+    deps:
+    - path: data/examples/linux.url
+      hash: md5
+      md5: 1fd6e4b3cfc39ed190f975f81cb785af
+      size: 65
+    - path: src/diffannotator/annotate.py
+      hash: md5
+      md5: e264f3dda745af9ee1a5137d0e783ef2
+      size: 110811
+      isexec: true
+    outs:
+    - path: data/examples/annotations/linux/all_authors-2021_2023/
+      hash: md5
+      md5: a0d309f24180457211528e646c6e44ac.dir
+      size: 6742223334
+      nfiles: 243638
