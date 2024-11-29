@@ -119,7 +119,7 @@ logger = logging.getLogger(__name__)
 
 T = TypeVar('T')
 PathLike = TypeVar("PathLike", str, bytes, Path, os.PathLike)
-LineCallback = Callable[[str, Iterable[tuple]], str]
+LineCallback = Callable[[dict[str, str], Iterable[tuple]], str]
 OptionalLineCallback = Optional[LineCallback]
 
 PURPOSE_TO_ANNOTATION = {"documentation": "documentation"}
@@ -582,9 +582,12 @@ class AnnotatedPatchedFile:
         else:
             # or .info(), if it were not provided full text of the callback body
             logger.debug("Using provided code string as body of callback function", code_str)
+            #print(f"  Using provided code string as body (first 50 characters):")
+            #print(f"  {code_str[:50]}")
+            #print(f"  {match=}")
 
             callback_name = "_line_callback"
-            callback_code_str = (f"def {callback_name}(file_purpose, tokens):\n" +
+            callback_code_str = (f"def {callback_name}(file_data, tokens):\n" +
                                  "  " + "\n  ".join(code_str.splitlines()) + "\n")
         # TODO?: wrap with try: ... except SyntaxError: ...
         exec(callback_code_str, globals())
@@ -1316,9 +1319,12 @@ class AnnotatedHunk:
                 line_annotation: Optional[str] = None
                 if AnnotatedPatchedFile.line_callback is not None:
                     try:
-                        line_annotation = AnnotatedPatchedFile.line_callback(file_purpose, line_tokens)
-                    except:
+                        file_data = self.patched_file.patch_data[file_path]
+                        #print(f"CALLING line_callback({file_data=}, {len(line_tokens)=})")
+                        line_annotation = AnnotatedPatchedFile.line_callback(file_data, line_tokens)
+                    except Exception as ex:
                         # TODO: log problems with line callback
+                        #print(f"EXCEPTION {ex}")
                         pass
                 if line_annotation is None:
                     line_annotation = 'documentation' \
