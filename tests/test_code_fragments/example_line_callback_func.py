@@ -1,4 +1,4 @@
-def detect_all_whitespace_line(tokens):
+def detect_all_whitespace_line(_file_purpose, tokens):
     if len(tokens) == 1 and tokens[0][2] == "\n":
         return "empty"
     elif all([token_type in Token.Text.Whitespace or

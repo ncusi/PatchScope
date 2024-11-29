@@ -12,7 +12,7 @@ from pygments.token import Token
 
 from diffannotator.annotate import (split_multiline_lex_tokens, line_ends_idx,
                                     group_tokens_by_line, front_fill_gaps, deep_update,
-                                    clean_text, line_is_comment, annotate_single_diff,
+                                    clean_text, line_is_comment, line_is_empty, annotate_single_diff,
                                     Bug, BugDataset, AnnotatedPatchedFile, AnnotatedHunk, AnnotatedPatchSet)
 from diffannotator.utils.git import GitRepo, DiffSide, ChangeSet
 from .conftest import count_pm_lines
@@ -23,6 +23,7 @@ example_C_code = r'''
   * brief       Calculate approximate memory requirements for raw encoder
   *
   */
+
   int i = 1; /* an int */
 '''
 
@@ -822,7 +823,7 @@ def test_line_callback_trivial():
 
     # trivial callback
     line_type = "any"
-    AnnotatedPatchedFile.line_callback = lambda tokens: line_type
+    AnnotatedPatchedFile.line_callback = lambda file_purpose, tokens: line_type
     patch = annotate_single_diff(file_path, missing_ok=False,
                                  ignore_diff_parse_errors=False,
                                  ignore_annotation_errors=False)
@@ -839,7 +840,7 @@ def test_line_callback_trivial():
 
     # use exec
     code_str = f"""return '{line_type}'"""
-    callback_code_str = ("def callback_x(tokens):\n" +
+    callback_code_str = ("def callback_x(file_purpose, tokens):\n" +
                          "  " + "\n  ".join(code_str.splitlines()) + "\n")
     exec(callback_code_str, globals())
     AnnotatedPatchedFile.line_callback = \
@@ -860,7 +861,7 @@ def test_line_callback_whitespace():
     file_path = Path('tests/test_dataset_structured/keras-10/patches/c1c4afe60b1355a6c0e83577791a0423f37a3324.diff')
 
     # complex callback, untyped
-    def detect_all_whitespace_line(tokens):
+    def detect_all_whitespace_line(_file_purpose, tokens):
         if len(tokens) == 0:
             return "empty"
         elif all([token_type in Token.Text.Whitespace or
@@ -960,7 +961,8 @@ class TestCLexer:
             assert line == ''.join([x[2] for x in tokens_grouped[i]]), \
                 "text_fragments for tokens belonging to a line concatenate to that line"
 
-    def test_line_is_comment(self):
+    def test__line_is__functions(self):
+        """Test line_is_comment() and line_is_empty() functions"""
         tokens_unprocessed = self.lexer.get_tokens_unprocessed(example_C_code)
         tokens_split = split_multiline_lex_tokens(tokens_unprocessed)
         tokens_grouped = group_tokens_by_line(example_C_code, tokens_split)
@@ -970,13 +972,49 @@ class TestCLexer:
             for i, line_tokens in tokens_grouped.items()
         }
 
+        # from pprint import pprint
+        # pprint(actual)
+        # print("<<<")
+        # for i, code_line in enumerate(example_C_code.splitlines(keepends=True)):
+        #     print(f"{i:d}: {actual[i]!s:5}: {code_line}", end='')
+        # print("<<<")
+
         assert len(actual) == len(example_C_code.splitlines(keepends=True)), \
             "numbers of lines matches with code"
 
         # NOTE: these tests *must* be updated it example_C_code changes
         assert not actual[len(actual)-1], \
             "last line in example code is not a comment"
-        assert all([v for k, v in actual.items() if k != len(actual)-1]), \
-            "all but last line in example code is a comment"
+        assert all([v for k, v in actual.items()
+                    if (0 < k < len(actual) - 2)]), \
+            "all but first line and last 2 lines in example code is a comment"
+
+        actual = {
+            i: line_is_empty(line_tokens)
+            for i, line_tokens in tokens_grouped.items()
+        }
+
+        # print("{{{")
+        # for i, code_line in enumerate(example_C_code.splitlines(keepends=False)):
+        #     print(f"{i:d}: {actual[i]!s:5}:{code_line}", end=':\n')
+        # print("{{{")
+        # print(f"{len(actual)=}, {len(actual)-2=}")
+        # tokens_list = tokens_grouped[len(actual)-2]
+        # print(f"{tokens_list=}")
+        # print(f"  {len(tokens_list)=}")
+        # print(f"  {tokens_list[0][2]=}")
+        # print(f"  {(len(tokens_list) == 1)=}")
+        # nl = '\n'
+        # print(f"  {(tokens_list[0][2] == nl)=}")
+
+        assert actual[0], \
+            "first line in example code is empty"
+        assert actual[len(actual)-2], \
+            "next to last line in example code is empty"
+        assert not any([v for k, v in actual.items()
+                        if k != 0 and k != len(actual) - 2]), \
+            "all lines but first and next to last line in example code are not empty"
+
+
 
 # end of test_annotate.py
