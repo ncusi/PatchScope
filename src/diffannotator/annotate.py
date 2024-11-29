@@ -559,6 +559,7 @@ class AnnotatedPatchedFile:
         :param code_str: text of the function body code
         :return: callback function or None
         """
+        #print(f"RUNNING make_line_callback(code_str='{code_str[:6]}[...]')")
         if not code_str:
             return None
 
@@ -573,6 +574,8 @@ class AnnotatedPatchedFile:
         if match:
             # or .info(), if it were not provided extra debugging data
             logger.debug("Found function definition in callback code string:", match.groupdict())
+            #print(f"  Found function definition in callback code string:")
+            #print(f"    {match.groupdict()}")
 
             callback_name = match.group('func_name')
             callback_code_str = code_str
@@ -1973,6 +1976,7 @@ def filename_to_language_callback(ctx: typer.Context, param: typer.CallbackParam
 
 
 def parse_line_callback(code_str: Optional[str]) -> Optional[LineCallback]:
+    #print(f"RUNNING parse_line_callback({code_str=})")
     if code_str is None:
         return None
 
@@ -1980,6 +1984,7 @@ def parse_line_callback(code_str: Optional[str]) -> Optional[LineCallback]:
     maybe_path: Optional[Path] = Path(code_str)
     try:
         if maybe_path.is_file():
+            #print(f"  reading code from {maybe_path!r} file")
             code_str = maybe_path.read_text(encoding='utf-8')
         else:
             maybe_path = None
@@ -1989,6 +1994,8 @@ def parse_line_callback(code_str: Optional[str]) -> Optional[LineCallback]:
 
     # code_str now contains the code as a string
     # maybe_path is not None only if code_str was retrieved from file
+    #print(f"  {maybe_path=}")
+    #print(code_str)
 
     # sanity check
     if 'return ' not in code_str:
