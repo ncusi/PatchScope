@@ -50,6 +50,19 @@ class AuthorInfo(TimelineView):
             resample_by_author_df=self.data_store.resampled_timeline_by_author_rx,
             author_id=self.select_author_widget,
         )
+        self.top_n_widget.param.watch(
+            fn=lambda _: self._update_select_author_widget(),
+            parameter_names=['value'],
+            what='value',
+            onlychanged=True,
+        )
+
+    @param.depends('authors_info_df', watch=True)
+    def _update_select_author_widget(self):
+        self.select_author_widget.options = authors_list(
+            authors_df=self.authors_info_df,
+            top_n=self.top_n_widget.value,
+        )
 
     def widgets(self) -> list[pn.viewable.Viewable]:
         return [
