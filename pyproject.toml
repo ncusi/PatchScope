@@ -3,7 +3,7 @@ requires = ["setuptools>=62.6"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "diffannotator"
+name = "patchscope"
 # 'version' is now defined dynamically
 description = "Annotate files and lines of diffs (patches) with their purpose and type"
 readme = "README.md"
@@ -40,8 +40,8 @@ diff-annotate = "diffannotator.annotate:app"
 diff-gather-stats = "diffannotator.gather_data:app"
 
 [project.urls]
-bugs = "https://github.com/ncusi/python-diff-annotator/issues"
-homepage = "https://github.com/ncusi/python-diff-annotator"
+bugs = "https://github.com/ncusi/PatchScope/issues"
+homepage = "https://github.com/ncusi/PatchScope"
 
 [tool.setuptools.dynamic]
 dependencies = {file = ["requirements.txt"]}

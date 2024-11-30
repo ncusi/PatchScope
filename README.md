@@ -4,27 +4,32 @@
 [![EditorConfig](https://img.shields.io/badge/Editor%20Config-E0EFEF?logo=editorconfig&logoColor=000)](https://editorconfig.org/)
 [![Maturity badge - level 1](https://img.shields.io/badge/Maturity-Level%201%20--%20New%20Project-yellow.svg)](https://github.com/tophat/getting-started/blob/master/scorecard.md)
 
-# Diff Annotator
+# PatchScope
 
 Annotates files and lines of diffs (patches) with their purpose and type,
 and performs statistical analysis on the generated annotation data.
 
+> _Note:_ this project was called 'python-diff-annotator' earlier in its history instead of 'PatchScope',
+> and the python package was called 'diffannotator' instead of being called 'patchscope',
+> so there are some references to that older name, for example in directory names
+> in some Jupyter Notebooks.
+
 ## Installation
 
-Use the package manager [pip](https://pip.pypa.io/en/stable/) to install diffannotator.
+Use the package manager [pip](https://pip.pypa.io/en/stable/) to install patchscope.
 
 To avoid dependency conflicts, it is strongly recommended to create
-a [virtual environment][venv] first, activate it, and install diffannotator
+a [virtual environment][venv] first, activate it, and install patchscope
 into this environment.  See also "_[Virtual environment](#virtual-environment)_"
 subsection below.
 
 To install the most recent version, use
 ```commandline
-python -m pip install diffannotator@git+https://github.com/ncusi/python-diff-annotator#egg=main
+python -m pip install patchscope@git+https://github.com/ncusi/PatchScope#egg=main
 ```
 or (assuming that you can clone the repository with SSH)
 ```commandline
-python -m pip install diffannotator@git+ssh://git@github.com/ncusi/python-diff-annotator.git#egg=main
+python -m pip install patchscope@git+ssh://git@github.com/ncusi/PatchScope.git#egg=main
 ```
 
 ## Usage

@@ -3,7 +3,7 @@
 import logging
 
 # noinspection PyPackageRequirements
-import pytest  # included in diffannotator[dev], which is defined in pypackage.toml
+import pytest  # included in .[dev] / patchscope[dev], which is defined in pypackage.toml
 from pathlib import Path
 
 from diffannotator.config import guess_format_version, JSONFormat

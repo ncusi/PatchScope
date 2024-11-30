@@ -65,7 +65,7 @@ authors_grid = AuthorsGrid(
 
 # Create the dashboard layout
 template = pn.template.MaterialTemplate(
-    site="diffannotator",
+    site="PatchScope",
     title="Contributors Graph",  # TODO: make title dynamic
     favicon="favicon.svg",
     sidebar=[

@@ -24,7 +24,7 @@ This script provides the following subcommands:
 - `diff-gather-stats timeline [OPTIONS] OUTPUT_FILE DATASETS...`:
   calculate timeline of bugs with per-bug count of different types of lines.
 
-Example (after installing the 'diffannotator' package):
+Example (after installing the 'patchscope' package):
     diff-gather-stats --help
 
     diff-gather-stats --annotations-dir='' purpose-counter \

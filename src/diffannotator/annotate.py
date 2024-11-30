@@ -17,7 +17,7 @@ This script provides the following subcommands:
   create annotation data for commits from local Git repository
   (with `REVISION_RANGE...` passed as arguments to the `git log` command);
 
-Example (after installing the 'diffannotator' package):
+Example (after installing the 'patchscope' package):
     diff-annotate --help
 
     diff-annotate --use-pylinguist patch \
@@ -2171,7 +2171,8 @@ def common(
 
             Use either
                 python -m pip install --editable .[pylinguist]
-                python -m pip install diffannotator[pylinguist]
+            or
+                python -m pip install patchscope[pylinguist]
             or
                 python -m pip install git+https://github.com/retanoj/linguist@master
 
