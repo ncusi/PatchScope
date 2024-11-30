@@ -1,12 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from typing import Optional
 
-import pandas as pd
 import panel as pn
 
 import diffinsights_web.utils.notifications as notifications
-from diffinsights_web.datastore.timeline import TimelineDataStore, find_dataset_dir, author_timeline_df
+from diffinsights_web.datastore.timeline import TimelineDataStore, find_dataset_dir
 from diffinsights_web.utils.notifications import onload_callback
 from diffinsights_web.views.authorsgrid import AuthorInfo, AuthorsGrid
 from diffinsights_web.views.dataexplorer import TimelineJSONViewer, TimelinePerspective, TimelineDataFrameEnum, \
@@ -14,7 +12,6 @@ from diffinsights_web.views.dataexplorer import TimelineJSONViewer, TimelinePers
 from diffinsights_web.views.info import ContributorsHeader, RepoPlotHeader, ContributionsPercHeader
 from diffinsights_web.views.plots.timeseries import TimeseriesPlot
 from diffinsights_web.widgets.caching import ClearCacheButton
-
 
 pn.extension(
     "jsoneditor", "perspective",
@@ -47,20 +44,15 @@ contributions_perc_header = ContributionsPercHeader(
     data_store=data_store,
     from_date_str=page_header.select_period_from_widget,
 )
-#authors_info_panel = AuthorInfo(
-#    data_store=data_store,
-#    authors_info_df=timeseries_plot.authors_info_df_rx,
-#)
-top_n_widget = pn.widgets.Select(
-    name="top N",
-    options=[2, 4, 10, 32],
-    value=4,
+authors_info_panel = AuthorInfo(
+    data_store=data_store,
+    authors_info_df=timeseries_plot.authors_info_df_rx,
 )
 authors_grid = AuthorsGrid(
     data_store=data_store,
     main_plot=timeseries_plot,
     authors_info_df=timeseries_plot.authors_info_df_rx,
-    top_n=top_n_widget,
+    top_n=authors_info_panel.top_n_widget,
 )
 
 # Create the dashboard layout
@@ -70,8 +62,7 @@ template = pn.template.MaterialTemplate(
     favicon="favicon.svg",
     sidebar=[
         data_store,
-        #*authors_info_panel.widgets(),
-        top_n_widget,
+        *authors_info_panel.widgets(),
 
         pn.layout.Divider(),  # - - - - - - - - - - - - -
 
@@ -110,7 +101,7 @@ template.main.extend([
                             from_date=page_header.select_period_from_widget)
             )
         ),
-        #('selected author', authors_info_panel),
+        ('selected author', authors_info_panel),
     ),
 ])
 
