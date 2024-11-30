@@ -119,7 +119,7 @@ logger = logging.getLogger(__name__)
 
 T = TypeVar('T')
 PathLike = TypeVar("PathLike", str, bytes, Path, os.PathLike)
-LineCallback = Callable[[str, Iterable[tuple]], str]
+LineCallback = Callable[[dict[str, str], Iterable[tuple]], str]
 OptionalLineCallback = Optional[LineCallback]
 
 PURPOSE_TO_ANNOTATION = {"documentation": "documentation"}
@@ -559,6 +559,7 @@ class AnnotatedPatchedFile:
         :param code_str: text of the function body code
         :return: callback function or None
         """
+        #print(f"RUNNING make_line_callback(code_str='{code_str[:6]}[...]')")
         if not code_str:
             return None
 
@@ -573,15 +574,20 @@ class AnnotatedPatchedFile:
         if match:
             # or .info(), if it were not provided extra debugging data
             logger.debug("Found function definition in callback code string:", match.groupdict())
+            #print(f"  Found function definition in callback code string:")
+            #print(f"    {match.groupdict()}")
 
             callback_name = match.group('func_name')
             callback_code_str = code_str
         else:
             # or .info(), if it were not provided full text of the callback body
             logger.debug("Using provided code string as body of callback function", code_str)
+            #print(f"  Using provided code string as body (first 50 characters):")
+            #print(f"  {code_str[:50]}")
+            #print(f"  {match=}")
 
             callback_name = "_line_callback"
-            callback_code_str = (f"def {callback_name}(file_purpose, tokens):\n" +
+            callback_code_str = (f"def {callback_name}(file_data, tokens):\n" +
                                  "  " + "\n  ".join(code_str.splitlines()) + "\n")
         # TODO?: wrap with try: ... except SyntaxError: ...
         exec(callback_code_str, globals())
@@ -1313,9 +1319,12 @@ class AnnotatedHunk:
                 line_annotation: Optional[str] = None
                 if AnnotatedPatchedFile.line_callback is not None:
                     try:
-                        line_annotation = AnnotatedPatchedFile.line_callback(file_purpose, line_tokens)
-                    except:
+                        file_data = self.patched_file.patch_data[file_path]
+                        #print(f"CALLING line_callback({file_data=}, {len(line_tokens)=})")
+                        line_annotation = AnnotatedPatchedFile.line_callback(file_data, line_tokens)
+                    except Exception as ex:
                         # TODO: log problems with line callback
+                        #print(f"EXCEPTION {ex}")
                         pass
                 if line_annotation is None:
                     line_annotation = 'documentation' \
@@ -1973,6 +1982,7 @@ def filename_to_language_callback(ctx: typer.Context, param: typer.CallbackParam
 
 
 def parse_line_callback(code_str: Optional[str]) -> Optional[LineCallback]:
+    #print(f"RUNNING parse_line_callback({code_str=})")
     if code_str is None:
         return None
 
@@ -1980,6 +1990,7 @@ def parse_line_callback(code_str: Optional[str]) -> Optional[LineCallback]:
     maybe_path: Optional[Path] = Path(code_str)
     try:
         if maybe_path.is_file():
+            #print(f"  reading code from {maybe_path!r} file")
             code_str = maybe_path.read_text(encoding='utf-8')
         else:
             maybe_path = None
@@ -1989,6 +2000,8 @@ def parse_line_callback(code_str: Optional[str]) -> Optional[LineCallback]:
 
     # code_str now contains the code as a string
     # maybe_path is not None only if code_str was retrieved from file
+    #print(f"  {maybe_path=}")
+    #print(code_str)
 
     # sanity check
     if 'return ' not in code_str:
