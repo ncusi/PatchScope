@@ -64,6 +64,7 @@ web = [
   "param==2.1.1",
   # data processing
   "pandas==2.2.3",
+  "python-dateutil==2.9.0.post0",
   # plots
   "holoviews==1.19.1",
   "hvplot==0.11.1",
