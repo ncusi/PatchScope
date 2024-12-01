@@ -32,7 +32,17 @@ classifiers = [
   "Environment :: Console",
 ]
 requires-python = ">= 3.9"  # vermin --eval-annotations --backport typing --backport typing_extensions .
-dynamic = ["dependencies", "version"]
+dynamic = ["version"]
+dependencies = [
+  "typer-slim==0.13.1",
+  "click>=8.0.0",
+  "joblib==1.4.2",
+  "pygments==2.18.0",
+  "pyyaml==6.0.2",
+  "unidiff==0.7.5",
+  "tqdm==4.67.1",
+  "typing-extensions==4.12.2",
+]
 
 [project.scripts]
 diff-generate = "diffannotator.generate_patches:app"
@@ -44,7 +54,6 @@ bugs = "https://github.com/ncusi/PatchScope/issues"
 homepage = "https://github.com/ncusi/PatchScope"
 
 [tool.setuptools.dynamic]
-dependencies = {file = ["requirements.txt"]}
 version = {attr = "diffannotator.config.__version__"}
 
 # Currently, when specifying `optional-dependencies` dynamically, all the
@@ -62,7 +71,11 @@ examples = ["dvc==3.56.0"]
 web = [
   "panel==1.5.4",
   "param==2.1.1",
+  # data processing
   "pandas==2.2.3",
+  # plots
+  "holoviews==1.19.1",
+  "hvplot==0.11.1",
 ]
 
 [tool.setuptools]
