@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+import logging
 
 import panel as pn
 
@@ -13,6 +14,8 @@ from diffinsights_web.views.info import ContributorsHeader, RepoPlotHeader, Cont
 from diffinsights_web.views.plots.timeseries import TimeseriesPlot
 from diffinsights_web.widgets.caching import ClearCacheButton
 
+
+logger = logging.getLogger("panel.contributors_graph")
 pn.extension(
     "jsoneditor", "perspective",
     notifications=True,
