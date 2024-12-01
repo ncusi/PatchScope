@@ -1,2 +1,2 @@
-# install self from GitHub, and all our dependencies (for Heroku)
-patchscope[web]@git+https://github.com/ncusi/PatchScope#egg=main
+# install self in editable mode, with support for running web app
+-e .[web]
