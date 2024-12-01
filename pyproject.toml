@@ -62,7 +62,11 @@ examples = ["dvc==3.56.0"]
 web = [
   "panel==1.5.4",
   "param==2.1.1",
+  # data processing
   "pandas==2.2.3",
+  # plots
+  "holoviews==1.19.1",
+  "hvplot==0.11.1",
 ]
 
 [tool.setuptools]
