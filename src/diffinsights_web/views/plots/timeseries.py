@@ -1,4 +1,3 @@
-from enum import Enum
 from typing import Optional
 
 import pandas as pd
@@ -9,12 +8,7 @@ import hvplot.pandas  # noqa
 from diffinsights_web.datastore.timeline import \
     get_date_range, get_value_range, filter_df_by_from_date, authors_info_df, author_timeline_df_freq
 from diffinsights_web.utils.notifications import warning_notification
-from diffinsights_web.views import TimelineView
-
-
-class SpecialColumnEnum(Enum):
-    LINE_TYPES_PERC = "KIND [%]"
-    NO_PLOT = "<NO PLOT>"
+from diffinsights_web.views import TimelineView, SpecialColumnEnum, column_to_contribution
 
 
 def line_type_sorting_key(column_name: str) -> int:
@@ -180,7 +174,7 @@ def plot_commits(resampled_df: pd.DataFrame,
             hover='vline',
             grid=True,
             xlim=xlim, xlabel='',
-            ylim=ylim, ylabel='Contributions',
+            ylim=ylim, ylabel=column_to_contribution.get(column, 'Contributions'),
             padding=(0.005, 0),
             tools=[
                 'xpan',

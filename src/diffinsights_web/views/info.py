@@ -9,8 +9,8 @@ from dateutil.relativedelta import relativedelta
 
 from diffinsights_web.datastore.timeline import frequency_names, filter_df_by_from_date, get_pm_count_cols
 from diffinsights_web.utils.humanize import html_date_humane
-from diffinsights_web.views import TimelineView
-from diffinsights_web.views.plots.timeseries import SpecialColumnEnum, TimeseriesPlot
+from diffinsights_web.views import TimelineView, contribution_types_map, column_to_contribution, SpecialColumnEnum
+from diffinsights_web.views.plots.timeseries import TimeseriesPlot
 
 
 # common for all classes defined here
@@ -36,23 +36,6 @@ def time_range_options() -> dict[str, str]:
         k: '' if v is None else (today + relativedelta(months=-v)).strftime('%d.%m.%Y')
         for k, v in time_range_period.items()
     }
-
-
-#: for the ContributorsHeader.select_contribution_type_widget
-contribution_types_map = {
-    "Commits": "n_commits",
-    "Additions": "+:count",
-    "Deletions": "-:count",
-    "Files changed": "file_names",
-    "Patch size (lines)": "diff.patch_size",
-    "Patch spreading (lines)": "diff.groups_spread",
-    # special cases:
-    "Line types distribution [%]": SpecialColumnEnum.LINE_TYPES_PERC.value,
-    "No plot": SpecialColumnEnum.NO_PLOT.value  # this special value should be last
-}
-column_to_contribution = {
-    v: k for k, v in contribution_types_map.items()
-}
 
 
 @pn.cache
