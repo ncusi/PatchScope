@@ -194,7 +194,8 @@ def contributions_perc_info(timeline_df: pd.DataFrame,
         padding-right: 1rem;
     }
     """
-    filtered_df = filter_df_by_from_date(timeline_df, from_date_str)
+    filtered_df = filter_df_by_from_date(timeline_df, from_date_str,
+                                         date_column='author.timestamp')
     if author_id is not None:
         filtered_df = filtered_df[filtered_df['author.email'] == author_id]
 
