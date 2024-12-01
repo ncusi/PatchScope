@@ -79,6 +79,22 @@ Each script and subcommand supports the `--help` option.
 
 - ...
 
+### Running web app (dashboard)
+
+This package also includes web dashboard, created using the [Panel][]
+framework.  You would need to install additional dependencies, for
+example with `pip install --editable .[web]` (if you are running this
+project in editable mode).
+
+Currently, it includes only one web app, namely Contributors Graph.
+You can run this app with `panel serve src\diffinsights_web\apps\contributors.py`.
+By default, it would make app available at <http://localhost:5006/contributors>.
+
+See the basic [demo on Heroku](https://patchscope-9d05e7f15fec.herokuapp.com/contributors).
+
+[Panel]: https://panel.holoviz.org/
+
+
 ## Examples and demos
 
 This repository also includes some examples demonstrating how this
