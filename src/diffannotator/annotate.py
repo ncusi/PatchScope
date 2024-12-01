@@ -1270,14 +1270,14 @@ class AnnotatedHunk:
 
         if file_purpose in PURPOSE_TO_ANNOTATION:
             for line_idx_hunk, line in enumerate(self.hunk):
-                self.add_line_annotation(line_idx_hunk,
-                                         self.file_line_no(line),
-                                         self.patched_file.source_file,
-                                         self.patched_file.target_file,
-                                         line.line_type,
-                                         PURPOSE_TO_ANNOTATION[file_purpose],
-                                         file_purpose,
-                                         [(0, Token.Text, line.value), ])
+                self.add_line_annotation(line_no=line_idx_hunk,
+                                         file_line_no=self.file_line_no(line),
+                                         source_file=self.patched_file.source_file,
+                                         target_file=self.patched_file.target_file,
+                                         change_type=line.line_type,
+                                         line_annotation=PURPOSE_TO_ANNOTATION[file_purpose],
+                                         purpose=file_purpose,
+                                         tokens=[(0, Token.Text, line.value), ])
 
             return self.patch_data
 
