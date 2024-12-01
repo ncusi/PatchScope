@@ -13,7 +13,8 @@ from pygments.token import Token
 from diffannotator.annotate import (split_multiline_lex_tokens, line_ends_idx,
                                     group_tokens_by_line, front_fill_gaps, deep_update,
                                     clean_text, line_is_comment, line_is_empty, annotate_single_diff,
-                                    Bug, BugDataset, AnnotatedPatchedFile, AnnotatedHunk, AnnotatedPatchSet)
+                                    Bug, BugDataset, AnnotatedPatchedFile, AnnotatedHunk, AnnotatedPatchSet,
+                                    line_is_whitespace)
 from diffannotator.utils.git import GitRepo, DiffSide, ChangeSet
 from .conftest import count_pm_lines
 
@@ -1017,6 +1018,17 @@ class TestCLexer:
                         if k != 0 and k != len(actual) - 2]), \
             "all lines but first and next to last line in example code are not empty"
 
+        actual = {
+            i: line_is_whitespace(line_tokens)
+            for i, line_tokens in tokens_grouped.items()
+        }
 
+        #print("{{{")
+        #for i, code_line in enumerate(example_C_code.splitlines(keepends=False)):
+        #    print(f"{i:d}: {actual[i]!s:5}:{code_line}", end=':\n')
+        #print("{{{")
+
+        assert actual[0] and actual[5], \
+            "very basic test for whitespace-only lines (and empty lines)"
 
 # end of test_annotate.py

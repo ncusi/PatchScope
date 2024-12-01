@@ -288,6 +288,19 @@ def line_is_empty(tokens_list: Iterable[tuple]) -> bool:
     return len(tokens_list) == 1 and (tokens_list[0][2] == '\n' or tokens_list[0][2] == '\r\n')
 
 
+def line_is_whitespace(tokens_list: Iterable[tuple]) -> bool:
+    """Given results of parsing a line, find if it consists only of whitespace tokens
+
+    :param tokens_list: An iterable of (index, token_type, text_fragment) tuples,
+        supposedly created by parsing some line of source code text
+    :return: Whether set of tokens in `tokens_list` are all
+        whitespace tokens
+    """
+    return all([token_type in Token.Text.Whitespace or
+                token_type in Token.Text and text_fragment.isspace()
+                for _, token_type, text_fragment in tokens_list])
+
+
 def line_is_comment(tokens_list: Iterable[tuple]) -> bool:
     """Given results of parsing line, find if it is comment
 
