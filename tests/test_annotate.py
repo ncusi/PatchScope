@@ -228,7 +228,7 @@ def test_hunk_sizes_and_spreads(example_patchset_java: unidiff.PatchSet):
     #print(f"{patched_file[0]=}")
 
     annotated_patched_file = AnnotatedPatchedFile(patched_file)
-    annotated_hunk = AnnotatedHunk(annotated_patched_file, patched_file[0])
+    annotated_hunk = AnnotatedHunk(annotated_patched_file, patched_file[0], 0)
     hunk_result, hunk_info = annotated_hunk.compute_sizes_and_spreads()
     #print(f"{annotated_hunk.hunk=}")
     #print(f"{annotated_hunk.hunk.section_header=}")
@@ -444,9 +444,11 @@ def test_AnnotatedPatchedFile(line_type):
         f"tokens_for_type returns non-empty iterable of tokens for '{line_type}'"
 
     first_hunk = AnnotatedHunk(patched_file=patched_file_no_source,
-                               hunk=patched_file_no_source.patched_file[0])
+                               hunk=patched_file_no_source.patched_file[0],
+                               hunk_idx=0)
     first_hunk_from_sourced = AnnotatedHunk(patched_file=patched_file_with_source,
-                                            hunk=patched_file_with_source.patched_file[0])
+                                            hunk=patched_file_with_source.patched_file[0],
+                                            hunk_idx=0)
 
     bare_hunk_data = first_hunk.process()
     srcd_hunk_data = first_hunk_from_sourced.process()  # should use sources
