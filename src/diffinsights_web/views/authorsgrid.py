@@ -34,7 +34,7 @@ class AuthorInfo(TimelineView):
         # might be not a Select widget
         self.top_n_widget = pn.widgets.Select(
             name="top N",
-            options=[4, 10, 32],
+            options=[2, 4, 10, 32],
             value=4,
         )
 
@@ -49,6 +49,19 @@ class AuthorInfo(TimelineView):
         self.author_timeline_df_rx = pn.rx(author_timeline_df)(
             resample_by_author_df=self.data_store.resampled_timeline_by_author_rx,
             author_id=self.select_author_widget,
+        )
+        self.top_n_widget.param.watch(
+            fn=lambda _: self._update_select_author_widget(),
+            parameter_names=['value'],
+            what='value',
+            onlychanged=True,
+        )
+
+    @param.depends('authors_info_df', watch=True)
+    def _update_select_author_widget(self):
+        self.select_author_widget.options = authors_list(
+            authors_df=self.authors_info_df,
+            top_n=self.top_n_widget.value,
         )
 
     def widgets(self) -> list[pn.viewable.Viewable]:
