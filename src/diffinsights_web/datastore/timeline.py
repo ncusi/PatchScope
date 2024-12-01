@@ -235,7 +235,8 @@ def get_date_range(timeline_df: pd.DataFrame, from_date_str: str):
     # TODO: use parsed `from_date` instead of using raw `from_date_str`
     min_date = timeline_df['author_date'].min()
     if from_date_str:
-        from_date = pd.to_datetime(from_date_str, dayfirst=True, utc=True)
+        # the `from_date_str` is in YYYY.MM.DD format
+        from_date = pd.to_datetime(from_date_str, yearfirst=True, utc=True)
         min_date = max(min_date, from_date)
 
     ## DEBUG
@@ -269,8 +270,9 @@ def filter_df_by_from_date(resampled_df: pd.DataFrame,
     from_date: Optional[pd.Timestamp] = None
     if from_date_str:
         try:
-            # the `from_date_str` is in DD.MM.YYYY format
-            from_date = pd.to_datetime(from_date_str, dayfirst=True, utc=True)
+            # the `from_date_str` is in YYYY.MM.DD format
+            # TODO: refactor to remove code duplication (if not using `from_date` as argument)
+            from_date = pd.to_datetime(from_date_str, yearfirst=True, utc=True)
         except ValueError as err:
             # NOTE: should not happen, value should be validated earlier
             warning_notification(f"from={from_date_str!r} is not a valid date: {err}")

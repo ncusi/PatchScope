@@ -33,7 +33,7 @@ def time_range_options() -> dict[str, str]:
     today = datetime.date.today()
 
     return {
-        k: '' if v is None else (today + relativedelta(months=-v)).strftime('%d.%m.%Y')
+        k: '' if v is None else (today + relativedelta(months=-v)).strftime('%Y.%m.%d')
         for k, v in time_range_period.items()
     }
 
