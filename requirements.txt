@@ -13,4 +13,4 @@ pandas==2.2.3
 holoviews==1.19.1
 hvplot==0.11.1
 # install self
--e .
+patchscope@git+https://github.com/ncusi/PatchScope#egg=main
