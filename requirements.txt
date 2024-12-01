@@ -6,3 +6,9 @@ pyyaml==6.0.2
 unidiff==0.7.5
 tqdm==4.67.1
 typing-extensions==4.12.2
+# dependencies for .[web]
+panel==1.5.4
+param==2.1.1
+pandas==2.2.3
+holoviews==1.19.1
+hvplot==0.11.1
