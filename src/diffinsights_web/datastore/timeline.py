@@ -291,6 +291,9 @@ def filter_df_by_from_date(resampled_df: pd.DataFrame,
                 warning_notification(f"unsupported type {resampled_df.dtypes[date_column]!r} "
                                      f"for column {date_column!r}")
 
+    if len(filtered_df) == 0 and date_column is None:  # second part: run only once (or twice)
+        warning_notification(f"cutoff of {from_date} leads to an empty result")
+
     return filtered_df
 
 
