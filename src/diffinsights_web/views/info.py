@@ -29,11 +29,12 @@ time_range_period = {
 }
 
 
-def time_range_options() -> dict[str, str]:
-    today = datetime.date.today()
+def time_range_options(end_date: Optional[datetime.date] = None) -> dict[str, str]:
+    if end_date is None:
+        end_date = datetime.date.today()
 
     return {
-        k: '' if v is None else (today + relativedelta(months=-v)).strftime('%Y.%m.%d')
+        k: '' if v is None else (end_date + relativedelta(months=-v)).strftime('%Y.%m.%d')
         for k, v in time_range_period.items()
     }
 
