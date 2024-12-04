@@ -32,6 +32,7 @@ data_store = TimelineDataStore(dataset_dir=dataset_dir)
 page_header = ContributorsHeader(
     repo=data_store.select_repo_widget,
     freq=data_store.resample_frequency_widget,
+    end_date=data_store.timeline_max_date_rx,
 )
 timeseries_plot = TimeseriesPlot(
     data_store=data_store,

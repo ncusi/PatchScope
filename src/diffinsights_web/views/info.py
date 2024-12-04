@@ -59,6 +59,12 @@ class ContributorsHeader(pn.viewable.Viewer):
         doc="Resampling frequency as frequency string, for documentation purposes only",
         # see table at https://pandas.pydata.org/docs/user_guide/timeseries.html#dateoffset-objects
     )
+    end_date = param.ClassSelector(
+        default=datetime.datetime.today(),
+        class_=datetime.datetime,
+        allow_refs=True,  # allow for reactive expressions, and widgets
+        doc="Date from which to start counting down date periods from",
+    )
 
     widget_top_margin = 20
     widget_gap_size = 5
@@ -79,7 +85,9 @@ class ContributorsHeader(pn.viewable.Viewer):
             width=120,
             margin=(self.widget_top_margin, self.widget_gap_size),
         )
-        self.select_period_from_widget.options = time_range_options()
+        self.select_period_from_widget.options = time_range_options(
+            end_date=self.param.end_date.rx.value,  # otherwise: TypeError: __str__ returned non-string (type rx)
+        )
         self.select_period_from_widget.value = ''
 
         self.select_contribution_type_widget = pn.widgets.Select(

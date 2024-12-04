@@ -1,4 +1,5 @@
 import json
+import datetime
 from pathlib import Path
 from typing import Optional, Union
 
@@ -230,6 +231,11 @@ def author_timeline_df_freq(resample_by_author_df: pd.DataFrame,
 
 
 @pn.cache
+def get_max_date(timeline_df: pd.DataFrame) -> datetime.datetime:
+    return timeline_df['author_date'].max().to_pydatetime()
+
+
+@pn.cache
 def get_date_range(timeline_df: pd.DataFrame, from_date_str: str):
     # TODO: create reactive component or bound function to compute from_date to avoid recalculations
     # TODO: use parsed `from_date` instead of using raw `from_date_str`
@@ -386,8 +392,14 @@ class TimelineDataStore(pn.viewable.Viewer):
             timeline_data=self.timeline_data_rx,
             repo=self.select_repo_widget,
         )
+        # find maximum date
+        self.timeline_max_date_rx = pn.rx(get_max_date)(
+            timeline_df=self.timeline_df_rx,
+        )
+
 
         # select which extra columns to aggregate over (preserve in resampled dataframe)
+        # all datasets should have the same set of columns, so no need to have this reactive
         # NOTE: reactive expression doesn't play well with set(), hence passing .rx.value
         self.pm_count_cols = get_pm_count_cols(self.timeline_df_rx.rx.value)
 
