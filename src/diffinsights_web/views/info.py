@@ -93,7 +93,7 @@ class ContributorsHeader(pn.viewable.Viewer):
         self.select_contribution_type_widget = pn.widgets.Select(
             name="Contributions:",
             options=contribution_types_map,
-            disabled_options=[ SpecialColumnEnum.TEST_CASE.value ],
+            #disabled_options=[ SpecialColumnEnum.TEST_CASE.value ],
             value="timeline|n_commits",  # first value in contribution_types_map
             # style
             width=200,

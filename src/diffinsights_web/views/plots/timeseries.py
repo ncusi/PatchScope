@@ -232,6 +232,13 @@ class TimeseriesPlot(TimelineView):
             from_date_str=self.param.from_date_str.rx(),
         )
 
+        self.select_plot_rx = pn.rx(self.select_plot)(
+            column=self.param.column_name.rx(),
+            plot_widgets={
+                'timeline': self.plot_commits_rx,
+            },
+        )
+
         self.select_plot_theme_widget = pn.widgets.Select(
             name="Plot theme:",
             # see https://docs.bokeh.org/en/latest/docs/reference/themes.html
@@ -245,23 +252,35 @@ class TimeseriesPlot(TimelineView):
             ],
         )
 
+    def select_plot(self, column: str, plot_widgets: dict, height: int = 350):
+        # TODO?: move check for SpecialColumnEnum.NO_PLOT.value here
+        if '|' in column:
+            plot_type, _ = column.split('|', maxsplit=1)
+            #print(f"TimeseriesPlot.select_plot({column=}, ...): {plot_type=}")
+        else:
+            plot_type = "timeline"
+            #print(f"TimeseriesPlot.select_plot({column=}, ...): assuming {plot_type=} for {self.column_name!r}")
+
+        if plot_type in plot_widgets:
+            #print(f"TimeseriesPlot.select_plot({column=}, ...): selecting plot")
+            plot = plot_widgets[plot_type]
+            return pn.pane.HoloViews(
+                plot,
+                theme=self.select_plot_theme_widget,
+                # sizing configuration
+                height=height,  # TODO: find a better way than fixed height
+                sizing_mode='stretch_width',
+            )
+        else:
+            #print(f"TimeseriesPlot.select_plot({column=}, ...): returning error message")
+            return pn.pane.HTML(f"Unknown plot type <strong>{plot_type}</strong>")
+
     def __panel__(self) -> pn.viewable.Viewable:
         if self.column_name == SpecialColumnEnum.NO_PLOT.value:
             return pn.Spacer(height=0)
 
-        if '|' in self.column_name:
-            plot_type, _ = self.column_name.split('|', maxsplit = 1)
-            print(f"TimeseriesPlot.__panel__(): {plot_type=}")
-        else:
-            plot_type = "timeline"
-            print(f"TimeseriesPlot.__panel__(): assuming {plot_type=} for {self.column_name!r}")
-
-        return pn.pane.HoloViews(
-            self.plot_commits_rx,
-            theme=self.select_plot_theme_widget,
-            # sizing configuration
-            height=350,  # TODO: find a better way than fixed height
-            sizing_mode='stretch_width',
+        return pn.Column(
+            pn.panel(self.select_plot_rx),
         )
 
 
