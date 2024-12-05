@@ -34,6 +34,15 @@ def plot_commits(resampled_df: pd.DataFrame,
                  xlim: Optional[tuple] = None,
                  ylim: Optional[tuple] = None,
                  kind: str = 'step'):
+    plot_type = "timeline"
+    if '|' in column:
+        plot_type, column = column.split('|', maxsplit=2)
+
+    if plot_type != "timeline":
+        # or maybe even send notification
+        print(f"plot_commits(): expected plot_type of 'timeline', got {plot_type=}")
+        return
+
     # super special case
     if column == SpecialColumnEnum.NO_PLOT.value:
         return
@@ -239,6 +248,13 @@ class TimeseriesPlot(TimelineView):
     def __panel__(self) -> pn.viewable.Viewable:
         if self.column_name == SpecialColumnEnum.NO_PLOT.value:
             return pn.Spacer(height=0)
+
+        if '|' in self.column_name:
+            plot_type, _ = self.column_name.split('|', maxsplit = 1)
+            print(f"TimeseriesPlot.__panel__(): {plot_type=}")
+        else:
+            plot_type = "timeline"
+            print(f"TimeseriesPlot.__panel__(): assuming {plot_type=} for {self.column_name!r}")
 
         return pn.pane.HoloViews(
             self.plot_commits_rx,

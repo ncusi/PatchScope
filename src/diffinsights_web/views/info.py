@@ -93,7 +93,8 @@ class ContributorsHeader(pn.viewable.Viewer):
         self.select_contribution_type_widget = pn.widgets.Select(
             name="Contributions:",
             options=contribution_types_map,
-            value="n_commits",
+            disabled_options=[ SpecialColumnEnum.TEST_CASE.value ],
+            value="timeline|n_commits",  # first value in contribution_types_map
             # style
             width=200,
             margin=(self.widget_top_margin, 0),  # last widget, use x margin of 0
@@ -111,6 +112,14 @@ def sampling_info(resample_freq: str,
                   column: str,
                   frequency_names_map: dict[str, str],
                   min_max_date) -> str:
+    plot_type = "timeline"
+    if '|' in column:
+        plot_type, column = column.split('|', maxsplit=2)
+
+    if plot_type != "timeline":
+        print(f"sampling_info(): expected plot_type of 'timeline', got {plot_type=}")
+        return f"No support for <strong>{plot_type}</strong> plot type, for plotting <em>{column!r}</em>"
+
     contribution_type = column_to_contribution.get(column, "Unknown type of contribution")
 
     return f"""
