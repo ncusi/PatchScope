@@ -306,18 +306,22 @@ class TimeseriesPlotForAuthor(TimelineView):
             ylim=self.main_plot.value_range_rx,  # TODO: allow to switch between totals, max N, and own
         )
 
+        self.select_plot_rx = pn.rx(self.main_plot.select_plot)(
+            column=self.main_plot.param.column_name.rx(),
+            plot_widgets={
+                'timeline': self.plot_commits_rx,
+            },
+            height=256,
+        )
+
     def __panel__(self) -> pn.viewable.Viewable:
         #print("TimeseriesPlotForAuthor.__panel__()")
         if self.main_plot.column_name == SpecialColumnEnum.NO_PLOT.value:
             return pn.Spacer(height=0)
 
-        return pn.pane.HoloViews(
-            self.plot_commits_rx,
-            theme=self.main_plot.select_plot_theme_widget,
-            # sizing configuration
-            height=256,  # TODO: find a better way than fixed height
-            sizing_mode='stretch_width',
-            # sizing_mode='scale_both',  # NOTE: does not work, and neither does 'stretch_both'
-            # aspect_ratio=1.5,  # NOTE: does not help to use 'scale_both'/'stretch_both'
+        return pn.panel(
+            self.select_plot_rx,
+            # Following CSS conventions the parameter supports numeric values and tuples of length 2 and 4
+            # corresponding to (vertical, horizontal) margins and (top, right, bottom, left) margins.
             margin=5,
         )
