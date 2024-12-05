@@ -3,6 +3,7 @@ from typing import Optional
 import pandas as pd
 import panel as pn
 import param
+import holoviews as hv
 import hvplot.pandas  # noqa
 
 from diffinsights_web.datastore.timeline import \
@@ -264,13 +265,22 @@ class TimeseriesPlot(TimelineView):
         if plot_type in plot_widgets:
             #print(f"TimeseriesPlot.select_plot({column=}, ...): selecting plot")
             plot = plot_widgets[plot_type]
-            return pn.pane.HoloViews(
-                plot,
-                theme=self.select_plot_theme_widget,
-                # sizing configuration
-                height=height,  # TODO: find a better way than fixed height
-                sizing_mode='stretch_width',
-            )
+            if isinstance(plot, hv.element.chart.Chart):  # NOTE: perhaps it may be more generic
+                return pn.pane.HoloViews(
+                    plot,
+                    theme=self.select_plot_theme_widget,
+                    # sizing configuration
+                    height=height,  # TODO: find a better way than fixed height
+                    sizing_mode='stretch_width',
+                )
+            else:
+                # let's assume that it is something that pn.panel can deal with
+                # for example message passed using pn.pane.HTML
+                if plot is not None:
+                    print(f"TimeseriesPlot.select_plot({column=}, ...): unknown plot type {plot_type!r}, "
+                          f"plotted using {type(plot)!r}")
+                return plot
+
         else:
             #print(f"TimeseriesPlot.select_plot({column=}, ...): returning error message")
             return pn.pane.HTML(f"Unknown plot type <strong>{plot_type}</strong>")
