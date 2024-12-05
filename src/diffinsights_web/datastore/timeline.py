@@ -1,4 +1,5 @@
 import json
+import datetime
 from pathlib import Path
 from typing import Optional, Union
 
@@ -230,12 +231,18 @@ def author_timeline_df_freq(resample_by_author_df: pd.DataFrame,
 
 
 @pn.cache
+def get_max_date(timeline_df: pd.DataFrame) -> datetime.datetime:
+    return timeline_df['author_date'].max().to_pydatetime()
+
+
+@pn.cache
 def get_date_range(timeline_df: pd.DataFrame, from_date_str: str):
     # TODO: create reactive component or bound function to compute from_date to avoid recalculations
     # TODO: use parsed `from_date` instead of using raw `from_date_str`
     min_date = timeline_df['author_date'].min()
     if from_date_str:
-        from_date = pd.to_datetime(from_date_str, dayfirst=True, utc=True)
+        # the `from_date_str` is in YYYY.MM.DD format
+        from_date = pd.to_datetime(from_date_str, yearfirst=True, utc=True)
         min_date = max(min_date, from_date)
 
     ## DEBUG
@@ -269,8 +276,9 @@ def filter_df_by_from_date(resampled_df: pd.DataFrame,
     from_date: Optional[pd.Timestamp] = None
     if from_date_str:
         try:
-            # the `from_date_str` is in DD.MM.YYYY format
-            from_date = pd.to_datetime(from_date_str, dayfirst=True, utc=True)
+            # the `from_date_str` is in YYYY.MM.DD format
+            # TODO: refactor to remove code duplication (if not using `from_date` as argument)
+            from_date = pd.to_datetime(from_date_str, yearfirst=True, utc=True)
         except ValueError as err:
             # NOTE: should not happen, value should be validated earlier
             warning_notification(f"from={from_date_str!r} is not a valid date: {err}")
@@ -288,6 +296,9 @@ def filter_df_by_from_date(resampled_df: pd.DataFrame,
             else:
                 warning_notification(f"unsupported type {resampled_df.dtypes[date_column]!r} "
                                      f"for column {date_column!r}")
+
+    if len(filtered_df) == 0 and date_column is None:  # second part: run only once (or twice)
+        warning_notification(f"cutoff of {from_date} leads to an empty result")
 
     return filtered_df
 
@@ -381,8 +392,14 @@ class TimelineDataStore(pn.viewable.Viewer):
             timeline_data=self.timeline_data_rx,
             repo=self.select_repo_widget,
         )
+        # find maximum date
+        self.timeline_max_date_rx = pn.rx(get_max_date)(
+            timeline_df=self.timeline_df_rx,
+        )
+
 
         # select which extra columns to aggregate over (preserve in resampled dataframe)
+        # all datasets should have the same set of columns, so no need to have this reactive
         # NOTE: reactive expression doesn't play well with set(), hence passing .rx.value
         self.pm_count_cols = get_pm_count_cols(self.timeline_df_rx.rx.value)
 

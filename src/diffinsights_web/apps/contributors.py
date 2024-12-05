@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+import logging
 
 import panel as pn
 
@@ -7,12 +8,14 @@ import diffinsights_web.utils.notifications as notifications
 from diffinsights_web.datastore.timeline import TimelineDataStore, find_dataset_dir
 from diffinsights_web.utils.notifications import onload_callback
 from diffinsights_web.views.authorsgrid import AuthorInfo, AuthorsGrid
-from diffinsights_web.views.dataexplorer import TimelineJSONViewer, TimelinePerspective, TimelineDataFrameEnum, \
-    perspective_pane
+from diffinsights_web.views.dataexplorer import TimelineJSONViewer, TimelinePerspective, \
+    TimelineDataFrameEnum, perspective_pane
 from diffinsights_web.views.info import ContributorsHeader, RepoPlotHeader, ContributionsPercHeader
 from diffinsights_web.views.plots.timeseries import TimeseriesPlot
 from diffinsights_web.widgets.caching import ClearCacheButton
 
+
+logger = logging.getLogger("panel.contributors_graph")
 pn.extension(
     "jsoneditor", "perspective",
     notifications=True,
@@ -29,6 +32,7 @@ data_store = TimelineDataStore(dataset_dir=dataset_dir)
 page_header = ContributorsHeader(
     repo=data_store.select_repo_widget,
     freq=data_store.resample_frequency_widget,
+    end_date=data_store.timeline_max_date_rx,
 )
 timeseries_plot = TimeseriesPlot(
     data_store=data_store,
