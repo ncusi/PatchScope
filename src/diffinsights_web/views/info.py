@@ -106,6 +106,9 @@ class ContributorsHeader(pn.viewable.Viewer):
             width=200,
             margin=(self.widget_top_margin, 0),  # last widget, use x margin of 0
         )
+        #print(f"{self.select_contribution_type_widget.value=}")
+        #print(f"{self.select_contribution_type_widget.options=}")
+        #print(f"{self.select_contribution_type_widget.disabled_options=}")
 
     def update_period_selector(self, new_value: datetime.datetime) -> None:
         #print(f"ContributorsHeader.update_period_from_selector({new_value=})")

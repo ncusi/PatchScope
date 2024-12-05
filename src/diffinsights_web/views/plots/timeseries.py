@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Optional
 
 import pandas as pd
@@ -292,6 +293,26 @@ class TimeseriesPlot(TimelineView):
         else:
             #print(f"TimeseriesPlot.select_plot({column=}, ...): returning error message")
             return pn.pane.HTML(f"Unknown plot type <strong>{plot_type}</strong>")
+
+    @param.depends('data_store.select_file_widget.param', watch=True, on_init=True)
+    def check_is_sankey_possible(self):
+        pathname = self.data_store.select_file_widget.value
+        #print(f"check_is_sankey_possible(): {pathname=},")
+
+        stem = Path(pathname)
+        while stem.suffix in ['.timeline', '']:
+            stem = stem.with_suffix('')
+        #print(f"  {stem=}")
+
+        checked_file = stem.with_suffix('.lines-stats.purpose-to-type.json')
+        result = checked_file.is_file()
+        #print(f"  {checked_file=}, {result=}")
+        #print(f"  {self.param.column_name=}")
+        #print(f"  {self.column_name=}")
+        #if result:
+        #    print(f"  can have sankey ({result=})")
+
+        return result
 
     def __panel__(self) -> pn.viewable.Viewable:
         if self.column_name == SpecialColumnEnum.NO_PLOT.value:
