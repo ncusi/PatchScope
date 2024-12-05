@@ -98,6 +98,10 @@ class ContributorsHeader(pn.viewable.Viewer):
             name="Contributions:",
             options=contribution_types_map,
             value="timeline|n_commits",  # first value in contribution_types_map
+            # NOTE: disabled_options does not seem to work, no disabling (???)
+            disabled_options=[
+                SpecialColumnEnum.SANKEY_DIAGRAM.value,  # need <name>.lines-stats.purpose-to-type.json
+            ],
             # style
             width=200,
             margin=(self.widget_top_margin, 0),  # last widget, use x margin of 0

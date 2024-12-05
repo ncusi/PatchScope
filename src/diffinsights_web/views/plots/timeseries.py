@@ -48,6 +48,11 @@ def plot_commits(resampled_df: pd.DataFrame,
     if column == SpecialColumnEnum.NO_PLOT.value:
         return
 
+    # TODO: temporary
+    if column == SpecialColumnEnum.SANKEY_DIAGRAM.value:
+        warning_notification('Sankey diagram not implemented yet')
+        return
+
     filtered_df = filter_df_by_from_date(resampled_df, from_date_str)
 
     hvplot_kwargs = {}
