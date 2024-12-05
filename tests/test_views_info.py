@@ -1,5 +1,11 @@
 import datetime
 
+# https://docs.pytest.org/en/stable/how-to/skipping.html#skipping-on-a-missing-import-dependency
+import pytest
+pandas = pytest.importorskip("pandas")
+param = pytest.importorskip("param")
+panel = pytest.importorskip("panel")
+
 from diffinsights_web.views.info import time_range_options
 
 
