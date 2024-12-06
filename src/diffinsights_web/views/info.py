@@ -115,8 +115,8 @@ def sampling_info(resample_freq: str,
     if '|' in column:
         plot_type, column = column.split('|', maxsplit=2)
 
-    if plot_type != "timeline":
-        print(f"sampling_info(): expected plot_type of 'timeline', got {plot_type=}")
+    if plot_type not in {"timeline", "heatmap"}:
+        print(f"sampling_info(): got unexpected plot type of {plot_type!r}")
         return f"No support for <strong>{plot_type}</strong> plot type, for plotting <em>{column!r}</em>"
 
     contribution_type = column_to_contribution.get(column, "Unknown type of contribution")
