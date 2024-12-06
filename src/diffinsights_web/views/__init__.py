@@ -16,6 +16,7 @@ class TimelineView(pn.viewable.Viewer):
 
 class SpecialColumnEnum(Enum):
     LINE_TYPES_PERC = "timeline|KIND [%]"
+    LINE_TYPES_PERC_HEATMAP = "heatmap|±KIND [%]"
     NO_PLOT = "<NO PLOT>"
 
 
@@ -29,6 +30,7 @@ contribution_types_map = {
     "Patch spreading (lines)": "timeline|diff.groups_spread",
     # special cases:
     "Line types distribution [%]": SpecialColumnEnum.LINE_TYPES_PERC.value,
+    "Line types heatmap ±[%]": SpecialColumnEnum.LINE_TYPES_PERC_HEATMAP.value,
     "No plot": SpecialColumnEnum.NO_PLOT.value  # this special value should be last
 }
 column_to_contribution = {

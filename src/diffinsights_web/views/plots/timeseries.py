@@ -1,10 +1,14 @@
 from typing import Optional
 
+import holoviews as hv
+import hvplot.pandas  # noqa
+import matplotlib.dates as mdates
 import pandas as pd
 import panel as pn
 import param
-import holoviews as hv
-import hvplot.pandas  # noqa
+import seaborn as sns
+#from matplotlib.colors import LogNorm
+from matplotlib.figure import Figure
 
 from diffinsights_web.datastore.timeline import \
     get_date_range, get_value_range, filter_df_by_from_date, authors_info_df, author_timeline_df_freq
@@ -203,6 +207,50 @@ def plot_commits(resampled_df: pd.DataFrame,
     return plot
 
 
+def plot_heatmap(resampled_df: pd.DataFrame,
+                 from_date_str: str = '',
+                 figsize: tuple[float, float] = (17, 4)) -> Figure:
+    print(f"RUNNING plot_heatmap(resampled_df=<{hex(id(resampled_df))}>, {from_date_str=}, {figsize=})")
+    # TODO: cache, or pass as parameter
+    cols_plus_all = [
+        col for col in resampled_df.columns
+        if col.startswith('+:type.') and col.endswith(' [%]')
+    ]
+    cols_minus_all = [
+        col for col in resampled_df.columns
+        if col.startswith('-:type.') and col.endswith(' [%]')
+    ]
+    print(f"  {cols_minus_all=}")
+    #print(f"  {resampled_df.columns=}")
+
+    filtered_df = filter_df_by_from_date(resampled_df, from_date_str)
+
+    sns.set_style("whitegrid")
+
+    fig = Figure(figsize=figsize)
+    axes = fig.subplots(nrows=2, ncols=1, sharex='col')
+
+    sns.heatmap(filtered_df[cols_plus_all].transpose(),
+                #square=True,
+                cmap='Greens', vmin=0, vmax=1, #vmin=0, vmax=15000,
+                xticklabels=15, #norm=LogNorm(),
+                ax=axes[1])
+    axes[1].get_xaxis().set_visible(False)
+    #axes[1].xaxis.set_major_formatter(
+    #    mdates.ConciseDateFormatter(axes[1].xaxis.get_major_locator()))
+
+    sns.heatmap(filtered_df[reversed(cols_minus_all)].transpose(),
+                #square=True,
+                cmap='Reds', vmin=0, vmax=1, #vmin=0, vmax=15000,
+                xticklabels=15, #norm=LogNorm(),
+                ax=axes[0])
+    axes[0].get_xaxis().set_visible(False)
+
+    # fig.subplots_adjust(hspace=-0.2)
+
+    return fig
+
+
 class TimeseriesPlot(TimelineView):
     # allow_refs=True is here to allow widgets
     column_name = param.String(allow_refs=True)
@@ -216,6 +264,11 @@ class TimeseriesPlot(TimelineView):
             column=self.param.column_name.rx(),
             from_date_str=self.param.from_date_str.rx(),
         )
+        self.plot_heatmap_rx = pn.rx(plot_heatmap)(
+            resampled_df=self.data_store.resampled_timeline_all_rx,
+            from_date_str=self.param.from_date_str.rx(),
+        )
+
         # output: ranges
         self.date_range_rx = pn.rx(get_date_range)(
             timeline_df=self.data_store.timeline_df_rx,
@@ -237,6 +290,7 @@ class TimeseriesPlot(TimelineView):
             column=self.param.column_name.rx(),
             plot_widgets={
                 'timeline': self.plot_commits_rx,
+                'heatmap': self.plot_heatmap_rx,
             },
         )
 
@@ -257,18 +311,30 @@ class TimeseriesPlot(TimelineView):
         # TODO?: move check for SpecialColumnEnum.NO_PLOT.value here
         if '|' in column:
             plot_type, _ = column.split('|', maxsplit=1)
-            #print(f"TimeseriesPlot.select_plot({column=}, ...): {plot_type=}")
+            print(f"TimeseriesPlot.select_plot({column=}, plot_widgets=..., {height=}): {plot_type=}")
         else:
             plot_type = "timeline"
-            #print(f"TimeseriesPlot.select_plot({column=}, ...): assuming {plot_type=} for {self.column_name!r}")
+            #print(f"TimeseriesPlot.select_plot({column=}, plot_widgets=..., {height=}): "
+            #      f"assuming {plot_type=} for {self.column_name!r}")
 
         if plot_type in plot_widgets:
             #print(f"TimeseriesPlot.select_plot({column=}, ...): selecting plot")
             plot = plot_widgets[plot_type]
+            #print(f"  {type(plot)=}")
             if isinstance(plot, hv.element.chart.Chart):  # NOTE: perhaps it may be more generic
                 return pn.pane.HoloViews(
                     plot,
                     theme=self.select_plot_theme_widget,
+                    # sizing configuration
+                    height=height,  # TODO: find a better way than fixed height
+                    sizing_mode='stretch_width',
+                )
+
+            elif isinstance(plot, Figure):
+                return pn.pane.Matplotlib(
+                    plot,
+                    format='svg',
+                    tight=True,
                     # sizing configuration
                     height=height,  # TODO: find a better way than fixed height
                     sizing_mode='stretch_width',
