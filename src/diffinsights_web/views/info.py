@@ -30,6 +30,7 @@ time_range_period = {
 
 
 def time_range_options(end_date: Optional[datetime.date] = None) -> dict[str, str]:
+    #print(f"time_range_options({end_date=})")
     if end_date is None:
         end_date = datetime.date.today()
 
@@ -89,15 +90,25 @@ class ContributorsHeader(pn.viewable.Viewer):
             end_date=self.param.end_date.rx.value,  # otherwise: TypeError: __str__ returned non-string (type rx)
         )
         self.select_period_from_widget.value = ''
+        # NOTE: we could have used self.param.watch(..., ['end_date']), see
+        # https://param.holoviz.org/user_guide/Dependencies_and_Watchers.html#watchers
+        self.param.end_date.rx.watch(self.update_period_selector)
 
         self.select_contribution_type_widget = pn.widgets.Select(
             name="Contributions:",
             options=contribution_types_map,
-            value="n_commits",
+            value="timeline|n_commits",  # first value in contribution_types_map
             # style
             width=200,
             margin=(self.widget_top_margin, 0),  # last widget, use x margin of 0
         )
+
+    def update_period_selector(self, new_value: datetime.datetime) -> None:
+        #print(f"ContributorsHeader.update_period_from_selector({new_value=})")
+        with param.parameterized.batch_call_watchers(self.select_period_from_widget):
+            self.select_period_from_widget.options = time_range_options(end_date=new_value)
+            if self.select_period_from_widget.value not in self.select_period_from_widget.options:
+                self.select_period_from_widget.value = ''
 
     def __panel__(self):
         return pn.Row(
@@ -111,6 +122,15 @@ def sampling_info(resample_freq: str,
                   column: str,
                   frequency_names_map: dict[str, str],
                   min_max_date) -> str:
+    plot_type = "timeline"
+    if '|' in column:
+        plot_type, _ = column.split('|', maxsplit=2)
+
+    if plot_type not in {"timeline", "heatmap"}:
+        print(f"sampling_info(): got unexpected plot type of {plot_type!r}")
+        return f"No support for <strong>{plot_type}</strong> plot type, for plotting <em>{column!r}</em>"
+
+    #print(f"sampling_info({resample_freq=}, ...): {column=}, {column_to_contribution.keys()}")
     contribution_type = column_to_contribution.get(column, "Unknown type of contribution")
 
     return f"""
