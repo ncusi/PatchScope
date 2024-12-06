@@ -212,14 +212,14 @@ def plot_heatmap(resampled_df: pd.DataFrame,
                  figsize: tuple[float, float] = (17, 4)) -> Figure:
     print(f"RUNNING plot_heatmap(resampled_df=<{hex(id(resampled_df))}>, {from_date_str=}, {figsize=})")
     # TODO: cache, or pass as parameter
-    cols_plus_all = [
+    cols_plus_all = sorted([
         col for col in resampled_df.columns
         if col.startswith('+:type.') and col.endswith(' [%]')
-    ]
-    cols_minus_all = [
+    ], key=line_type_sorting_key)
+    cols_minus_all = sorted([
         col for col in resampled_df.columns
         if col.startswith('-:type.') and col.endswith(' [%]')
-    ]
+    ], key=line_type_sorting_key)
     print(f"  {cols_minus_all=}")
     #print(f"  {resampled_df.columns=}")
 
