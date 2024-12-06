@@ -381,11 +381,17 @@ class TimeseriesPlotForAuthor(TimelineView):
             xlim=self.main_plot.date_range_rx,
             ylim=self.main_plot.value_range_rx,  # TODO: allow to switch between totals, max N, and own
         )
+        self.plot_heatmap_rx = pn.rx(plot_heatmap)(
+            resampled_df=self.resampled_df_rx,
+            from_date_str=self.main_plot.param.from_date_str.rx(),
+            figsize=(8, 3.75),
+        )
 
         self.select_plot_rx = pn.rx(self.main_plot.select_plot)(
             column=self.main_plot.param.column_name.rx(),
             plot_widgets={
                 'timeline': self.plot_commits_rx,
+                'heatmap': self.plot_heatmap_rx,
             },
             height=256,
         )
