@@ -267,7 +267,7 @@ class TimeseriesPlot(TimelineView):
         if plot_type in plot_widgets:
             #print(f"TimeseriesPlot.select_plot({column=}, ...): selecting plot")
             plot = plot_widgets[plot_type]
-            if isinstance(plot, hv.element.chart.Chart):  # NOTE: perhaps it may be more generic
+            if isinstance(plot, hv.core.ViewableElement):
                 return pn.pane.HoloViews(
                     plot,
                     theme=self.select_plot_theme_widget,
@@ -280,7 +280,8 @@ class TimeseriesPlot(TimelineView):
                 # for example message passed using pn.pane.HTML
                 if plot is not None:
                     print(f"TimeseriesPlot.select_plot({column=}, ...): unknown plot type {plot_type!r}, "
-                          f"plotted using {type(plot)!r}")
+                          f"plotted using {type(plot)!r}\n"
+                          f"  {type(plot).mro()=}")
                 return plot
 
         else:
