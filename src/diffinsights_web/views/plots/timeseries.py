@@ -74,7 +74,8 @@ def plot_commits(resampled_df: pd.DataFrame,
             ylim = (-1, ylim[1])
 
     # special cases: y range limits
-    if column == SpecialColumnEnum.LINE_TYPES_PERC.value:
+    if (column == SpecialColumnEnum.LINE_TYPES_PERC.value or
+        f"timeline|{column}" == SpecialColumnEnum.LINE_TYPES_PERC.value):
         ylim = (0.0, 1.05)
 
     # via https://oklch-palette.vercel.app/ and https://htmlcolorcodes.com/rgb-to-hex/
@@ -91,7 +92,8 @@ def plot_commits(resampled_df: pd.DataFrame,
     color = color_map.get(column, '#006dd8')
 
     # special cases: the plot itself
-    if column == SpecialColumnEnum.LINE_TYPES_PERC.value:
+    if (column == SpecialColumnEnum.LINE_TYPES_PERC.value or
+        f"timeline|{column}" == SpecialColumnEnum.LINE_TYPES_PERC.value):
         kind_perc_columns = [
             col for col in resampled_df.columns
             if col.startswith('type.') and col.endswith(' [%]')
