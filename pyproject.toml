@@ -56,9 +56,9 @@ version = {attr = "diffannotator.config.__version__"}
 #
 # see: https://setuptools.pypa.io/en/latest/userguide/pyproject_config.html#dynamic-metadata
 [project.optional-dependencies]
-dev = ["pytest==8.3.3"]
+dev = ["pytest==8.3.4"]
 pylinguist = ["linguist@git+https://github.com/retanoj/linguist#egg=master"]
-examples = ["dvc==3.56.0"]
+examples = ["dvc==3.58.0"]
 web = [
   "panel==1.5.4",
   "param==2.1.1",
