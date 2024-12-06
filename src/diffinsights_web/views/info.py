@@ -124,12 +124,13 @@ def sampling_info(resample_freq: str,
                   min_max_date) -> str:
     plot_type = "timeline"
     if '|' in column:
-        plot_type, column = column.split('|', maxsplit=2)
+        plot_type, _ = column.split('|', maxsplit=2)
 
     if plot_type != "timeline":
         print(f"sampling_info(): expected plot_type of 'timeline', got {plot_type=}")
         return f"No support for <strong>{plot_type}</strong> plot type, for plotting <em>{column!r}</em>"
 
+    #print(f"sampling_info({resample_freq=}, ...): {column=}, {column_to_contribution.keys()}")
     contribution_type = column_to_contribution.get(column, "Unknown type of contribution")
 
     return f"""
