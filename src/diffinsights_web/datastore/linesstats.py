@@ -1,4 +1,5 @@
 import json
+from collections import Counter
 from pathlib import Path
 from typing import Union, Optional
 
@@ -24,6 +25,32 @@ def get_lines_stats_data(dataset_dir: str, timeseries_file: str) -> Optional[dic
         return None
 
 
+def count_file_x_line_in_lines_stats(lines_stats_data: dict,
+                                     repo_name: str,
+                                     change_type: str = "+/-",
+                                     prefix: str = 'type.') -> Counter:
+    #print(f"count_file_line_in_lines_stats(..., {repo_name=}, {change_type=}, {prefix=})")
+    result = Counter()
+
+    for dataset, dataset_data in lines_stats_data.items():
+        for bug_or_repo, lines_data in dataset_data.items():
+            if bug_or_repo != repo_name:
+                print(f"    - skipping: {bug_or_repo!r} != {repo_name!r}")
+
+            for patch_file, patch_data in lines_data.items():
+                for file_name, file_data in patch_data.items():
+                    if change_type not in file_data:
+                        continue
+
+                    for line_info, n_lines in file_data[change_type].items():
+                        if not line_info.startswith(prefix):
+                            continue
+
+                        result[(file_name, line_info)] += n_lines
+
+    return result
+
+
 class LinesStatsDataStore(pn.viewable.Viewer):
     dataset_dir = param.Foldername(
         constant=True,
@@ -34,6 +61,10 @@ class LinesStatsDataStore(pn.viewable.Viewer):
         allow_refs=True,  # to allow widgets and reactive expressions
         doc="Selected JSON file with timeline data to find lines-stats companion for"
     )
+    repo_name = param.String(
+        allow_refs=True,  # allow for reactive expressions, and widgets
+        doc="Name of the repository, for selecting data",
+    )
 
     def __init__(self, **params):
         super().__init__(**params)
@@ -41,4 +72,8 @@ class LinesStatsDataStore(pn.viewable.Viewer):
         self.lines_stats_data_rx = pn.rx(get_lines_stats_data)(
             dataset_dir=self.dataset_dir,
             timeseries_file=self.timeseries_file,
+        )
+        self.lines_stats_counter_rx = pn.rx(count_file_x_line_in_lines_stats)(
+            lines_stats_data=self.lines_stats_data_rx,
+            repo_name=self.repo_name,
         )

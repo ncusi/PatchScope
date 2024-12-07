@@ -13,6 +13,7 @@ def test_timeseries_file_no_such_file():
         name='test_repo_name_no_such_file',
         dataset_dir=find_dataset_dir(),
         timeseries_file='does-not-exist',
+        repo_name='repo-does-not-exist',
     )
 
     # DEBUG
@@ -34,6 +35,7 @@ def test_timeseries_file_from_widget_default_value():
     lines_stats = LinesStatsDataStore(
         dataset_dir='.',  # should be ignored, not tested
         timeseries_file=data_store.select_file_widget,
+        repo_name=data_store.select_repo_widget,
     )
 
     actual = lines_stats.lines_stats_data_rx.rx.value
@@ -44,7 +46,8 @@ def test_timeseries_file_from_widget_default_value():
 def test_timeseries_file_hellogitworld():
     lines_stats = LinesStatsDataStore(
         dataset_dir='data/examples/stats',  # directory part, relative to top directory of project
-        timeseries_file='hellogitworld.timeline.purpose-to-type.json',  #filename part
+        timeseries_file='hellogitworld.timeline.purpose-to-type.json',  # filename part
+        repo_name='hellogitworld',
     )
     actual = lines_stats.lines_stats_data_rx.rx.value
 
@@ -59,3 +62,12 @@ def test_timeseries_file_hellogitworld():
     assert len(data.keys()) > 0, \
         "there is data from multiple files with annotation data"
 
+    actual = lines_stats.lines_stats_counter_rx.rx.value
+    #print(f"{len(actual)=}")
+    #print(f"{actual.keys()=}")
+    assert ('README.txt', 'type.documentation') in actual, \
+        "there were changes marked as documentation lines to 'README.txt' file"
+    assert actual[('README.txt', 'type.documentation')] > 0, \
+        "there were non-zero amount of changes marked as documentation to 'README.txt' file"
+    assert ('README.txt', 'type.code') not in actual, \
+        "there were no changes marked as code lines to 'README.txt' file"
