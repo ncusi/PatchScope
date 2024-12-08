@@ -278,6 +278,26 @@ def sankey_plot_from_triples(sankey_data: list[tuple[str, str, int]], width: int
     return hv.Sankey(sankey_data).opts(edge_color_index=1, width=width, height=height)
 
 
+def process_sankey(lines_stats_counter: Counter,
+                   max_files: Optional[int] = None,
+                   threshold: float = 0.0):
+    changed_files = sorted_changed_files(lines_stats_counter=lines_stats_counter)
+    if max_files is not None:
+        lines_stats_counter = limit_count_to_selected_files(
+            lines_stats_counter=lines_stats_counter,
+            files=changed_files[:max_files]
+        )
+
+    sankey_counter = path_to_dirs_only_counter(lines_stats_counter)
+    sankey_counter = add_dashdash_dirs_to_counter(sankey_counter)
+    if 0.0 < threshold < 1.0:
+        sankey_counter = reduce_sankey_thin_out(sankey_counter, threshold_ratio=threshold)
+
+    sankey_triples = sankey_triples_from_counter(sankey_counter)
+
+    return sankey_triples
+
+
 class LinesStatsDataStore(pn.viewable.Viewer):
     dataset_dir = param.Foldername(
         constant=True,
@@ -305,3 +325,12 @@ class LinesStatsDataStore(pn.viewable.Viewer):
             repo_name=self.repo_name,
         )
 
+        self.num_files_widget = pn.widgets.Select(
+            name="top N files",
+            options=[10,100,None],
+            value=100,
+        )
+        self.sankey_data_rx = pn.rx(process_sankey)(
+            lines_stats_counter=self.lines_stats_counter_rx,
+            max_files=self.num_files_widget,
+        )

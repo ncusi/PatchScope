@@ -113,5 +113,9 @@ def test_timeseries_file_hellogitworld():
         "removed at least one node from Sankey diagram"
     # TODO: add more checks
 
+    actual = lines_stats.sankey_data_rx.rx.value
+    assert len(actual) > 0, \
+        "there is something to create Sankey diagram from"
+
 
 # TODO: add test for sankey_triples_from_counter() and sankey_counter_from_triples()
