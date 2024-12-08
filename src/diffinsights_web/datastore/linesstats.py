@@ -77,3 +77,11 @@ class LinesStatsDataStore(pn.viewable.Viewer):
             lines_stats_data=self.lines_stats_data_rx,
             repo_name=self.repo_name,
         )
+
+    def sorted_changed_files(self):
+        counts = Counter()
+        for kv, n_lines in self.lines_stats_counter_rx.rx.value.items():
+            file_name = kv[0]
+            counts[file_name] += n_lines
+
+        return counts.most_common()
