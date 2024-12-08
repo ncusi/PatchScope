@@ -2,7 +2,8 @@ import pytest
 
 from diffinsights_web.datastore import find_dataset_dir
 from diffinsights_web.datastore.timeline import TimelineDataStore
-from diffinsights_web.datastore.linesstats import LinesStatsDataStore, sorted_changed_files
+from diffinsights_web.datastore.linesstats import LinesStatsDataStore, sorted_changed_files, \
+    limit_count_to_selected_files
 
 param = pytest.importorskip("param")
 panel = pytest.importorskip("panel")
@@ -75,3 +76,16 @@ def test_timeseries_file_hellogitworld():
     actual = sorted_changed_files(lines_stats.lines_stats_counter_rx.rx.value)
     assert actual[0] == 'src/Main.groovy', \
         "file with most changes was 'src/Main.groovy'"
+
+    selected_files = actual[:3]
+    actual = limit_count_to_selected_files(
+        lines_stats_counter=lines_stats.lines_stats_counter_rx.rx.value,
+        files=selected_files,
+    )
+    assert len(actual) >= len(selected_files), \
+        "at least one counter entry for each file"
+
+    counter_limited = actual
+    actual = sorted_changed_files(counter_limited)
+    assert actual == selected_files, \
+        "list of files after filtering is filter list, if filter list is from counter"

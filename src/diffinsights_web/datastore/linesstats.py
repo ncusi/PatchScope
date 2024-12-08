@@ -1,5 +1,6 @@
 import json
 from collections import Counter
+from collections.abc import Container, Iterable
 from pathlib import Path
 from typing import Union, Optional
 
@@ -58,6 +59,14 @@ def sorted_changed_files(lines_stats_counter: Counter) -> list[str]:
         counts[file_name] += n_lines
 
     return [elem[0] for elem in counts.most_common()]
+
+
+def limit_count_to_selected_files(lines_stats_counter: Counter,
+                                  files: Union[Container[str], Iterable[str]]) -> Counter:
+    return Counter({
+        kv: n_lines for kv, n_lines in lines_stats_counter.items()
+        if kv[0] in files
+    })
 
 
 class LinesStatsDataStore(pn.viewable.Viewer):
