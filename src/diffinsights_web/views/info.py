@@ -133,7 +133,17 @@ def sampling_info(resample_freq: str,
     if '|' in column:
         plot_type, _ = column.split('|', maxsplit=2)
 
-    if plot_type != "timeline":
+    if plot_type == "sankey":
+        # Sankey diagrams do not use resampling
+        return f"""
+        <p><strong>Distribution of changed lines types based on the directory structure</strong></p>
+        <p><s>Using commits
+        from {html_date_humane(min_max_date[0])}
+        to {html_date_humane(min_max_date[1])}
+        </s></p>
+        """
+
+    elif plot_type != "timeline":
         print(f"sampling_info(): expected plot_type of 'timeline', got {plot_type=}")
         return f"No support for <strong>{plot_type}</strong> plot type, for plotting <em>{column!r}</em>"
 
