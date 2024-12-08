@@ -1,5 +1,5 @@
 import json
-from collections import Counter
+from collections import Counter, defaultdict
 from collections.abc import Container, Iterable
 from pathlib import Path, PurePosixPath
 from typing import Union, Optional
@@ -120,6 +120,72 @@ def add_dashdash_dirs_to_counter(data_counter: Counter) -> Counter:
             res[(f"__{d}__", l)]  = res[(d, l)]
             res[(d, f"__{d}__")] += res[(d, l)]
             del res[(d, l)]
+
+    return res
+
+
+def reduce_sankey_from_tail(data_counter: Counter) -> Counter:
+    res = data_counter.copy()
+
+    #print("reduce_sankey_from_tail():")
+
+    max_level = 0
+    for (p_f, _) in data_counter.keys():
+        n_dashes = p_f.count('/')
+        if n_dashes > max_level:
+            max_level = n_dashes
+
+    #print(f"  {max_level=}")
+
+    to_delete = lambda x: x.count('/') == max_level
+    can_delete = True
+
+    helper_info = {
+        'delete-contents': defaultdict(dict),
+        'to-prev': {}
+    }
+
+    # sanity check
+    for k, v in data_counter.items():
+        (p_f, p_t) = k
+        if to_delete(p_f):
+            if not p_t.startswith('type.'):
+                #print(f"  {p_f!r} is not final: {p_f!r} =[{v}]=> {p_t!r}")
+                can_delete = False
+            else:
+                helper_info['delete-contents'][p_f][p_t] = v
+
+        if to_delete(p_t):
+            helper_info['to-prev'][p_t] = p_f
+
+    #print(f"  {can_delete=}")
+
+    if can_delete:
+        to_prev_dict = {}
+        for p_t, p_f in helper_info['to-prev'].items():
+            if (p_f, f"__{p_f}__") in data_counter:
+                #print(f"({p_f}, __{p_f}__): {xsankey_cntr_5[(p_f, f'__{p_f}__')]}")
+                to_prev_dict[f"__{p_f}__"] = p_f
+
+        #print(f"  extra 'to-prev':{len(to_prev_dict)}")
+        helper_info['to-prev'] |= to_prev_dict
+
+        for k, v in data_counter.items():
+            (p_f, p_t) = k
+            if (p_f in helper_info['to-prev'] and
+                p_t.startswith('type.')):
+                helper_info['delete-contents'][p_f][p_t] = v
+
+        for k, v in data_counter.items():  # we are changing res
+            (p_f, p_t) = k
+            if p_t in helper_info['to-prev'] and p_f == helper_info['to-prev'][p_t]:
+                #print(f"({p_f}, {p_t}): {v})")
+                for kk, vv in helper_info['delete-contents'][p_t].items():
+                    res[(p_f, kk)] += vv
+                    #print(f"  ({p_f}, {kk}) += {vv} => {res[(p_f, kk)]}")
+                del res[(p_f, p_t)]
+            if p_f in helper_info['to-prev']:
+                del res[(p_f, p_t)]
 
     return res
 
