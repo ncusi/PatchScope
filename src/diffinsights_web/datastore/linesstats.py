@@ -4,11 +4,8 @@ from collections.abc import Container, Iterable
 from pathlib import Path, PurePosixPath
 from typing import Union, Optional
 
-import holoviews as hv
 import panel as pn
 import param
-
-from diffinsights_web.utils.notifications import warning_notification
 
 
 def get_lines_stats_data(dataset_dir: str, timeseries_file: str) -> Optional[dict]:
@@ -275,10 +272,6 @@ def reduce_sankey_thin_out(data_counter: Counter,
                 del res[(p_f, p_t)]
 
     return res
-
-
-def sankey_plot_from_triples(sankey_data: list[tuple[str, str, int]], width: int = 800, height: int = 400) -> hv.Sankey:
-    return hv.Sankey(sankey_data).opts(edge_color_index=1, width=width, height=height)
 
 
 def process_sankey(lines_stats_counter: Optional[Counter],
