@@ -3,7 +3,7 @@ import pytest
 from diffinsights_web.datastore import find_dataset_dir
 from diffinsights_web.datastore.timeline import TimelineDataStore
 from diffinsights_web.datastore.linesstats import LinesStatsDataStore, sorted_changed_files, \
-    limit_count_to_selected_files
+    limit_count_to_selected_files, path_to_dirs_only_counter
 
 param = pytest.importorskip("param")
 panel = pytest.importorskip("panel")
@@ -89,6 +89,12 @@ def test_timeseries_file_hellogitworld():
     actual = sorted_changed_files(counter_limited)
     assert actual == selected_files, \
         "list of files after filtering is filter list, if filter list is from counter"
+
+    actual = path_to_dirs_only_counter(counter_limited)
+    assert ('.', 'src') in actual, \
+        "path from top dir to 'src' subdirectory present"
+    assert ('src', 'type.code') in actual, \
+        "'src/Main.groovy' lines of code contributions changed to 'src' contributions"
 
 
 # TODO: add test for sankey_triples_from_counter() and sankey_counter_from_triples()

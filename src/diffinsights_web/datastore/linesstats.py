@@ -1,7 +1,7 @@
 import json
 from collections import Counter
 from collections.abc import Container, Iterable
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Union, Optional
 
 import panel as pn
@@ -75,6 +75,20 @@ def sankey_triples_from_counter(data_counter: Counter) -> list[tuple[str, str, i
 
 def sankey_counter_from_triples(data_list: list[tuple[str, str, int]]) -> Counter:
     return Counter({(p_f, p_t): v for p_f, p_t, v in data_list})
+
+
+def path_to_dirs_only_counter(data_counter: Counter) -> Counter:
+    result = Counter()
+
+    for (p, l), v in data_counter.items():
+        # print(f"{p} ={v}=> {l}")
+        p_path = PurePosixPath(p)
+        result[(str(p_path.parent), l)] += v
+        for p_f, p_t in zip(p_path.parent.parents, p_path.parents):
+            # print(f"- ({p_f}, {p_t})")
+            result[(str(p_f), str(p_t))] += v
+
+    return result
 
 
 class LinesStatsDataStore(pn.viewable.Viewer):
