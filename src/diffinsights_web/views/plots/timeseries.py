@@ -11,6 +11,7 @@ from diffinsights_web.datastore.timeline import \
     get_date_range, get_value_range, filter_df_by_from_date, authors_info_df, author_timeline_df_freq
 from diffinsights_web.utils.notifications import warning_notification
 from diffinsights_web.views import TimelineView, SpecialColumnEnum, column_to_contribution
+from diffinsights_web.views.plots.sankey import SankeyPlot
 
 
 def line_type_sorting_key(column_name: str) -> int:
@@ -215,6 +216,11 @@ class TimeseriesPlot(TimelineView):
     # allow_refs=True is here to allow widgets
     column_name = param.String(allow_refs=True)
     from_date_str = param.String(allow_refs=True)
+    sankey_plot = param.ClassSelector(
+        default=None,
+        allow_None=True,
+        class_=SankeyPlot,
+    )
 
     def __init__(self, **params):
         super().__init__(**params)
@@ -241,11 +247,15 @@ class TimeseriesPlot(TimelineView):
             from_date_str=self.param.from_date_str.rx(),
         )
 
+        plot_widgets = {
+            'timeline': self.plot_commits_rx,
+        }
+        if self.sankey_plot is not None:
+            plot_widgets['sankey'] = self.sankey_plot.plot_sankey_rx
+
         self.select_plot_rx = pn.rx(self.select_plot)(
             column=self.param.column_name.rx(),
-            plot_widgets={
-                'timeline': self.plot_commits_rx,
-            },
+            plot_widgets=plot_widgets,
         )
 
         self.select_plot_theme_widget = pn.widgets.Select(
