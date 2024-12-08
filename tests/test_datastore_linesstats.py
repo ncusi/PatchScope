@@ -73,5 +73,5 @@ def test_timeseries_file_hellogitworld():
         "there were no changes marked as code lines to 'README.txt' file"
 
     actual = lines_stats.sorted_changed_files()
-    assert actual[0][0] == 'src/Main.groovy', \
+    assert actual[0] == 'src/Main.groovy', \
         "file with most changes was 'src/Main.groovy'"
