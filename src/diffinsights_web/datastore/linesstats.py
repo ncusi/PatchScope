@@ -51,6 +51,15 @@ def count_file_x_line_in_lines_stats(lines_stats_data: dict,
     return result
 
 
+def sorted_changed_files(lines_stats_counter: Counter) -> list[str]:
+    counts = Counter()
+    for kv, n_lines in lines_stats_counter.items():
+        file_name = kv[0]
+        counts[file_name] += n_lines
+
+    return [elem[0] for elem in counts.most_common()]
+
+
 class LinesStatsDataStore(pn.viewable.Viewer):
     dataset_dir = param.Foldername(
         constant=True,
@@ -78,10 +87,3 @@ class LinesStatsDataStore(pn.viewable.Viewer):
             repo_name=self.repo_name,
         )
 
-    def sorted_changed_files(self) -> list[str]:
-        counts = Counter()
-        for kv, n_lines in self.lines_stats_counter_rx.rx.value.items():
-            file_name = kv[0]
-            counts[file_name] += n_lines
-
-        return [elem[0] for elem in counts.most_common()]

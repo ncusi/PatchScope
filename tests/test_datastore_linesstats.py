@@ -2,7 +2,7 @@ import pytest
 
 from diffinsights_web.datastore import find_dataset_dir
 from diffinsights_web.datastore.timeline import TimelineDataStore
-from diffinsights_web.datastore.linesstats import LinesStatsDataStore
+from diffinsights_web.datastore.linesstats import LinesStatsDataStore, sorted_changed_files
 
 param = pytest.importorskip("param")
 panel = pytest.importorskip("panel")
@@ -72,6 +72,6 @@ def test_timeseries_file_hellogitworld():
     assert ('README.txt', 'type.code') not in actual, \
         "there were no changes marked as code lines to 'README.txt' file"
 
-    actual = lines_stats.sorted_changed_files()
+    actual = sorted_changed_files(lines_stats.lines_stats_counter_rx.rx.value)
     assert actual[0] == 'src/Main.groovy', \
         "file with most changes was 'src/Main.groovy'"
