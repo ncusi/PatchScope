@@ -28,33 +28,33 @@ notifications.loaded = False  # module is not re-imported on reloading
 pn.state.onload(onload_callback)
 
 dataset_dir = find_dataset_dir()
-data_store = TimelineDataStore(dataset_dir=dataset_dir)
+timeline_data_store = TimelineDataStore(dataset_dir=dataset_dir)
 
 page_header = ContributorsHeader(
-    repo=data_store.select_repo_widget,
-    freq=data_store.resample_frequency_widget,
-    end_date=data_store.timeline_max_date_rx,
+    repo=timeline_data_store.select_repo_widget,
+    freq=timeline_data_store.resample_frequency_widget,
+    end_date=timeline_data_store.timeline_max_date_rx,
 )
 timeseries_plot = TimeseriesPlot(
-    data_store=data_store,
+    data_store=timeline_data_store,
     column_name=page_header.select_contribution_type_widget,
     from_date_str=page_header.select_period_from_widget,
 )
 timeseries_plot_header = RepoPlotHeader(
-    freq=data_store.resample_frequency_widget,
+    freq=timeline_data_store.resample_frequency_widget,
     column_name=page_header.select_contribution_type_widget,
     plot=timeseries_plot,
 )
 contributions_perc_header = ContributionsPercHeader(
-    data_store=data_store,
+    data_store=timeline_data_store,
     from_date_str=page_header.select_period_from_widget,
 )
 authors_info_panel = AuthorInfo(
-    data_store=data_store,
+    data_store=timeline_data_store,
     authors_info_df=timeseries_plot.authors_info_df_rx,
 )
 authors_grid = AuthorsGrid(
-    data_store=data_store,
+    data_store=timeline_data_store,
     main_plot=timeseries_plot,
     authors_info_df=timeseries_plot.authors_info_df_rx,
     top_n=authors_info_panel.top_n_widget,
@@ -66,7 +66,7 @@ template = pn.template.MaterialTemplate(
     title="Contributors Graph",  # TODO: make title dynamic
     favicon="favicon.svg",
     sidebar=[
-        data_store,
+        timeline_data_store,
         *authors_info_panel.widgets(),
 
         pn.layout.Divider(),  # - - - - - - - - - - - - -
@@ -89,11 +89,11 @@ template = pn.template.MaterialTemplate(
         authors_grid,
     ],
 )
-timeline_perspective = TimelinePerspective(data_store=data_store)
+timeline_perspective = TimelinePerspective(data_store=timeline_data_store)
 template.main.extend([
     pn.layout.Divider(),
     pn.Tabs(
-        ('JSON', TimelineJSONViewer(data_store=data_store)),
+        ('JSON', TimelineJSONViewer(data_store=timeline_data_store)),
         ('data', timeline_perspective.panel(TimelineDataFrameEnum.TIMELINE_DATA)),
         ('resampled', timeline_perspective.panel(TimelineDataFrameEnum.RESAMPLED_DATA)),
         ('by author+resampled', timeline_perspective.panel(TimelineDataFrameEnum.BY_AUTHOR_DATA)),
@@ -102,7 +102,7 @@ template.main.extend([
             perspective_pane(
                 df=timeseries_plot.authors_info_df_rx,
                 title=pn.rx("Authors info for repo={repo!r}, from={from_date!r}") \
-                    .format(repo=data_store.select_repo_widget,
+                    .format(repo=timeline_data_store.select_repo_widget,
                             from_date=page_header.select_period_from_widget)
             )
         ),
