@@ -89,3 +89,6 @@ def test_timeseries_file_hellogitworld():
     actual = sorted_changed_files(counter_limited)
     assert actual == selected_files, \
         "list of files after filtering is filter list, if filter list is from counter"
+
+
+# TODO: add test for sankey_triples_from_counter() and sankey_counter_from_triples()

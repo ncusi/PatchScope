@@ -69,6 +69,14 @@ def limit_count_to_selected_files(lines_stats_counter: Counter,
     })
 
 
+def sankey_triples_from_counter(data_counter: Counter) -> list[tuple[str, str, int]]:
+    return [(p[0], p[1], v) for p, v in data_counter.items()]
+
+
+def sankey_counter_from_triples(data_list: list[tuple[str, str, int]]) -> Counter:
+    return Counter({(p_f, p_t): v for p_f, p_t, v in data_list})
+
+
 class LinesStatsDataStore(pn.viewable.Viewer):
     dataset_dir = param.Foldername(
         constant=True,
