@@ -190,6 +190,86 @@ def reduce_sankey_from_tail(data_counter: Counter) -> Counter:
     return res
 
 
+def reduce_sankey_thin_out(data_counter: Counter,
+                           threshold_ratio: float = 0.005) -> Counter:
+    #print("reduce_sankey_thin_out():")
+    # TODO: use threshold on max value, not on sum of values
+
+    total_lines = 0
+    for (p_f, p_t), v in data_counter.items():
+        if p_f != '.':
+            continue
+        total_lines += v
+
+    #print(f"  {total_lines=}")
+    #print(f"  threshold={threshold_ratio}*{total_lines}={threshold_ratio * total_lines}")
+
+    data_info = {
+        'to-remove': set()
+    }
+
+    for (p_f, p_t), v in data_counter.items():
+        if v < threshold_ratio * total_lines:
+            #print(f"  - ({p_f}, {p_t}): {v} {'*' if p_t.startswith('type.') else ' '}")
+            data_info['to-remove'].add(p_f)
+
+    data_info |= {
+        'delete-contents': defaultdict(dict),
+        'to-prev': {},
+        'can-remove': set(),
+    }
+
+    #print("  gathering data:")
+
+    for (p_f, p_t), v in data_counter.items():
+        # want to remove, and can remove
+        if p_f in data_info['to-remove'] and p_t.startswith('type.'):
+            #print(f"   - saving data for ({p_f}, {p_t}): {v}")
+            data_info['delete-contents'][p_f][p_t] = v
+
+    for (p_f, p_t), v in data_counter.items():
+        if p_t in data_info['to-remove'] and p_t in data_info['delete-contents']:
+            data_info['to-prev'][p_t] = p_f
+
+            total_width = 0
+            for v in data_info['delete-contents'][p_t].values():
+                total_width += v
+            if total_width < threshold_ratio * total_lines:
+                if f"__{p_f}__" == p_t:
+                    #print(f"   ! ({p_f}) -> ({p_t}) -> {data_info['delete-contents'][p_t]}")
+                    pass
+                elif p_f == ".":
+                    #print(f"   # ({p_f}) -> ({p_t}) -> {data_info['delete-contents'][p_t]}")
+                    pass
+                else:
+                    #print(f"   + ({p_f}) => ({p_t}) => {data_info['delete-contents'][p_t]}")
+                    data_info['can-remove'].add(p_t)
+            else:
+                #print(f"  - ({p_f}) -> ({p_t}) -> {data_info['delete-contents'][p_t]}")
+                pass
+
+    ## -------------------------------------------------------
+    ## actual removal
+    res = data_counter.copy()
+
+    #print("  deleting/compressing:")
+    for k, v in data_counter.items():  # we are changing res
+        (p_f, p_t) = k
+        if p_t in data_info['can-remove']:
+            if p_t in data_info['to-prev'] and p_f == data_info['to-prev'][p_t]:
+                #print(f"  - ({p_f}, {p_t}): {v})")
+                for kk, vv in data_info['delete-contents'][p_t].items():
+                    res[(p_f, kk)] += vv
+                    #print(f"  ({p_f}, {kk}) += {vv} => {res[(p_f, kk)]}")
+                del res[(p_f, p_t)]
+
+        if p_f in data_info['can-remove']:
+            if p_f in data_info['to-prev']:
+                del res[(p_f, p_t)]
+
+    return res
+
+
 class LinesStatsDataStore(pn.viewable.Viewer):
     dataset_dir = param.Foldername(
         constant=True,

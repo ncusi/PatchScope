@@ -3,7 +3,7 @@ import pytest
 from diffinsights_web.datastore import find_dataset_dir
 from diffinsights_web.datastore.timeline import TimelineDataStore
 from diffinsights_web.datastore.linesstats import LinesStatsDataStore, sorted_changed_files, \
-    limit_count_to_selected_files, path_to_dirs_only_counter, reduce_sankey_from_tail
+    limit_count_to_selected_files, path_to_dirs_only_counter, reduce_sankey_from_tail, reduce_sankey_thin_out
 
 param = pytest.importorskip("param")
 panel = pytest.importorskip("panel")
@@ -101,6 +101,12 @@ def test_timeseries_file_hellogitworld():
     actual = reduce_sankey_from_tail(starting_counter)
     assert len(actual) < len(starting_counter), \
         "removed at least one node from Sankey diagram"
+    # TODO: check that it removed only last level
+
+    actual = reduce_sankey_thin_out(starting_counter, threshold_ratio=0.5)
+    assert len(actual) < len(starting_counter), \
+        "removed at least one node from Sankey diagram"
+    # TODO: add more checks
 
 
 # TODO: add test for sankey_triples_from_counter() and sankey_counter_from_triples()
