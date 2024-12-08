@@ -5,6 +5,7 @@ from diffinsights_web.datastore.timeline import TimelineDataStore
 from diffinsights_web.datastore.linesstats import LinesStatsDataStore, sorted_changed_files, \
     limit_count_to_selected_files, path_to_dirs_only_counter, reduce_sankey_from_tail, reduce_sankey_thin_out
 
+hv = pytest.importorskip("holoviews")
 param = pytest.importorskip("param")
 panel = pytest.importorskip("panel")
 
