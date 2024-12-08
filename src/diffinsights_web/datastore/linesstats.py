@@ -91,6 +91,39 @@ def path_to_dirs_only_counter(data_counter: Counter) -> Counter:
     return result
 
 
+def add_dashdash_dirs_to_counter(data_counter: Counter) -> Counter:
+    res = data_counter.copy()
+
+    xsankey_data_sets = {
+        'dir-to-dir': set(),
+        'dir-to-line': set(),
+    }
+    #xsankey_data_cntr = Counter()
+    xsankey_data_line = defaultdict(set)
+
+    for (p_f, p_t), v in data_counter.items():
+        if p_t.startswith('type.'):
+            xsankey_data_sets['dir-to-line'].add(p_f)
+            #xsankey_data_cntr[p_f] += v
+            xsankey_data_line[p_f].add(p_t)
+        else:
+            xsankey_data_sets['dir-to-dir'].add(p_f)
+
+    xsankey_data_sets['intersection'] = xsankey_data_sets['dir-to-dir'] & xsankey_data_sets['dir-to-line']
+
+    #xsankey_data_extracted = {k: v for k, v in xsankey_data_cntr.items() if k in xsankey_data_sets['intersection']}
+
+    for d in xsankey_data_sets['intersection']:
+        #print(f"{d!r}:")
+        for l in xsankey_data_line[d]:
+            #print(f"    {l!r}")
+            res[(f"__{d}__", l)]  = res[(d, l)]
+            res[(d, f"__{d}__")] += res[(d, l)]
+            del res[(d, l)]
+
+    return res
+
+
 class LinesStatsDataStore(pn.viewable.Viewer):
     dataset_dir = param.Foldername(
         constant=True,
