@@ -27,7 +27,11 @@ def test_timeseries_file_no_such_file():
 
     actual = data_store.lines_stats_data_rx.rx.value
     assert actual is None, \
-        "LinesDataStore returns None if lines-stats file does not exist"
+        "LinesDataStore returns None for data if lines-stats file does not exist"
+
+    actual = data_store.lines_stats_counter_rx.rx.value
+    assert actual is None, \
+        "LinesDataStore returns None for counter if lines-stats file does not exist"
 
 
 def test_timeseries_file_from_widget_default_value():

@@ -27,11 +27,14 @@ def get_lines_stats_data(dataset_dir: str, timeseries_file: str) -> Optional[dic
         return None
 
 
-def count_file_x_line_in_lines_stats(lines_stats_data: dict,
+def count_file_x_line_in_lines_stats(lines_stats_data: Optional[dict],
                                      repo_name: str,
                                      change_type: str = "+/-",
-                                     prefix: str = 'type.') -> Counter:
+                                     prefix: str = 'type.') -> Optional[Counter]:
     #print(f"count_file_line_in_lines_stats(..., {repo_name=}, {change_type=}, {prefix=})")
+    if lines_stats_data is None:
+        return None
+
     result = Counter()
 
     for dataset, dataset_data in lines_stats_data.items():
