@@ -56,7 +56,10 @@ def count_file_x_line_in_lines_stats(lines_stats_data: Optional[dict],
     return result
 
 
-def sorted_changed_files(lines_stats_counter: Counter) -> list[str]:
+def sorted_changed_files(lines_stats_counter: Optional[Counter]) -> Optional[list[str]]:
+    if lines_stats_counter is None:
+        return None
+
     counts = Counter()
     for kv, n_lines in lines_stats_counter.items():
         file_name = kv[0]
@@ -278,9 +281,12 @@ def sankey_plot_from_triples(sankey_data: list[tuple[str, str, int]], width: int
     return hv.Sankey(sankey_data).opts(edge_color_index=1, width=width, height=height)
 
 
-def process_sankey(lines_stats_counter: Counter,
+def process_sankey(lines_stats_counter: Optional[Counter],
                    max_files: Optional[int] = None,
                    threshold: float = 0.0):
+    if lines_stats_counter is None:
+        return None
+
     changed_files = sorted_changed_files(lines_stats_counter=lines_stats_counter)
     if max_files is not None:
         lines_stats_counter = limit_count_to_selected_files(

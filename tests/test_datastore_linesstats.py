@@ -33,6 +33,10 @@ def test_timeseries_file_no_such_file():
     assert actual is None, \
         "LinesDataStore returns None for counter if lines-stats file does not exist"
 
+    actual = data_store.sankey_data_rx.rx.value
+    assert actual is None, \
+        "LinesDataStore returns None for Sankey data if lines-stats file does not exist"
+
 
 def test_timeseries_file_from_widget_default_value():
     dataset_dir = find_dataset_dir()
