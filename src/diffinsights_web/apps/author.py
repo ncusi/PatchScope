@@ -467,7 +467,8 @@ def plot_diff_3sizes(
 
     if rescale_n_mod:
         n_mod_scale = 1.0
-        n_mod_label = "2*mod"
+        #n_mod_label = "2*mod"
+        n_mod_label = "mod"
     else:
         n_mod_scale = 0.5
         n_mod_label = "mod"
@@ -835,7 +836,7 @@ plot_pm_col_rx = pn.rx(plot_pm_col)(
 plot_diff_3sizes_rx = pn.rx(plot_diff_3sizes)(
     resampled_df=resample_timeline_rx,
     # new widget
-    rescale_n_mod=rescale_n_mod_widget,
+    rescale_n_mod=True,
     # set value
     drop_yaxis=False,
     # standard widgets
@@ -892,7 +893,7 @@ template = pn.template.MaterialTemplate(
         #authors_radio_box,  # either / or
         resample_rule_widget,
         agg_func_widget,
-        n_mod_widget,   # composite: switch + descriptions
+        #n_mod_widget,   # composite: switch + descriptions
         pm_col_widget,  # composite: select + checkbox
         hist_widget,    # composite: two sliders
         ClearCacheButton(),
