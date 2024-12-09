@@ -38,12 +38,14 @@ all_possible_pm_col_perc_basenames = [f"{col} [%]" for col in all_possible_pm_co
 
 # ---------------------------------------------------------------------------
 # functions to get data, required to construct other widgets
+author_column = 'author.name'
+
 def get_authors(tf_timeline_df: pd.DataFrame) -> list[str]:
-    return tf_timeline_df['bug_id'].unique().tolist()
+    return tf_timeline_df[author_column].unique().tolist()
 
 
 def get_authors_counts(tf_timeline_df: pd.DataFrame) -> dict[str, int]:
-    return tf_timeline_df['bug_id'].value_counts().to_dict()
+    return tf_timeline_df[author_column].value_counts().to_dict()
 
 
 def get_authors_options(tf_timeline_df: pd.DataFrame) -> dict[str, str]:
@@ -233,7 +235,7 @@ def resample_timeline(
 ) -> pd.DataFrame:
     ## DEBUG
     #print(f"> resampling for {author} at sample rate '{resample_rate}' and agg_func '{agg_func}'")
-    df = tf_timeline_df[tf_timeline_df['bug_id'] == author].resample(
+    df = tf_timeline_df[tf_timeline_df[author_column] == author].resample(
         resample_rate,
         on='author_date'
     )[['n_commits', *pm_count_cols, *diff_x_cols]].agg(
@@ -289,7 +291,7 @@ def add_pm_count_perc(
 # function that returns filtered (but not resampled) data
 @pn.cache
 def tf_timeline_df_author(tf_timeline_df: pd.DataFrame, author: str) -> pd.DataFrame:
-    return tf_timeline_df[tf_timeline_df['bug_id'] == author]
+    return tf_timeline_df[tf_timeline_df[author_column] == author]
 
 
 # ..........................................................................
