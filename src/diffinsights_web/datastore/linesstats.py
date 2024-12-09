@@ -37,7 +37,8 @@ def count_file_x_line_in_lines_stats(lines_stats_data: Optional[dict],
     for dataset, dataset_data in lines_stats_data.items():
         for bug_or_repo, lines_data in dataset_data.items():
             if bug_or_repo != repo_name:
-                print(f"    - skipping: {bug_or_repo!r} != {repo_name!r}")
+                #print(f"    - skipping: {bug_or_repo!r} != {repo_name!r}")
+                continue
 
             for patch_file, patch_data in lines_data.items():
                 for file_name, file_data in patch_data.items():
@@ -85,11 +86,11 @@ def path_to_dirs_only_counter(data_counter: Counter) -> Counter:
     result = Counter()
 
     for (p, l), v in data_counter.items():
-        # print(f"{p} ={v}=> {l}")
+        #print(f"{p} ={v}=> {l}")
         p_path = PurePosixPath(p)
         result[(str(p_path.parent), l)] += v
         for p_f, p_t in zip(p_path.parent.parents, p_path.parents):
-            # print(f"- ({p_f}, {p_t})")
+            #print(f"- ({p_f}, {p_t})")
             result[(str(p_f), str(p_t))] += v
 
     return result
