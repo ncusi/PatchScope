@@ -98,10 +98,18 @@ class ContributorsHeader(pn.viewable.Viewer):
             name="Contributions:",
             options=contribution_types_map,
             value="timeline|n_commits",  # first value in contribution_types_map
+            # NOTE: disabled_options does not seem to work, no disabling (???)
+            #       therefore there is no code that does disabling and enabling of this
+            #disabled_options=[
+            #    SpecialColumnEnum.SANKEY_DIAGRAM.value,  # need <name>.lines-stats.purpose-to-type.json
+            #],
             # style
             width=200,
             margin=(self.widget_top_margin, 0),  # last widget, use x margin of 0
         )
+        #print(f"{self.select_contribution_type_widget.value=}")
+        #print(f"{self.select_contribution_type_widget.options=}")
+        #print(f"{self.select_contribution_type_widget.disabled_options=}")
 
     def update_period_selector(self, new_value: datetime.datetime) -> None:
         #print(f"ContributorsHeader.update_period_from_selector({new_value=})")
@@ -126,7 +134,17 @@ def sampling_info(resample_freq: str,
     if '|' in column:
         plot_type, _ = column.split('|', maxsplit=2)
 
-    if plot_type not in {"timeline", "heatmap"}:
+    if plot_type == "sankey":
+        # Sankey diagrams do not use resampling
+        return f"""
+        <p><strong>Distribution of changed lines types based on the directory structure</strong></p>
+        <p><s>Using commits
+        from {html_date_humane(min_max_date[0])}
+        to {html_date_humane(min_max_date[1])}
+        </s></p>
+        """
+
+    elif plot_type not in {"timeline", "heatmap"}:
         print(f"sampling_info(): got unexpected plot type of {plot_type!r}")
         return f"No support for <strong>{plot_type}</strong> plot type, for plotting <em>{column!r}</em>"
 

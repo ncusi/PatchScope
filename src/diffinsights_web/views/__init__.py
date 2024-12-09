@@ -17,6 +17,7 @@ class TimelineView(pn.viewable.Viewer):
 class SpecialColumnEnum(Enum):
     LINE_TYPES_PERC = "timeline|KIND [%]"
     LINE_TYPES_PERC_HEATMAP = "heatmap|±KIND [%]"
+    SANKEY_DIAGRAM = "sankey|SANKEY"
     NO_PLOT = "<NO PLOT>"
 
 
@@ -31,6 +32,7 @@ contribution_types_map = {
     # special cases:
     "Line types distribution [%]": SpecialColumnEnum.LINE_TYPES_PERC.value,
     "Line types heatmap ±[%]": SpecialColumnEnum.LINE_TYPES_PERC_HEATMAP.value,
+    "Flow from path to line type": SpecialColumnEnum.SANKEY_DIAGRAM.value,
     "No plot": SpecialColumnEnum.NO_PLOT.value  # this special value should be last
 }
 column_to_contribution = {
