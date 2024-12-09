@@ -22,16 +22,16 @@ def plot_sankey(sankey_data: Optional[list[tuple[str, str, int]]],
                 timeseries_file: str,
                 width: int = 800,
                 height: int = 400):
-    if sankey_data is None:
+    if isinstance(sankey_data, param.rx):
+        sankey_data = sankey_data.rx.value
+
+    if sankey_data is None or len(sankey_data) == 0:
         return pn.pane.HTML(
             "<p>No data needed to create Sankey diagram found for "
             f"<tt>{Path(timeseries_file).name!r}</tt></p>")
     else:
         #print(f"plot_sankey(): {type(sankey_data)=}")
-        if isinstance(sankey_data, param.rx):
-            return sankey_plot_from_triples(sankey_data.rx.value, width, height)
-        else:
-            return sankey_plot_from_triples(sankey_data, width, height)
+        return sankey_plot_from_triples(sankey_data, width, height)
 
 
 class SankeyPlot(pn.viewable.Viewer):
