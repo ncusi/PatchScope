@@ -39,7 +39,7 @@ class SankeyPlot(pn.viewable.Viewer):
     def __init__(self, **params):
         super().__init__(**params)
 
-        self.plot_sankey_rx = pn.rx(plot_sankey(
+        self.plot_sankey_rx = pn.rx(plot_sankey)(
             sankey_data=self.data_store.sankey_data_rx,
-            timeseries_file=self.data_store.timeseries_file,
-        ))
+            timeseries_file=self.data_store.param.timeseries_file.rx(),
+        )
