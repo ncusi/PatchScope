@@ -993,3 +993,7 @@ if DEBUG:
     ])
 
 template.servable()
+
+if __name__ == "__main__":
+    # Optionally run the application in a development server
+    pn.serve(template, show=True)
