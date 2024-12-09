@@ -1,4 +1,4 @@
-typer-slim==0.14.0
+typer-slim==0.15.1
 click>=8.0.0
 joblib==1.4.2
 pygments==2.18.0
