@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Optional
 
 import holoviews as hv
@@ -22,7 +23,9 @@ def plot_sankey(sankey_data: Optional[list[tuple[str, str, int]]],
                 width: int = 800,
                 height: int = 400):
     if sankey_data is None:
-        return pn.pane.HTML(f"No data needed to create Sankey diagram found for {timeseries_file!r}")
+        return pn.pane.HTML(
+            "<p>No data needed to create Sankey diagram found for "
+            f"<tt>{Path(timeseries_file).name!r}</tt></p>")
     else:
         #print(f"plot_sankey(): {type(sankey_data)=}")
         if isinstance(sankey_data, param.rx):
