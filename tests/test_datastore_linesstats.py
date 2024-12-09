@@ -122,4 +122,29 @@ def test_timeseries_file_hellogitworld():
         "there is something to create Sankey diagram from"
 
 
+def test_switch_repos_same_file():
+    lines_stats = LinesStatsDataStore(
+        dataset_dir='data/examples/stats',  # directory part, relative to top directory of project
+        timeseries_file='hellogitworld.timeline.purpose-to-type.json',  # filename part
+        repo_name='hellogitworld',
+    )
+    actual = lines_stats.lines_stats_data_rx.rx.value
+
+    assert isinstance(actual, dict), \
+        "correctly found lines-stats file, retrieved data, did not return None"
+
+    lines_stats.timeseries_file = 'does-not-exist-directly'
+    actual = lines_stats.lines_stats_data_rx.rx.value
+    assert actual is None, \
+        "switching to not-existing file clears retrieved data, makes it None"
+
+    actual = lines_stats.lines_stats_counter_rx.rx.value
+    assert actual is None, \
+        "switching to not-existing file clears stats counter, makes it None"
+
+    actual = lines_stats.sankey_data_rx.rx.value
+    assert actual is None, \
+        "switching to not-existing file clears computed sankey data, makes it None"
+
+
 # TODO: add test for sankey_triples_from_counter() and sankey_counter_from_triples()

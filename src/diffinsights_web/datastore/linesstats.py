@@ -316,12 +316,12 @@ class LinesStatsDataStore(pn.viewable.Viewer):
         super().__init__(**params)
 
         self.lines_stats_data_rx = pn.rx(get_lines_stats_data)(
-            dataset_dir=self.dataset_dir,
-            timeseries_file=self.timeseries_file,
+            dataset_dir=self.dataset_dir,  # does not change, no need for rx
+            timeseries_file=self.param.timeseries_file.rx(),
         )
         self.lines_stats_counter_rx = pn.rx(count_file_x_line_in_lines_stats)(
             lines_stats_data=self.lines_stats_data_rx,
-            repo_name=self.repo_name,
+            repo_name=self.param.repo_name.rx(),
         )
 
         self.num_files_widget = pn.widgets.Select(
