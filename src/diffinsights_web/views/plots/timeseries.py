@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Optional
 
 import holoviews as hv
@@ -14,6 +15,7 @@ from diffinsights_web.datastore.timeline import \
     get_date_range, get_value_range, filter_df_by_from_date, authors_info_df, author_timeline_df_freq
 from diffinsights_web.utils.notifications import warning_notification
 from diffinsights_web.views import TimelineView, SpecialColumnEnum, column_to_contribution
+from diffinsights_web.views.plots.sankey import SankeyPlot
 
 
 def line_type_sorting_key(column_name: str) -> int:
@@ -257,6 +259,11 @@ class TimeseriesPlot(TimelineView):
     # allow_refs=True is here to allow widgets
     column_name = param.String(allow_refs=True)
     from_date_str = param.String(allow_refs=True)
+    sankey_plot = param.ClassSelector(
+        default=None,
+        allow_None=True,
+        class_=SankeyPlot,
+    )
 
     def __init__(self, **params):
         super().__init__(**params)
@@ -288,12 +295,16 @@ class TimeseriesPlot(TimelineView):
             from_date_str=self.param.from_date_str.rx(),
         )
 
+        plot_widgets = {
+            'timeline': self.plot_commits_rx,
+            'heatmap': self.plot_heatmap_rx,
+        }
+        if self.sankey_plot is not None:
+            plot_widgets['sankey'] = self.sankey_plot.plot_sankey_rx
+
         self.select_plot_rx = pn.rx(self.select_plot)(
             column=self.param.column_name.rx(),
-            plot_widgets={
-                'timeline': self.plot_commits_rx,
-                'heatmap': self.plot_heatmap_rx,
-            },
+            plot_widgets=plot_widgets,
         )
 
         self.select_plot_theme_widget = pn.widgets.Select(
@@ -355,6 +366,26 @@ class TimeseriesPlot(TimelineView):
             #print(f"TimeseriesPlot.select_plot({column=}, ...): returning error message")
             return pn.pane.HTML(f"Unknown plot type <strong>{plot_type}</strong>")
 
+    @param.depends('data_store.select_file_widget.param', watch=True, on_init=True)
+    def check_is_sankey_possible(self):
+        pathname = self.data_store.select_file_widget.value
+        #print(f"check_is_sankey_possible(): {pathname=},")
+
+        stem = Path(pathname)
+        while stem.suffix in ['.timeline', '']:
+            stem = stem.with_suffix('')
+        #print(f"  {stem=}")
+
+        checked_file = stem.with_suffix('.lines-stats.purpose-to-type.json')
+        result = checked_file.is_file()
+        #print(f"  {checked_file=}, {result=}")
+        #print(f"  {self.param.column_name=}")
+        #print(f"  {self.column_name=}")
+        #if result:
+        #    print(f"  can have sankey ({result=})")
+
+        return result
+
     def __panel__(self) -> pn.viewable.Viewable:
         if self.column_name == SpecialColumnEnum.NO_PLOT.value:
             return pn.Spacer(height=0)
@@ -385,11 +416,17 @@ class TimeseriesPlotForAuthor(TimelineView):
             xlim=self.main_plot.date_range_rx,
             ylim=self.main_plot.value_range_rx,  # TODO: allow to switch between totals, max N, and own
         )
+        self.plot_heatmap_rx = pn.rx(plot_heatmap)(
+            resampled_df = self.resampled_df_rx,
+            from_date_str = self.main_plot.param.from_date_str.rx(),
+            figsize = (8, 3.75),
+        )
 
         self.select_plot_rx = pn.rx(self.main_plot.select_plot)(
             column=self.main_plot.param.column_name.rx(),
             plot_widgets={
                 'timeline': self.plot_commits_rx,
+                'heatmap': self.plot_heatmap_rx,
             },
             height=256,
         )

@@ -10,20 +10,6 @@ import param
 from diffinsights_web.utils.notifications import warning_notification
 
 
-DATASET_DIR = 'data/examples/stats'
-
-
-@pn.cache
-def find_dataset_dir() -> Optional[Path]:
-    for TOP_DIR in ['', '..', '../..']:
-        full_dir = Path(TOP_DIR).joinpath(DATASET_DIR)
-
-        if full_dir.is_dir():
-            return full_dir
-
-    return None
-
-
 @pn.cache
 def find_timeline_files(dataset_dir: Union[Path, str, param.Path, None]) -> dict[str, str]:
     if dataset_dir is None:
