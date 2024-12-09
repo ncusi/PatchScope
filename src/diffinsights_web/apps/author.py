@@ -15,7 +15,7 @@ from diffinsights_web.datastore.timeline import \
     find_dataset_dir, find_timeline_files, find_repos, \
     get_timeline_data, get_timeline_df
 from diffinsights_web.utils import round_10s
-
+from diffinsights_web.widgets.caching import ClearCacheButton
 
 DEBUG = True
 
@@ -40,10 +40,13 @@ all_possible_pm_col_perc_basenames = [f"{col} [%]" for col in all_possible_pm_co
 # functions to get data, required to construct other widgets
 author_column = 'author.name'
 
+
+@pn.cache
 def get_authors(tf_timeline_df: pd.DataFrame) -> list[str]:
     return tf_timeline_df[author_column].unique().tolist()
 
 
+@pn.cache
 def get_authors_counts(tf_timeline_df: pd.DataFrame) -> dict[str, int]:
     return tf_timeline_df[author_column].value_counts().to_dict()
 
@@ -224,7 +227,7 @@ sidebar_width = pn.widgets.IntSlider(
 
 # ---------------------------------------------------------------------------
 # data processing functions
-#@pn.cache
+@pn.cache
 def resample_timeline(
     tf_timeline_df: pd.DataFrame,
     pm_count_cols: list[str],
@@ -255,7 +258,8 @@ def resample_timeline(
 
     return df
 
-# @pn.cache
+
+@pn.cache
 def add_pm_count_perc(
     resampled_df: pd.DataFrame,
     pm_count_cols: list[str],
@@ -288,6 +292,7 @@ def add_pm_count_perc(
 
     return resampled_df
 
+
 # function that returns filtered (but not resampled) data
 @pn.cache
 def tf_timeline_df_author(tf_timeline_df: pd.DataFrame, author: str) -> pd.DataFrame:
@@ -296,6 +301,7 @@ def tf_timeline_df_author(tf_timeline_df: pd.DataFrame, author: str) -> pd.DataF
 
 # ..........................................................................
 # data analysis/extraction functions
+@pn.cache
 def get_pm_count_cols(tf_timeline_df: pd.DataFrame) -> list[str]:
     pm_count_cols = [col for col in tf_timeline_df.columns if col.startswith('+:') or col.startswith('-:')]
     pm_count_cols.sort(key=lambda s: s[2:] + ('0' if s[0] == '-' else '1'))
@@ -303,6 +309,7 @@ def get_pm_count_cols(tf_timeline_df: pd.DataFrame) -> list[str]:
     return pm_count_cols
 
 
+@pn.cache
 def get_diff_x_cols(tf_timeline_df: pd.DataFrame) -> list[str]:
     return [col for col in tf_timeline_df.columns if col.startswith('diff.')]
 
@@ -888,6 +895,7 @@ template = pn.template.MaterialTemplate(
         n_mod_widget,   # composite: switch + descriptions
         pm_col_widget,  # composite: select + checkbox
         hist_widget,    # composite: two sliders
+        ClearCacheButton(),
         pn.layout.VSpacer(),
         #pn.Spacer(height=100),
         figsize_widget,
