@@ -34,7 +34,7 @@ if [ -z "$VIRTUAL_ENV" ]; then
 fi
 
 # virtualenv is initialized
-echo "Installing 'diffannotator' (in editable mode), and its dependencies"
+echo "Installing 'patchscope' (in editable mode), and its dependencies"
 pip install -q --upgrade --editable .[examples]
 
 # configuring DVC remote

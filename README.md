@@ -4,30 +4,47 @@
 [![EditorConfig](https://img.shields.io/badge/Editor%20Config-E0EFEF?logo=editorconfig&logoColor=000)](https://editorconfig.org/)
 [![Maturity badge - level 1](https://img.shields.io/badge/Maturity-Level%201%20--%20New%20Project-yellow.svg)](https://github.com/tophat/getting-started/blob/master/scorecard.md)
 
-# Diff Annotator
+# PatchScope – A Modular Tool for Annotating and Analyzing Contributions
 
 Annotates files and lines of diffs (patches) with their purpose and type,
 and performs statistical analysis on the generated annotation data.
 
+> _Note:_ this project was called 'python-diff-annotator' earlier in its history instead of 'PatchScope',
+> and the python package was called 'diffannotator' instead of being called 'patchscope',
+> so there are some references to that older name, for example in directory names
+> in some Jupyter Notebooks.
+
 ## Installation
 
-Use the package manager [pip](https://pip.pypa.io/en/stable/) to install diffannotator.
+Use the package manager [pip](https://pip.pypa.io/en/stable/) to install patchscope.
 
 To avoid dependency conflicts, it is strongly recommended to create
-a [virtual environment][venv] first, activate it, and install diffannotator
+a [virtual environment][venv] first, activate it, and install patchscope
 into this environment.  See also "_[Virtual environment](#virtual-environment)_"
 subsection below.
 
 To install the most recent version, use
 ```commandline
-python -m pip install diffannotator@git+https://github.com/ncusi/python-diff-annotator#egg=main
+python -m pip install patchscope@git+https://github.com/ncusi/PatchScope#egg=main
 ```
 or (assuming that you can clone the repository with SSH)
 ```commandline
-python -m pip install diffannotator@git+ssh://git@github.com/ncusi/python-diff-annotator.git#egg=main
+python -m pip install patchscope@git+ssh://git@github.com/ncusi/PatchScope.git#egg=main
 ```
 
 ## Usage
+
+![Overview of tool components](./images/PatchScope%20diagram%20freehand%20-%20white%20background.png)
+
+This tool integrates four key components
+1. extracting patches from version control system or user-provided folders<br>
+   as separate step with `diff-generate`, or integrated into annotation step: `diff-annotate`
+2. applying specified annotation rules for selected patches<br>
+   using `diff-annotate`, which generates one JSON data file per patch
+3. generating configurable reports or summaries<br>
+   with various subcommands of `diff-gather-stats`; each summary is saved as a single JSON file
+4. advanced visualization with a web application (dashboard)<br>
+   which you can run it with `panel serve`, see the description below
 
 ### Running scripts
 
@@ -73,6 +90,31 @@ Each script and subcommand supports the `--help` option.
       calculate timeline of bugs with per-bug count of different types of lines;
 
 - ...
+
+### Running web app (dashboard)
+
+This package also includes web dashboard, created using the [Panel][]
+framework.  You would need to install additional dependencies, for
+example with `pip install --editable .[web]` (if you are running this
+project in editable mode).
+
+Currently, it includes two web apps, namely Contributors Graph and Author Statistics.
+You can run each app with [`panel serve`](https://panel.holoviz.org/how_to/server/commandline.html):
+- `panel serve src/diffinsights_web/apps/contributors.py`
+- `panel serve src/diffinsights_web/apps/author.py`
+
+By default, it would make those apps available
+at <http://localhost:5006/contributors> and <http://localhost:5006/author>, respectively.
+
+You can also run both of them at once with
+- `panel serve src/diffinsights_web/apps/*.py`
+
+See the basic [demo on Heroku](https://patchscope-9d05e7f15fec.herokuapp.com/):
+- <img height="20" src="favicon.png" width="20" />&nbsp;[Contributors Graph app](https://patchscope-9d05e7f15fec.herokuapp.com/contributors)
+- <img height="20" src="favicon-author.png" width="20" />&nbsp;[Author Statistics app](https://patchscope-9d05e7f15fec.herokuapp.com/author)
+
+[Panel]: https://panel.holoviz.org/
+
 
 ## Examples and demos
 

@@ -9,8 +9,8 @@ from dateutil.relativedelta import relativedelta
 
 from diffinsights_web.datastore.timeline import frequency_names, filter_df_by_from_date, get_pm_count_cols
 from diffinsights_web.utils.humanize import html_date_humane
-from diffinsights_web.views import TimelineView
-from diffinsights_web.views.plots.timeseries import SpecialColumnEnum, TimeseriesPlot
+from diffinsights_web.views import TimelineView, contribution_types_map, column_to_contribution, SpecialColumnEnum
+from diffinsights_web.views.plots.timeseries import TimeseriesPlot
 
 
 # common for all classes defined here
@@ -29,30 +29,15 @@ time_range_period = {
 }
 
 
-def time_range_options() -> dict[str, str]:
-    today = datetime.date.today()
+def time_range_options(end_date: Optional[datetime.date] = None) -> dict[str, str]:
+    #print(f"time_range_options({end_date=})")
+    if end_date is None:
+        end_date = datetime.date.today()
 
     return {
-        k: '' if v is None else (today + relativedelta(months=-v)).strftime('%d.%m.%Y')
+        k: '' if v is None else (end_date + relativedelta(months=-v)).strftime('%Y.%m.%d')
         for k, v in time_range_period.items()
     }
-
-
-#: for the ContributorsHeader.select_contribution_type_widget
-contribution_types_map = {
-    "Commits": "n_commits",
-    "Additions": "+:count",
-    "Deletions": "-:count",
-    "Files changed": "file_names",
-    "Patch size (lines)": "diff.patch_size",
-    "Patch spreading (lines)": "diff.groups_spread",
-    # special cases:
-    "Line types distribution [%]": SpecialColumnEnum.LINE_TYPES_PERC.value,
-    "No plot": SpecialColumnEnum.NO_PLOT.value  # this special value should be last
-}
-column_to_contribution = {
-    v: k for k, v in contribution_types_map.items()
-}
 
 
 @pn.cache
@@ -75,6 +60,12 @@ class ContributorsHeader(pn.viewable.Viewer):
         doc="Resampling frequency as frequency string, for documentation purposes only",
         # see table at https://pandas.pydata.org/docs/user_guide/timeseries.html#dateoffset-objects
     )
+    end_date = param.ClassSelector(
+        default=datetime.datetime.today(),
+        class_=datetime.datetime,
+        allow_refs=True,  # allow for reactive expressions, and widgets
+        doc="Date from which to start counting down date periods from",
+    )
 
     widget_top_margin = 20
     widget_gap_size = 5
@@ -95,17 +86,37 @@ class ContributorsHeader(pn.viewable.Viewer):
             width=120,
             margin=(self.widget_top_margin, self.widget_gap_size),
         )
-        self.select_period_from_widget.options = time_range_options()
+        self.select_period_from_widget.options = time_range_options(
+            end_date=self.param.end_date.rx.value,  # otherwise: TypeError: __str__ returned non-string (type rx)
+        )
         self.select_period_from_widget.value = ''
+        # NOTE: we could have used self.param.watch(..., ['end_date']), see
+        # https://param.holoviz.org/user_guide/Dependencies_and_Watchers.html#watchers
+        self.param.end_date.rx.watch(self.update_period_selector)
 
         self.select_contribution_type_widget = pn.widgets.Select(
             name="Contributions:",
             options=contribution_types_map,
-            value="n_commits",
+            value="timeline|n_commits",  # first value in contribution_types_map
+            # NOTE: disabled_options does not seem to work, no disabling (???)
+            #       therefore there is no code that does disabling and enabling of this
+            #disabled_options=[
+            #    SpecialColumnEnum.SANKEY_DIAGRAM.value,  # need <name>.lines-stats.purpose-to-type.json
+            #],
             # style
             width=200,
             margin=(self.widget_top_margin, 0),  # last widget, use x margin of 0
         )
+        #print(f"{self.select_contribution_type_widget.value=}")
+        #print(f"{self.select_contribution_type_widget.options=}")
+        #print(f"{self.select_contribution_type_widget.disabled_options=}")
+
+    def update_period_selector(self, new_value: datetime.datetime) -> None:
+        #print(f"ContributorsHeader.update_period_from_selector({new_value=})")
+        with param.parameterized.batch_call_watchers(self.select_period_from_widget):
+            self.select_period_from_widget.options = time_range_options(end_date=new_value)
+            if self.select_period_from_widget.value not in self.select_period_from_widget.options:
+                self.select_period_from_widget.value = ''
 
     def __panel__(self):
         return pn.Row(
@@ -119,6 +130,25 @@ def sampling_info(resample_freq: str,
                   column: str,
                   frequency_names_map: dict[str, str],
                   min_max_date) -> str:
+    plot_type = "timeline"
+    if '|' in column:
+        plot_type, _ = column.split('|', maxsplit=2)
+
+    if plot_type == "sankey":
+        # Sankey diagrams do not use resampling
+        return f"""
+        <p><strong>Distribution of changed lines types based on the directory structure</strong></p>
+        <p><s>Using commits
+        from {html_date_humane(min_max_date[0])}
+        to {html_date_humane(min_max_date[1])}
+        </s></p>
+        """
+
+    elif plot_type not in {"timeline", "heatmap"}:
+        print(f"sampling_info(): got unexpected plot type of {plot_type!r}")
+        return f"No support for <strong>{plot_type}</strong> plot type, for plotting <em>{column!r}</em>"
+
+    #print(f"sampling_info({resample_freq=}, ...): {column=}, {column_to_contribution.keys()}")
     contribution_type = column_to_contribution.get(column, "Unknown type of contribution")
 
     return f"""
@@ -202,6 +232,7 @@ def contributions_perc_info(timeline_df: pd.DataFrame,
     ul.horizontal {
         list-style: none !important;
         display: flex;
+        flex-wrap: wrap;
         margin-left: 0px;
         padding-left: 0rem;
     }
@@ -210,7 +241,8 @@ def contributions_perc_info(timeline_df: pd.DataFrame,
         padding-right: 1rem;
     }
     """
-    filtered_df = filter_df_by_from_date(timeline_df, from_date_str)
+    filtered_df = filter_df_by_from_date(timeline_df, from_date_str,
+                                         date_column='author.timestamp')
     if author_id is not None:
         filtered_df = filtered_df[filtered_df['author.email'] == author_id]
 
@@ -268,7 +300,7 @@ def contributions_perc_info(timeline_df: pd.DataFrame,
     return pn.pane.HTML(
         '\n'.join(html_parts),
         stylesheets=[css],
-        sizing_mode='stretch_width',
+        #sizing_mode='stretch_width',
     )
 
 

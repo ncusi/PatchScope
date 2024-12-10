@@ -6,9 +6,9 @@ Generate patches from repo in the form suitable for later analysis by
 the `annotate.py` script, and then further for gathering statistics with
 the `gather_data.py` script.
 
-Example (after installing the 'diffannotator' package):
-    diff-generate python-diff-annotator \
-        --output-dataset=diffannotator/user-jnareb --author=jnareb
+Example (after installing the 'patchscope' package):
+    diff-generate PatchScope \
+        --output-dataset=patchscope/user-jnareb --author=jnareb
 """
 import logging
 import os

@@ -231,6 +231,42 @@ def test_annotate_patch_with_line_callback(tmp_path: Path):
         "app runs 'patch' subcommand with line callback from file defining function without errors"
 
 
+def test_annotate_patch_with_line_callback_hapybug(tmp_path: Path, caplog: pytest.LogCaptureFixture):
+    file_path = Path('tests/test_dataset/tqdm-1/c0dcf39b046d1b4ff6de14ac99ad9a1b10487512.diff')
+    #file_path = Path('tests/test_dataset_structured/scrapy-11/patches/9de6f1ca757b7f200d15e94840c9d431cf202276.diff')
+    #file_path = Path('tests/test_dataset_structured/keras-10/patches/c1c4afe60b1355a6c0e83577791a0423f37a3324.diff')
+    save_path = tmp_path.joinpath(file_path).with_suffix('.v2.json')
+
+    # callback as file, full definition of function
+    callback_path = Path('data/experiments/HaPy-Bug/hapybug_line_callback_func.py')
+    result = runner.invoke(annotate_app, [
+        f"--line-callback", f"{callback_path}",  # file with line callback
+        "patch", f"{file_path}", f"{save_path}"
+    ])
+
+    if result.exit_code != 0:
+        print(f"Exit code: {result.exit_code}")
+        print(result.stdout)
+    if caplog.text:
+        print("Captured logs:")
+        print(caplog.text)
+    if result.exception:
+        print(f"Exception: {result.exception}")
+        print("Traceback:")
+        # or `result.exc_info[2]` instead of `result.exception.__traceback__`
+        traceback.print_tb(result.exception.__traceback__)
+
+    assert result.exit_code == 0, \
+        "app runs 'patch' subcommand with line callback from file defining function without errors"
+
+    annotation_data: dict = json.loads(save_path.read_text())
+    #from rich.pretty import pprint
+    #print(result.stdout)
+    #pprint(annotation_data)
+    assert annotation_data['changes']['tqdm/contrib/__init__.py']['+'][0]['type'] == 'bug(fix)', \
+        "the callback was run, and it did provide 'bug(fix)' as line type for code changes"
+
+
 def test_annotate_patch_with_purpose_to_annotation(tmp_path: Path):
     file_path = Path('tests/test_dataset/tqdm-1/c0dcf39b046d1b4ff6de14ac99ad9a1b10487512.diff')
     save_path = tmp_path.joinpath(file_path).with_suffix('.json')

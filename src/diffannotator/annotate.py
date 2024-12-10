@@ -13,11 +13,11 @@ This script provides the following subcommands:
   annotate a single PATCH_FILE, writing results to RESULT_JSON,
 - `diff-annotate dataset [OPTIONS] DATASETS...`:
   annotate all bugs in provided DATASETS,
-- `diff-anotate from-repo [OPTIONS] REPO_PATH [REVISION_RANGE...]`:
+- `diff-annotate from-repo [OPTIONS] REPO_PATH [REVISION_RANGE...]`:
   create annotation data for commits from local Git repository
   (with `REVISION_RANGE...` passed as arguments to the `git log` command);
 
-Example (after installing the 'diffannotator' package):
+Example (after installing the 'patchscope' package):
     diff-annotate --help
 
     diff-annotate --use-pylinguist patch \
@@ -54,6 +54,7 @@ if TYPE_CHECKING:
 from joblib import Parallel, delayed
 from pygments.token import Token
 import unidiff
+from unidiff.patch import Line as PatchLine
 import tqdm
 from tqdm.contrib.logging import logging_redirect_tqdm
 import typer
@@ -118,7 +119,7 @@ logger = logging.getLogger(__name__)
 
 T = TypeVar('T')
 PathLike = TypeVar("PathLike", str, bytes, Path, os.PathLike)
-LineCallback = Callable[[Iterable[tuple]], str]
+LineCallback = Callable[[dict[str, str], Iterable[tuple]], str]
 OptionalLineCallback = Optional[LineCallback]
 
 PURPOSE_TO_ANNOTATION = {"documentation": "documentation"}
@@ -275,6 +276,31 @@ def clean_text(text: str) -> str:
     return ret
 
 
+def line_is_empty(tokens_list: Iterable[tuple]) -> bool:
+    """Given results of parsing a line, find if it is empty
+
+    :param tokens_list: An iterable of (index, token_type, text_fragment) tuples,
+        supposedly created by parsing some line of source code text
+    :return: Whether set of tokens in `tokens_list` can be all
+        considered to come from empty line
+    """
+    tokens_list = list(tokens_list)
+    return len(tokens_list) == 1 and (tokens_list[0][2] == '\n' or tokens_list[0][2] == '\r\n')
+
+
+def line_is_whitespace(tokens_list: Iterable[tuple]) -> bool:
+    """Given results of parsing a line, find if it consists only of whitespace tokens
+
+    :param tokens_list: An iterable of (index, token_type, text_fragment) tuples,
+        supposedly created by parsing some line of source code text
+    :return: Whether set of tokens in `tokens_list` are all
+        whitespace tokens
+    """
+    return all([token_type in Token.Text.Whitespace or
+                token_type in Token.Text and text_fragment.isspace()
+                for _, token_type, text_fragment in tokens_list])
+
+
 def line_is_comment(tokens_list: Iterable[tuple]) -> bool:
     """Given results of parsing line, find if it is comment
 
@@ -289,18 +315,27 @@ def line_is_comment(tokens_list: Iterable[tuple]) -> bool:
     for _, token_type, text_fragment in tokens_list:
         if token_type in Token.Comment:
             can_be_comment = True
+        elif token_type in Token.Literal.String.Doc:
+            # docstrings are considered documentation / comments
+            can_be_comment = True
         elif token_type in Token.Text.Whitespace:
-            # white space in line is also ok
-            can_be_comment = True
-        elif token_type in Token.Text and text_fragment.isspace():
-            # white space in line is also ok
-            can_be_comment = True
+            # white space in line is also ok, but only whitespace is not a comment
+            pass  # does not change the status f the line
+        elif token_type in Token.Text and text_fragment.isspace():  # just in case
+            # white space in line is also ok, but only whitespace is not a comment
+            pass  # does not change the status of the line
         else:
             # other tokens
             cannot_be_comment = True
             break
 
     return can_be_comment and not cannot_be_comment
+
+
+def purpose_to_default_annotation(file_purpose: str) -> str:
+    """Mapping from file purpose to default line annotation"""
+    return "code" if file_purpose == "programming" else file_purpose
+
 
 
 class AnnotatedPatchSet:
@@ -537,25 +572,35 @@ class AnnotatedPatchedFile:
         :param code_str: text of the function body code
         :return: callback function or None
         """
+        #print(f"RUNNING make_line_callback(code_str='{code_str[:6]}[...]')")
         if not code_str:
             return None
 
         match = re.match(pattern=r"def\s+(?P<func_name>\w+)"
-                                 r"\((?P<param>\w+)(?P<type_info>\s*:\s*[^)]*?)?\)"
+                                 r"\("
+                                 r"(?P<param1>\w+)(?P<type_info1>\s*:\s*[^)]*?)?"
+                                 r",\s*"
+                                 r"(?P<param2>\w+)(?P<type_info2>\s*:\s*[^)]*?)?"
+                                 r"\)"
                                  r"\s*(?P<rtype_info>->\s*[^:]*?\s*)?:\s*$",
                          string=code_str, flags=re.MULTILINE)
         if match:
             # or .info(), if it were not provided extra debugging data
             logger.debug("Found function definition in callback code string:", match.groupdict())
+            #print(f"  Found function definition in callback code string:")
+            #print(f"    {match.groupdict()}")
 
             callback_name = match.group('func_name')
             callback_code_str = code_str
         else:
             # or .info(), if it were not provided full text of the callback body
             logger.debug("Using provided code string as body of callback function", code_str)
+            #print(f"  Using provided code string as body (first 50 characters):")
+            #print(f"  {code_str[:50]}")
+            #print(f"  {match=}")
 
             callback_name = "_line_callback"
-            callback_code_str = (f"def {callback_name}(tokens):\n" +
+            callback_code_str = (f"def {callback_name}(file_data, tokens):\n" +
                                  "  " + "\n  ".join(code_str.splitlines()) + "\n")
         # TODO?: wrap with try: ... except SyntaxError: ...
         exec(callback_code_str, globals())
@@ -876,7 +921,7 @@ class AnnotatedPatchedFile:
 
         hunk: unidiff.Hunk
         for idx, hunk in enumerate(self.patched_file):
-            annotated_hunk = AnnotatedHunk(self, hunk)
+            annotated_hunk = AnnotatedHunk(self, hunk, hunk_idx=idx)
             hunk_result, hunk_info = annotated_hunk.compute_sizes_and_spreads()
             #print(f"[{idx}] hunk: inner spread={hunk_result['spread_inner']:3d} "
             #      f"among {hunk_result['n_groups']} groups for {hunk!r}")
@@ -953,8 +998,8 @@ class AnnotatedPatchedFile:
             to '+'/'-', to annotated line info (from post-image or pre-image)
         :rtype: dict[str, dict[str, dict]]
         """
-        for hunk in self.patched_file:
-            hunk_data = AnnotatedHunk(self, hunk).process()
+        for idx, hunk in enumerate(self.patched_file):
+            hunk_data = AnnotatedHunk(self, hunk, hunk_idx=idx).process()
             deep_update(self.patch_data, hunk_data)
 
         return self.patch_data
@@ -973,7 +1018,7 @@ class AnnotatedHunk:
     :ivar hunk: source `unidiff.Hunk` (modified blocks of a file) to annotate
     :ivar patch_data: place to gather annotated hunk data
     """
-    def __init__(self, patched_file: AnnotatedPatchedFile, hunk: unidiff.Hunk):
+    def __init__(self, patched_file: AnnotatedPatchedFile, hunk: unidiff.Hunk, hunk_idx: int):
         """Initialize AnnotatedHunk with AnnotatedPatchedFile and Hunk
 
         The `patched_file` is used to examine file purpose, and possibly
@@ -983,11 +1028,33 @@ class AnnotatedHunk:
 
         :param patched_file: changed file the hunk belongs to
         :param hunk: diff hunk to annotate
+        :param hunk_idx: index of this hunk in the patched file (0-based hunk number)
         """
         self.patched_file = patched_file
         self.hunk = hunk
+        self.hunk_idx = hunk_idx
 
         self.patch_data = defaultdict(lambda: defaultdict(list))
+
+    @staticmethod
+    def file_line_no(line: PatchLine) -> int:
+        """Line number in source file (for '-') or target file (for '+' and ' ')
+
+        This line number is 1-based (first line in file has file line no equal 1,
+        not 0), and is _not unique_.  For example, for changed line there might be
+        added line with the same file line no in target as removed line in source.
+
+        Similar code is used in AnnotatedPatchedFile.hunk_tokens_for_type() method.
+
+        NOTE: Might be made into a function, instead of static method
+        (it does not use `self`), or method or property monkey-patched onto PatchLine.
+
+        :param line: PatchLine from Hunk from PatchedFile from PatchSet (unidiff)
+        :return: 1-based line number of changed line in source or target file, respectively
+        """
+        return line.source_line_no \
+            if line.line_type == unidiff.LINE_TYPE_REMOVED \
+            else line.target_line_no
 
     def tokens_for_type(self, line_type: Literal['-','+']) -> Optional[dict[int, list[tuple]]]:
         """Lexing results for removed ('-')/added ('+') lines in hunk, if possible
@@ -1217,14 +1284,20 @@ class AnnotatedHunk:
         file_purpose = self.patched_file.patch_data[file_path]["purpose"]
 
         if file_purpose in PURPOSE_TO_ANNOTATION:
+            in_hunk_changed_line_idx = 0
             for line_idx_hunk, line in enumerate(self.hunk):
-                self.add_line_annotation(line_idx_hunk,
-                                         self.patched_file.source_file,
-                                         self.patched_file.target_file,
-                                         line.line_type,
-                                         PURPOSE_TO_ANNOTATION[file_purpose],
-                                         file_purpose,
-                                         [(0, Token.Text, line.value), ])
+                self.add_line_annotation(line_no=line_idx_hunk,
+                                         hunk_idx=self.hunk_idx,
+                                         in_hunk=in_hunk_changed_line_idx,
+                                         file_line_no=self.file_line_no(line),
+                                         source_file=self.patched_file.source_file,
+                                         target_file=self.patched_file.target_file,
+                                         change_type=line.line_type,
+                                         line_annotation=PURPOSE_TO_ANNOTATION[file_purpose],
+                                         purpose=file_purpose,
+                                         tokens=[(0, Token.Text, line.value), ])
+                if line.is_added or line.is_removed:
+                    in_hunk_changed_line_idx += 1
 
             return self.patch_data
 
@@ -1235,11 +1308,21 @@ class AnnotatedHunk:
                 i: {
                     'value': line.value,
                     'hunk_line_no': i,
+                    'file_line_no': self.file_line_no(line),
                     'line_type': line.line_type,
                 } for i, line in enumerate(self.hunk)
                 # unexpectedly, there is no need to check for unidiff.LINE_TYPE_EMPTY
                 if line.line_type in {line_type, unidiff.LINE_TYPE_CONTEXT}
             }
+
+            in_hunk_changed_line_idx = 0
+            for i, line in enumerate(self.hunk):
+                if i not in line_data:
+                    continue
+
+                line_data[i]['in_hunk'] = in_hunk_changed_line_idx
+                if line.is_added or line.is_removed:
+                    in_hunk_changed_line_idx += 1
 
             tokens_group = self.tokens_for_type(line_type)
             if tokens_group is None:
@@ -1265,15 +1348,23 @@ class AnnotatedHunk:
                 line_annotation: Optional[str] = None
                 if AnnotatedPatchedFile.line_callback is not None:
                     try:
-                        line_annotation = AnnotatedPatchedFile.line_callback(line_tokens)
-                    except:
+                        file_data = self.patched_file.patch_data[file_path]
+                        #print(f"CALLING line_callback({file_data=}, {len(line_tokens)=})")
+                        line_annotation = AnnotatedPatchedFile.line_callback(file_data, line_tokens)
+                    except Exception as ex:
                         # TODO: log problems with line callback
+                        #print(f"EXCEPTION {ex}")
                         pass
                 if line_annotation is None:
-                    line_annotation = 'documentation' if line_is_comment(line_tokens) else 'code'
+                    line_annotation = 'documentation' \
+                        if line_is_comment(line_tokens) \
+                        else purpose_to_default_annotation(file_purpose)
 
                 self.add_line_annotation(
                     line_no=line_info['hunk_line_no'],
+                    hunk_idx=self.hunk_idx,
+                    in_hunk=line_info['in_hunk'],
+                    file_line_no=line_info['file_line_no'],
                     source_file=self.patched_file.source_file,
                     target_file=self.patched_file.target_file,
                     change_type=line_info['line_type'],
@@ -1284,12 +1375,20 @@ class AnnotatedHunk:
 
         return self.patch_data
 
-    def add_line_annotation(self, line_no: int, source_file: str, target_file: str,
+    def add_line_annotation(self, line_no: int,
+                            hunk_idx: int,
+                            in_hunk: int,
+                            file_line_no: int,
+                            source_file: str, target_file: str,
                             change_type: str, line_annotation: str, purpose: str,
                             tokens: list[tuple]) -> None:
         """Add line annotations for a given line in a hunk
 
         :param line_no: line number (line index) in a diff hunk body, 0-based
+        :param hunk_idx: hunk number (hunk index) in a diff patched file, 0-based
+        :param in_hunk: line number (line index) of _changed_ line in a diff hunk body;
+            only '-' lines and '+' lines counts, 0-based
+        :param file_line_no: line number in a file the line came from, 1-based
         :param source_file: name of changed file in pre-image of diff,
             before changes
         :param target_file: name of changed file in post-image of diff,
@@ -1302,6 +1401,9 @@ class AnnotatedHunk:
         """
         data = {
             'id': line_no,
+            'hunk_idx': hunk_idx,
+            'in_hunk_chg_idx': in_hunk,
+            'file_line_no': file_line_no,
             'type': line_annotation,
             'purpose': purpose,
             'tokens': tokens
@@ -1918,6 +2020,7 @@ def filename_to_language_callback(ctx: typer.Context, param: typer.CallbackParam
 
 
 def parse_line_callback(code_str: Optional[str]) -> Optional[LineCallback]:
+    #print(f"RUNNING parse_line_callback({code_str=})")
     if code_str is None:
         return None
 
@@ -1925,6 +2028,7 @@ def parse_line_callback(code_str: Optional[str]) -> Optional[LineCallback]:
     maybe_path: Optional[Path] = Path(code_str)
     try:
         if maybe_path.is_file():
+            #print(f"  reading code from {maybe_path!r} file")
             code_str = maybe_path.read_text(encoding='utf-8')
         else:
             maybe_path = None
@@ -1934,6 +2038,8 @@ def parse_line_callback(code_str: Optional[str]) -> Optional[LineCallback]:
 
     # code_str now contains the code as a string
     # maybe_path is not None only if code_str was retrieved from file
+    #print(f"  {maybe_path=}")
+    #print(code_str)
 
     # sanity check
     if 'return ' not in code_str:
@@ -2103,7 +2209,8 @@ def common(
 
             Use either
                 python -m pip install --editable .[pylinguist]
-                python -m pip install diffannotator[pylinguist]
+            or
+                python -m pip install patchscope[pylinguist]
             or
                 python -m pip install git+https://github.com/retanoj/linguist@master
 

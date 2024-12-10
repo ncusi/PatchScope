@@ -3,7 +3,7 @@ requires = ["setuptools>=62.6"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "diffannotator"
+name = "patchscope"
 # 'version' is now defined dynamically
 description = "Annotate files and lines of diffs (patches) with their purpose and type"
 readme = "README.md"
@@ -40,8 +40,8 @@ diff-annotate = "diffannotator.annotate:app"
 diff-gather-stats = "diffannotator.gather_data:app"
 
 [project.urls]
-bugs = "https://github.com/ncusi/python-diff-annotator/issues"
-homepage = "https://github.com/ncusi/python-diff-annotator"
+bugs = "https://github.com/ncusi/PatchScope/issues"
+homepage = "https://github.com/ncusi/PatchScope"
 
 [tool.setuptools.dynamic]
 dependencies = {file = ["requirements.txt"]}
@@ -56,13 +56,20 @@ version = {attr = "diffannotator.config.__version__"}
 #
 # see: https://setuptools.pypa.io/en/latest/userguide/pyproject_config.html#dynamic-metadata
 [project.optional-dependencies]
-dev = ["pytest==8.3.3"]
+dev = ["pytest==8.3.4"]
 pylinguist = ["linguist@git+https://github.com/retanoj/linguist#egg=master"]
-examples = ["dvc[s3]==3.56.0"]  # dvc-s3 is needed to access 'dagshub' dvc remote
+examples = ["dvc[s3]==3.58.0"]  # dvc-s3 is needed to access 'dagshub' dvc remote
 web = [
   "panel==1.5.4",
   "param==2.1.1",
+  # data processing
   "pandas==2.2.3",
+  "python-dateutil==2.9.0.post0",
+  # plots
+  "holoviews==1.20.0",
+  "hvplot==0.11.1",
+  "matplotlib==3.9.3",
+  "seaborn==0.13.2",
 ]
 
 [tool.setuptools]

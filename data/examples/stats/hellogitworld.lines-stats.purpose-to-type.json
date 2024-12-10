@@ -1,0 +1,748 @@
+{
+    "data/examples/annotations/hellogitworld": {
+        "hellogitworld": {
+            "818f033c4ae7f26b2b29e904942fa79a5ccaadd0.v2.json": {
+                "src/Main.groovy": {
+                    "language": "Groovy",
+                    "type": "programming",
+                    "purpose": "programming",
+                    "+": {
+                        "count": 2,
+                        "type.code": 2,
+                        "purpose.programming": 2
+                    },
+                    "-": {},
+                    "+/-": {
+                        "type.code": 2,
+                        "purpose.programming": 2
+                    }
+                },
+                "/dev/null": {
+                    "language": "/dev/null",
+                    "type": "other",
+                    "purpose": "other",
+                    "+": {},
+                    "-": {},
+                    "+/-": {}
+                },
+                "src/Subtract.groovy": {
+                    "language": "Groovy",
+                    "type": "programming",
+                    "purpose": "programming",
+                    "+": {
+                        "count": 3,
+                        "type.code": 3,
+                        "purpose.programming": 3
+                    },
+                    "-": {},
+                    "+/-": {
+                        "type.code": 3,
+                        "purpose.programming": 3
+                    }
+                }
+            },
+            "755fd577edcfd9209d0ac072eed3b022cbe4d39b.v2.json": {
+                "/dev/null": {
+                    "language": "/dev/null",
+                    "type": "other",
+                    "purpose": "other",
+                    "+": {},
+                    "-": {},
+                    "+/-": {}
+                },
+                "README.txt": {
+                    "language": "Text",
+                    "type": "prose",
+                    "purpose": "documentation",
+                    "+": {
+                        "count": 11,
+                        "type.documentation": 11,
+                        "purpose.documentation": 11
+                    },
+                    "-": {},
+                    "+/-": {
+                        "type.documentation": 11,
+                        "purpose.documentation": 11
+                    }
+                },
+                "resources/labels.properties": {
+                    "language": "INI",
+                    "type": "data",
+                    "purpose": "data",
+                    "+": {
+                        "count": 4,
+                        "type.data": 4,
+                        "purpose.data": 4
+                    },
+                    "-": {},
+                    "+/-": {
+                        "type.data": 4,
+                        "purpose.data": 4
+                    }
+                },
+                "src/Main.groovy": {
+                    "language": "Groovy",
+                    "type": "programming",
+                    "purpose": "programming",
+                    "+": {
+                        "count": 6,
+                        "type.code": 6,
+                        "purpose.programming": 6
+                    },
+                    "-": {},
+                    "+/-": {
+                        "type.code": 6,
+                        "purpose.programming": 6
+                    }
+                }
+            },
+            "bf7a9a5ee025edee0e610bd7ba23c0704b53c6db.v2.json": {
+                "/dev/null": {
+                    "language": "/dev/null",
+                    "type": "other",
+                    "purpose": "other",
+                    "+": {},
+                    "-": {},
+                    "+/-": {}
+                },
+                ".gitattributes": {
+                    "language": "Git Attributes",
+                    "type": "data",
+                    "purpose": "data",
+                    "+": {
+                        "count": 22,
+                        "type.data": 22,
+                        "purpose.data": 22
+                    },
+                    "-": {},
+                    "+/-": {
+                        "type.data": 22,
+                        "purpose.data": 22
+                    }
+                }
+            },
+            "f5ed01959cffa4758ca0a49bf4c34b138d7eab0a.v2.json": {
+                "/dev/null": {
+                    "language": "/dev/null",
+                    "type": "other",
+                    "purpose": "other",
+                    "+": {},
+                    "-": {},
+                    "+/-": {}
+                },
+                "runme.sh": {
+                    "language": "Shell",
+                    "type": "programming",
+                    "purpose": "programming",
+                    "+": {
+                        "count": 3,
+                        "type.documentation": 1,
+                        "purpose.programming": 3,
+                        "type.code": 2
+                    },
+                    "-": {},
+                    "+/-": {
+                        "type.documentation": 1,
+                        "purpose.programming": 3,
+                        "type.code": 2
+                    }
+                }
+            },
+            "a13dba1e469944772490909daa58c53ac8fa4b0d.v2.json": {
+                "README.txt": {
+                    "language": "Text",
+                    "type": "prose",
+                    "purpose": "documentation",
+                    "+": {
+                        "count": 2,
+                        "type.documentation": 2,
+                        "purpose.documentation": 2
+                    },
+                    "-": {},
+                    "+/-": {
+                        "type.documentation": 2,
+                        "purpose.documentation": 2
+                    }
+                }
+            },
+            "32c273781bab599b955ce7c59d92c39bedf35db0.v2.json": {
+                "src/Main.groovy": {
+                    "language": "Groovy",
+                    "type": "programming",
+                    "purpose": "programming",
+                    "+": {
+                        "count": 7,
+                        "type.code": 7,
+                        "purpose.programming": 7
+                    },
+                    "-": {
+                        "count": 1,
+                        "type.code": 1,
+                        "purpose.programming": 1
+                    },
+                    "+/-": {
+                        "type.code": 8,
+                        "purpose.programming": 8
+                    }
+                }
+            },
+            "333fd9bc94084c3e07e092e2bc9c22bab4476439.v2.json": {
+                "src/Main.groovy": {
+                    "language": "Groovy",
+                    "type": "programming",
+                    "purpose": "programming",
+                    "+": {
+                        "count": 2,
+                        "type.code": 2,
+                        "purpose.programming": 2
+                    },
+                    "-": {
+                        "count": 1,
+                        "type.code": 1,
+                        "purpose.programming": 1
+                    },
+                    "+/-": {
+                        "type.code": 3,
+                        "purpose.programming": 3
+                    }
+                },
+                "/dev/null": {
+                    "language": "/dev/null",
+                    "type": "other",
+                    "purpose": "other",
+                    "+": {},
+                    "-": {},
+                    "+/-": {}
+                },
+                "src/Sum.groovy": {
+                    "language": "Groovy",
+                    "type": "programming",
+                    "purpose": "programming",
+                    "+": {
+                        "count": 3,
+                        "type.code": 3,
+                        "purpose.programming": 3
+                    },
+                    "-": {},
+                    "+/-": {
+                        "type.code": 3,
+                        "purpose.programming": 3
+                    }
+                }
+            },
+            "9805760644754c38d10a9f1522a54a4bdc00fa8a.v2.json": {
+                ".travis.yml": {
+                    "language": "YAML",
+                    "type": "data",
+                    "purpose": "data",
+                    "+": {
+                        "count": 1,
+                        "type.data": 1,
+                        "purpose.data": 1
+                    },
+                    "-": {
+                        "count": 1,
+                        "type.data": 1,
+                        "purpose.data": 1
+                    },
+                    "+/-": {
+                        "type.data": 2,
+                        "purpose.data": 2
+                    }
+                }
+            },
+            "2956e1d20897bf6ed509f6429d7f64bc4823fe33.v2.json": {
+                "src/Main.groovy": {
+                    "language": "Groovy",
+                    "type": "programming",
+                    "purpose": "programming",
+                    "+": {},
+                    "-": {
+                        "count": 2,
+                        "type.code": 2,
+                        "purpose.programming": 2
+                    },
+                    "+/-": {
+                        "type.code": 2,
+                        "purpose.programming": 2
+                    }
+                }
+            },
+            "369adba006a1bbf25e957a8622d2b919c994d035.v2.json": {
+                "src/Main.groovy": {
+                    "language": "Groovy",
+                    "type": "programming",
+                    "purpose": "programming",
+                    "+": {
+                        "count": 5,
+                        "type.code": 5,
+                        "purpose.programming": 5
+                    },
+                    "-": {
+                        "count": 2,
+                        "type.code": 2,
+                        "purpose.programming": 2
+                    },
+                    "+/-": {
+                        "type.code": 7,
+                        "purpose.programming": 7
+                    }
+                }
+            },
+            "78f4771957ffcd015caf609a1721f0fb8ba18cb6.v2.json": {
+                "/dev/null": {
+                    "language": "/dev/null",
+                    "type": "other",
+                    "purpose": "other",
+                    "+": {},
+                    "-": {},
+                    "+/-": {}
+                },
+                "fix.txt": {
+                    "language": "Text",
+                    "type": "prose",
+                    "purpose": "documentation",
+                    "+": {},
+                    "-": {},
+                    "+/-": {}
+                }
+            },
+            "45a30ea9afa413e226ca8614179c011d545ca883.v2.json": {
+                "src/main/java/com/ambientideas/App.java": {
+                    "language": "Java",
+                    "type": "programming",
+                    "purpose": "programming",
+                    "+": {},
+                    "-": {
+                        "count": 2,
+                        "type.code": 2,
+                        "purpose.programming": 2
+                    },
+                    "+/-": {
+                        "type.code": 2,
+                        "purpose.programming": 2
+                    }
+                },
+                "src/main/java/com/github/App.java": {
+                    "language": "Java",
+                    "type": "programming",
+                    "purpose": "programming",
+                    "+": {
+                        "count": 2,
+                        "type.code": 1,
+                        "purpose.programming": 2,
+                        "type.documentation": 1
+                    },
+                    "-": {},
+                    "+/-": {
+                        "type.code": 1,
+                        "purpose.programming": 2,
+                        "type.documentation": 1
+                    }
+                }
+            },
+            "8d2636da55da593c421e1cb09eea502a05556a69.v2.json": {
+                "README.txt": {
+                    "language": "Text",
+                    "type": "prose",
+                    "purpose": "documentation",
+                    "+": {
+                        "count": 3,
+                        "type.documentation": 3,
+                        "purpose.documentation": 3
+                    },
+                    "-": {
+                        "count": 1,
+                        "type.documentation": 1,
+                        "purpose.documentation": 1
+                    },
+                    "+/-": {
+                        "type.documentation": 4,
+                        "purpose.documentation": 4
+                    }
+                }
+            },
+            "8d80474ffc3747e3375651cc2a0032c8599befd3.v2.json": {
+                "/dev/null": {
+                    "language": "/dev/null",
+                    "type": "other",
+                    "purpose": "other",
+                    "+": {},
+                    "-": {},
+                    "+/-": {}
+                },
+                ".travis.yml": {
+                    "language": "YAML",
+                    "type": "data",
+                    "purpose": "data",
+                    "+": {
+                        "count": 2,
+                        "type.data": 2,
+                        "purpose.data": 2
+                    },
+                    "-": {},
+                    "+/-": {
+                        "type.data": 2,
+                        "purpose.data": 2
+                    }
+                }
+            },
+            "c59479302142d79e46f84d11438a41b39ba51a1f.v2.json": {
+                "/dev/null": {
+                    "language": "/dev/null",
+                    "type": "other",
+                    "purpose": "other",
+                    "+": {},
+                    "-": {},
+                    "+/-": {}
+                },
+                "build.gradle": {
+                    "language": "Gradle",
+                    "type": "data",
+                    "purpose": "project",
+                    "+": {
+                        "count": 9,
+                        "type.project": 9,
+                        "purpose.project": 9
+                    },
+                    "-": {},
+                    "+/-": {
+                        "type.project": 9,
+                        "purpose.project": 9
+                    }
+                }
+            },
+            "ef7bebf8bdb1919d947afe46ab4b2fb4278039b3.v2.json": {
+                "pom.xml": {
+                    "language": "Maven POM",
+                    "type": "data",
+                    "purpose": "project",
+                    "+": {
+                        "count": 1,
+                        "type.project": 1,
+                        "purpose.project": 1
+                    },
+                    "-": {
+                        "count": 1,
+                        "type.project": 1,
+                        "purpose.project": 1
+                    },
+                    "+/-": {
+                        "type.project": 2,
+                        "purpose.project": 2
+                    }
+                }
+            },
+            "7c5ee6478d137417ae602140c615e33aed91887c.v2.json": {
+                ".travis.yml": {
+                    "language": "YAML",
+                    "type": "data",
+                    "purpose": "data",
+                    "+": {
+                        "count": 1,
+                        "type.data": 1,
+                        "purpose.data": 1
+                    },
+                    "-": {
+                        "count": 1,
+                        "type.data": 1,
+                        "purpose.data": 1
+                    },
+                    "+/-": {
+                        "type.data": 2,
+                        "purpose.data": 2
+                    }
+                }
+            },
+            "9cdb160ee4118035bf73c744e3bf72a1ba16484a.v2.json": {
+                "/dev/null": {
+                    "language": "/dev/null",
+                    "type": "other",
+                    "purpose": "other",
+                    "+": {},
+                    "-": {},
+                    "+/-": {}
+                },
+                ".gitignore": {
+                    "language": "Ignore List",
+                    "type": "data",
+                    "purpose": "project",
+                    "+": {
+                        "count": 1,
+                        "type.project": 1,
+                        "purpose.project": 1
+                    },
+                    "-": {},
+                    "+/-": {
+                        "type.project": 1,
+                        "purpose.project": 1
+                    }
+                }
+            },
+            "ebbbf773431ba07510251bb03f9525c7bab2b13a.v2.json": {
+                "src/test/java/com/ambientideas/AppTest.java": {
+                    "language": "Java",
+                    "type": "programming",
+                    "purpose": "test",
+                    "+": {},
+                    "-": {
+                        "count": 1,
+                        "type.test": 1,
+                        "purpose.test": 1
+                    },
+                    "+/-": {
+                        "type.test": 1,
+                        "purpose.test": 1
+                    }
+                },
+                "src/test/java/com/github/AppTest.java": {
+                    "language": "Java",
+                    "type": "programming",
+                    "purpose": "test",
+                    "+": {
+                        "count": 1,
+                        "type.test": 1,
+                        "purpose.test": 1
+                    },
+                    "-": {},
+                    "+/-": {
+                        "type.test": 1,
+                        "purpose.test": 1
+                    }
+                }
+            },
+            "d2280d000c84f1e595e4dec435ae6c1e6c245367.v2.json": {
+                ".gitignore": {
+                    "language": "Ignore List",
+                    "type": "data",
+                    "purpose": "project",
+                    "+": {
+                        "count": 1,
+                        "type.project": 1,
+                        "purpose.project": 1
+                    },
+                    "-": {},
+                    "+/-": {
+                        "type.project": 1,
+                        "purpose.project": 1
+                    }
+                },
+                "/dev/null": {
+                    "language": "/dev/null",
+                    "type": "other",
+                    "purpose": "other",
+                    "+": {},
+                    "-": {},
+                    "+/-": {}
+                },
+                "pom.xml": {
+                    "language": "Maven POM",
+                    "type": "data",
+                    "purpose": "project",
+                    "+": {
+                        "count": 18,
+                        "type.project": 18,
+                        "purpose.project": 18
+                    },
+                    "-": {},
+                    "+/-": {
+                        "type.project": 18,
+                        "purpose.project": 18
+                    }
+                },
+                "src/main/java/com/ambientideas/App.java": {
+                    "language": "Java",
+                    "type": "programming",
+                    "purpose": "programming",
+                    "+": {
+                        "count": 17,
+                        "type.code": 11,
+                        "purpose.programming": 17,
+                        "type.documentation": 6
+                    },
+                    "-": {},
+                    "+/-": {
+                        "type.code": 11,
+                        "purpose.programming": 17,
+                        "type.documentation": 6
+                    }
+                },
+                "src/test/java/com/ambientideas/AppTest.java": {
+                    "language": "Java",
+                    "type": "programming",
+                    "purpose": "test",
+                    "+": {
+                        "count": 43,
+                        "type.test": 43,
+                        "purpose.test": 43
+                    },
+                    "-": {},
+                    "+/-": {
+                        "type.test": 43,
+                        "purpose.test": 43
+                    }
+                }
+            },
+            "dc64fe4ab8618a5be491a9fca46f1585585ea44e.v2.json": {
+                "src/Main.groovy": {
+                    "language": "Groovy",
+                    "type": "programming",
+                    "purpose": "programming",
+                    "+": {
+                        "count": 4,
+                        "type.code": 4,
+                        "purpose.programming": 4
+                    },
+                    "-": {
+                        "count": 8,
+                        "type.code": 8,
+                        "purpose.programming": 8
+                    },
+                    "+/-": {
+                        "type.code": 12,
+                        "purpose.programming": 12
+                    }
+                },
+                "/dev/null": {
+                    "language": "/dev/null",
+                    "type": "other",
+                    "purpose": "other",
+                    "+": {},
+                    "-": {},
+                    "+/-": {}
+                },
+                "src/Square.groovy": {
+                    "language": "Groovy",
+                    "type": "programming",
+                    "purpose": "programming",
+                    "+": {
+                        "count": 3,
+                        "type.code": 3,
+                        "purpose.programming": 3
+                    },
+                    "-": {},
+                    "+/-": {
+                        "type.code": 3,
+                        "purpose.programming": 3
+                    }
+                }
+            },
+            "cb2d322bee073327e058143329d200024bd6b4c6.v2.json": {
+                "/dev/null": {
+                    "language": "/dev/null",
+                    "type": "other",
+                    "purpose": "other",
+                    "+": {},
+                    "-": {},
+                    "+/-": {}
+                },
+                "src/Division.groovy": {
+                    "language": "Groovy",
+                    "type": "programming",
+                    "purpose": "programming",
+                    "+": {
+                        "count": 3,
+                        "type.code": 3,
+                        "purpose.programming": 3
+                    },
+                    "-": {},
+                    "+/-": {
+                        "type.code": 3,
+                        "purpose.programming": 3
+                    }
+                },
+                "src/Main.groovy": {
+                    "language": "Groovy",
+                    "type": "programming",
+                    "purpose": "programming",
+                    "+": {
+                        "count": 4,
+                        "type.code": 4,
+                        "purpose.programming": 4
+                    },
+                    "-": {},
+                    "+/-": {
+                        "type.code": 4,
+                        "purpose.programming": 4
+                    }
+                },
+                "src/Subtract.groovy": {
+                    "language": "Groovy",
+                    "type": "programming",
+                    "purpose": "programming",
+                    "+": {
+                        "count": 3,
+                        "type.code": 3,
+                        "purpose.programming": 3
+                    },
+                    "-": {},
+                    "+/-": {
+                        "type.code": 3,
+                        "purpose.programming": 3
+                    }
+                }
+            },
+            "57d0bf61e57cdacb309ebd1075257c6bd7e1da81.v2.json": {
+                "src/Main.groovy": {
+                    "language": "Groovy",
+                    "type": "programming",
+                    "purpose": "programming",
+                    "+": {},
+                    "-": {
+                        "count": 2,
+                        "type.code": 2,
+                        "purpose.programming": 2
+                    },
+                    "+/-": {
+                        "type.code": 2,
+                        "purpose.programming": 2
+                    }
+                },
+                "src/Subtract.groovy": {
+                    "language": "Groovy",
+                    "type": "programming",
+                    "purpose": "programming",
+                    "+": {},
+                    "-": {
+                        "count": 3,
+                        "type.code": 3,
+                        "purpose.programming": 3
+                    },
+                    "+/-": {
+                        "type.code": 3,
+                        "purpose.programming": 3
+                    }
+                },
+                "/dev/null": {
+                    "language": "/dev/null",
+                    "type": "other",
+                    "purpose": "other",
+                    "+": {},
+                    "-": {},
+                    "+/-": {}
+                }
+            },
+            "e83ece763cc9d036715c30c8cb0da93b9d480d86.v2.json": {
+                ".gitignore": {
+                    "language": "Ignore List",
+                    "type": "data",
+                    "purpose": "project",
+                    "+": {
+                        "count": 4,
+                        "type.project": 4,
+                        "purpose.project": 4
+                    },
+                    "-": {
+                        "count": 1,
+                        "type.project": 1,
+                        "purpose.project": 1
+                    },
+                    "+/-": {
+                        "type.project": 5,
+                        "purpose.project": 5
+                    }
+                }
+            }
+        }
+    }
+}

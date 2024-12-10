@@ -1,0 +1,52 @@
+{
+    "data/examples/annotations/hellogitworld": {
+        "processed_files": [
+            "data/examples/annotations/hellogitworld/hellogitworld/818f033c4ae7f26b2b29e904942fa79a5ccaadd0.v2.json",
+            "data/examples/annotations/hellogitworld/hellogitworld/755fd577edcfd9209d0ac072eed3b022cbe4d39b.v2.json",
+            "data/examples/annotations/hellogitworld/hellogitworld/bf7a9a5ee025edee0e610bd7ba23c0704b53c6db.v2.json",
+            "data/examples/annotations/hellogitworld/hellogitworld/f5ed01959cffa4758ca0a49bf4c34b138d7eab0a.v2.json",
+            "data/examples/annotations/hellogitworld/hellogitworld/a13dba1e469944772490909daa58c53ac8fa4b0d.v2.json",
+            "data/examples/annotations/hellogitworld/hellogitworld/32c273781bab599b955ce7c59d92c39bedf35db0.v2.json",
+            "data/examples/annotations/hellogitworld/hellogitworld/333fd9bc94084c3e07e092e2bc9c22bab4476439.v2.json",
+            "data/examples/annotations/hellogitworld/hellogitworld/9805760644754c38d10a9f1522a54a4bdc00fa8a.v2.json",
+            "data/examples/annotations/hellogitworld/hellogitworld/2956e1d20897bf6ed509f6429d7f64bc4823fe33.v2.json",
+            "data/examples/annotations/hellogitworld/hellogitworld/369adba006a1bbf25e957a8622d2b919c994d035.v2.json",
+            "data/examples/annotations/hellogitworld/hellogitworld/78f4771957ffcd015caf609a1721f0fb8ba18cb6.v2.json",
+            "data/examples/annotations/hellogitworld/hellogitworld/45a30ea9afa413e226ca8614179c011d545ca883.v2.json",
+            "data/examples/annotations/hellogitworld/hellogitworld/8d2636da55da593c421e1cb09eea502a05556a69.v2.json",
+            "data/examples/annotations/hellogitworld/hellogitworld/8d80474ffc3747e3375651cc2a0032c8599befd3.v2.json",
+            "data/examples/annotations/hellogitworld/hellogitworld/c59479302142d79e46f84d11438a41b39ba51a1f.v2.json",
+            "data/examples/annotations/hellogitworld/hellogitworld/ef7bebf8bdb1919d947afe46ab4b2fb4278039b3.v2.json",
+            "data/examples/annotations/hellogitworld/hellogitworld/7c5ee6478d137417ae602140c615e33aed91887c.v2.json",
+            "data/examples/annotations/hellogitworld/hellogitworld/9cdb160ee4118035bf73c744e3bf72a1ba16484a.v2.json",
+            "data/examples/annotations/hellogitworld/hellogitworld/ebbbf773431ba07510251bb03f9525c7bab2b13a.v2.json",
+            "data/examples/annotations/hellogitworld/hellogitworld/d2280d000c84f1e595e4dec435ae6c1e6c245367.v2.json",
+            "data/examples/annotations/hellogitworld/hellogitworld/dc64fe4ab8618a5be491a9fca46f1585585ea44e.v2.json",
+            "data/examples/annotations/hellogitworld/hellogitworld/cb2d322bee073327e058143329d200024bd6b4c6.v2.json",
+            "data/examples/annotations/hellogitworld/hellogitworld/57d0bf61e57cdacb309ebd1075257c6bd7e1da81.v2.json",
+            "data/examples/annotations/hellogitworld/hellogitworld/e83ece763cc9d036715c30c8cb0da93b9d480d86.v2.json"
+        ],
+        "hunk_purposes": {
+            "programming": 19,
+            "other": 13,
+            "documentation": 4,
+            "data": 5,
+            "project": 6,
+            "test": 3
+        },
+        "added_line_purposes": {
+            "programming": 67,
+            "documentation": 16,
+            "data": 30,
+            "project": 34,
+            "test": 44
+        },
+        "removed_line_purposes": {
+            "programming": 21,
+            "data": 2,
+            "documentation": 1,
+            "project": 2,
+            "test": 1
+        }
+    }
+}
