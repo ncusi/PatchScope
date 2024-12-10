@@ -4,7 +4,7 @@
 [![EditorConfig](https://img.shields.io/badge/Editor%20Config-E0EFEF?logo=editorconfig&logoColor=000)](https://editorconfig.org/)
 [![Maturity badge - level 1](https://img.shields.io/badge/Maturity-Level%201%20--%20New%20Project-yellow.svg)](https://github.com/tophat/getting-started/blob/master/scorecard.md)
 
-# PatchScope
+# PatchScope – A Modular Tool for Annotating and Analyzing Contributions
 
 Annotates files and lines of diffs (patches) with their purpose and type,
 and performs statistical analysis on the generated annotation data.
