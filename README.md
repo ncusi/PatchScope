@@ -34,6 +34,18 @@ python -m pip install patchscope@git+ssh://git@github.com/ncusi/PatchScope.git#e
 
 ## Usage
 
+![Overview of tool components](./images/PatchScope%20diagram%20freehand%20-%20white%20background.png)
+
+This tool integrates four key components
+1. extracting patches from version control system or user-provided folders<br>
+   as separate step with `diff-generate`, or integrated into annotation step: `diff-annotate`
+2. applying specified annotation rules for selected patches<br>
+   using `diff-annotate`, which generates one JSON data file per patch
+3. generating configurable reports or summaries<br>
+   with various subcommands of `diff-gather-stats`; each summary is saved as a single JSON file
+4. advanced visualization with a web application (dashboard)<br>
+   which you can run it with `panel serve`, see the description below
+
 ### Running scripts
 
 This package installs scripts (currently three) that you can run
