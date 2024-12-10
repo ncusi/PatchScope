@@ -15,6 +15,7 @@ from diffinsights_web.datastore.timeline import \
     find_dataset_dir, find_timeline_files, find_repos, \
     get_timeline_data, get_timeline_df
 from diffinsights_web.utils import round_10s
+from diffinsights_web.views.plots.period import add_split_localtime, plot_periodicity_heatmap
 from diffinsights_web.widgets.caching import ClearCacheButton
 
 DEBUG = True
@@ -755,9 +756,17 @@ add_pm_count_perc_rx = pn.rx(add_pm_count_perc)(
     resampled_df=resample_timeline_rx,
     pm_count_cols=get_pm_count_cols_rx,
 )
+add_split_localtime_rx = pn.rx(add_split_localtime)(
+    timeline_df=get_timeline_df_rx,
+)
 # dependent data, part 2
 tf_timeline_df_author_rx = pn.rx(tf_timeline_df_author)(
     tf_timeline_df=get_timeline_df_rx,
+    author=authors_widget,
+)
+# NOTE: alternative would be to add localtime after selecting author
+timeline_df_author_localtime_rx = pn.rx(tf_timeline_df_author)(
+    tf_timeline_df=add_split_localtime_rx,
     author=authors_widget,
 )
 
@@ -790,6 +799,13 @@ plot_heatmap_rx = pn.rx(plot_heatmap)(
     resample_rate='ME',
     agg_func=agg_func_widget,
     # figsize left at its default values
+)
+
+plot_periodicity_heatmap_rx = pn.rx(plot_periodicity_heatmap)(
+    timeline_df_author=timeline_df_author_localtime_rx,
+    width  = 600,
+    height = 250,
+    off_size = 125,
 )
 
 # plot that depends on the reactive data, part 2, defined earlier, i.e. `tf_timeline_df_author_rx`
@@ -847,6 +863,7 @@ plot_diff_3sizes_rx = pn.rx(plot_diff_3sizes)(
     #figsize=(5, 5),  # left at default values
 )
 
+
 # ---------------------------------------------------------------------------
 # helper functions
 def mpl_card(fig: Figure, header: str) -> pn.Card:
@@ -866,6 +883,7 @@ def mpl_card(fig: Figure, header: str) -> pn.Card:
         ),
         header=header,
     )
+
 
 # ---------------------------------------------------------------------------
 # page URL
@@ -930,6 +948,22 @@ template = pn.template.MaterialTemplate(
                 ),
                 header="heatmap: line-types",
             ),
+            pn.Card(
+                # plot_periodicity_heatmap_rx,
+                pn.pane.HoloViews(
+                    plot_periodicity_heatmap_rx,
+                    # sizes similar to the other heatmap
+                    sizing_mode='fixed',
+                    width =plot_width.rx()*2,
+                    height=plot_width.rx()*1,
+                    # end of different parameters
+                    styles={
+                        "margin-left":  "auto",
+                        "margin-right": "auto",
+                    },
+                ),
+                header="periodic behavior, local time",
+            )
         ),
     ],
 )
