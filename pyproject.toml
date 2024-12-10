@@ -58,7 +58,7 @@ version = {attr = "diffannotator.config.__version__"}
 [project.optional-dependencies]
 dev = ["pytest==8.3.4"]
 pylinguist = ["linguist@git+https://github.com/retanoj/linguist#egg=master"]
-examples = ["dvc==3.58.0"]
+examples = ["dvc[s3]==3.58.0"]  # dvc-s3 is needed to access 'dagshub' dvc remote
 web = [
   "panel==1.5.4",
   "param==2.1.1",
