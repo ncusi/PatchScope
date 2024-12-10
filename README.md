@@ -86,11 +86,20 @@ framework.  You would need to install additional dependencies, for
 example with `pip install --editable .[web]` (if you are running this
 project in editable mode).
 
-Currently, it includes only one web app, namely Contributors Graph.
-You can run this app with `panel serve src\diffinsights_web\apps\contributors.py`.
-By default, it would make app available at <http://localhost:5006/contributors>.
+Currently, it includes two web apps, namely Contributors Graph and Author Statistics.
+You can run each app with [`panel serve`](https://panel.holoviz.org/how_to/server/commandline.html):
+- `panel serve src/diffinsights_web/apps/contributors.py`
+- `panel serve src/diffinsights_web/apps/author.py`
 
-See the basic [demo on Heroku](https://patchscope-9d05e7f15fec.herokuapp.com/contributors).
+By default, it would make those apps available
+at <http://localhost:5006/contributors> and <http://localhost:5006/author>, respectively.
+
+You can also run both of them at once with
+- `panel serve src/diffinsights_web/apps/*.py`
+
+See the basic [demo on Heroku](https://patchscope-9d05e7f15fec.herokuapp.com/):
+- <img height="20" src="favicon.png" width="20" />&nbsp;[Contributors Graph app](https://patchscope-9d05e7f15fec.herokuapp.com/contributors)
+- <img height="20" src="favicon-author.png" width="20" />&nbsp;[Author Statistics app](https://patchscope-9d05e7f15fec.herokuapp.com/author)
 
 [Panel]: https://panel.holoviz.org/
 
