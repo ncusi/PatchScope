@@ -34,7 +34,7 @@ classifiers = [
 requires-python = ">= 3.9"  # vermin --eval-annotations --backport typing --backport typing_extensions .
 dynamic = ["version"]
 dependencies = [
-  "typer-slim==0.13.1",
+  "typer-slim==0.15.1",
   "click>=8.0.0",
   "joblib==1.4.2",
   "pygments==2.18.0",
@@ -73,9 +73,12 @@ web = [
   "param==2.1.1",
   # data processing
   "pandas==2.2.3",
+  "python-dateutil==2.9.0.post0",
   # plots
-  "holoviews==1.19.1",
+  "holoviews==1.20.0",
   "hvplot==0.11.1",
+  "matplotlib==3.9.3",
+  "seaborn==0.13.2",
 ]
 
 [tool.setuptools]

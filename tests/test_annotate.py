@@ -13,7 +13,8 @@ from pygments.token import Token
 from diffannotator.annotate import (split_multiline_lex_tokens, line_ends_idx,
                                     group_tokens_by_line, front_fill_gaps, deep_update,
                                     clean_text, line_is_comment, line_is_empty, annotate_single_diff,
-                                    Bug, BugDataset, AnnotatedPatchedFile, AnnotatedHunk, AnnotatedPatchSet)
+                                    Bug, BugDataset, AnnotatedPatchedFile, AnnotatedHunk, AnnotatedPatchSet,
+                                    line_is_whitespace)
 from diffannotator.utils.git import GitRepo, DiffSide, ChangeSet
 from .conftest import count_pm_lines
 
@@ -228,7 +229,7 @@ def test_hunk_sizes_and_spreads(example_patchset_java: unidiff.PatchSet):
     #print(f"{patched_file[0]=}")
 
     annotated_patched_file = AnnotatedPatchedFile(patched_file)
-    annotated_hunk = AnnotatedHunk(annotated_patched_file, patched_file[0])
+    annotated_hunk = AnnotatedHunk(annotated_patched_file, patched_file[0], 0)
     hunk_result, hunk_info = annotated_hunk.compute_sizes_and_spreads()
     #print(f"{annotated_hunk.hunk=}")
     #print(f"{annotated_hunk.hunk.section_header=}")
@@ -444,9 +445,11 @@ def test_AnnotatedPatchedFile(line_type):
         f"tokens_for_type returns non-empty iterable of tokens for '{line_type}'"
 
     first_hunk = AnnotatedHunk(patched_file=patched_file_no_source,
-                               hunk=patched_file_no_source.patched_file[0])
+                               hunk=patched_file_no_source.patched_file[0],
+                               hunk_idx=0)
     first_hunk_from_sourced = AnnotatedHunk(patched_file=patched_file_with_source,
-                                            hunk=patched_file_with_source.patched_file[0])
+                                            hunk=patched_file_with_source.patched_file[0],
+                                            hunk_idx=0)
 
     bare_hunk_data = first_hunk.process()
     srcd_hunk_data = first_hunk_from_sourced.process()  # should use sources
@@ -1015,6 +1018,17 @@ class TestCLexer:
                         if k != 0 and k != len(actual) - 2]), \
             "all lines but first and next to last line in example code are not empty"
 
+        actual = {
+            i: line_is_whitespace(line_tokens)
+            for i, line_tokens in tokens_grouped.items()
+        }
 
+        #print("{{{")
+        #for i, code_line in enumerate(example_C_code.splitlines(keepends=False)):
+        #    print(f"{i:d}: {actual[i]!s:5}:{code_line}", end=':\n')
+        #print("{{{")
+
+        assert actual[0] and actual[5], \
+            "very basic test for whitespace-only lines (and empty lines)"
 
 # end of test_annotate.py

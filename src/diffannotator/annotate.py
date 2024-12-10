@@ -288,6 +288,19 @@ def line_is_empty(tokens_list: Iterable[tuple]) -> bool:
     return len(tokens_list) == 1 and (tokens_list[0][2] == '\n' or tokens_list[0][2] == '\r\n')
 
 
+def line_is_whitespace(tokens_list: Iterable[tuple]) -> bool:
+    """Given results of parsing a line, find if it consists only of whitespace tokens
+
+    :param tokens_list: An iterable of (index, token_type, text_fragment) tuples,
+        supposedly created by parsing some line of source code text
+    :return: Whether set of tokens in `tokens_list` are all
+        whitespace tokens
+    """
+    return all([token_type in Token.Text.Whitespace or
+                token_type in Token.Text and text_fragment.isspace()
+                for _, token_type, text_fragment in tokens_list])
+
+
 def line_is_comment(tokens_list: Iterable[tuple]) -> bool:
     """Given results of parsing line, find if it is comment
 
@@ -908,7 +921,7 @@ class AnnotatedPatchedFile:
 
         hunk: unidiff.Hunk
         for idx, hunk in enumerate(self.patched_file):
-            annotated_hunk = AnnotatedHunk(self, hunk)
+            annotated_hunk = AnnotatedHunk(self, hunk, hunk_idx=idx)
             hunk_result, hunk_info = annotated_hunk.compute_sizes_and_spreads()
             #print(f"[{idx}] hunk: inner spread={hunk_result['spread_inner']:3d} "
             #      f"among {hunk_result['n_groups']} groups for {hunk!r}")
@@ -985,8 +998,8 @@ class AnnotatedPatchedFile:
             to '+'/'-', to annotated line info (from post-image or pre-image)
         :rtype: dict[str, dict[str, dict]]
         """
-        for hunk in self.patched_file:
-            hunk_data = AnnotatedHunk(self, hunk).process()
+        for idx, hunk in enumerate(self.patched_file):
+            hunk_data = AnnotatedHunk(self, hunk, hunk_idx=idx).process()
             deep_update(self.patch_data, hunk_data)
 
         return self.patch_data
@@ -1005,7 +1018,7 @@ class AnnotatedHunk:
     :ivar hunk: source `unidiff.Hunk` (modified blocks of a file) to annotate
     :ivar patch_data: place to gather annotated hunk data
     """
-    def __init__(self, patched_file: AnnotatedPatchedFile, hunk: unidiff.Hunk):
+    def __init__(self, patched_file: AnnotatedPatchedFile, hunk: unidiff.Hunk, hunk_idx: int):
         """Initialize AnnotatedHunk with AnnotatedPatchedFile and Hunk
 
         The `patched_file` is used to examine file purpose, and possibly
@@ -1015,9 +1028,11 @@ class AnnotatedHunk:
 
         :param patched_file: changed file the hunk belongs to
         :param hunk: diff hunk to annotate
+        :param hunk_idx: index of this hunk in the patched file (0-based hunk number)
         """
         self.patched_file = patched_file
         self.hunk = hunk
+        self.hunk_idx = hunk_idx
 
         self.patch_data = defaultdict(lambda: defaultdict(list))
 
@@ -1269,15 +1284,20 @@ class AnnotatedHunk:
         file_purpose = self.patched_file.patch_data[file_path]["purpose"]
 
         if file_purpose in PURPOSE_TO_ANNOTATION:
+            in_hunk_changed_line_idx = 0
             for line_idx_hunk, line in enumerate(self.hunk):
-                self.add_line_annotation(line_idx_hunk,
-                                         self.file_line_no(line),
-                                         self.patched_file.source_file,
-                                         self.patched_file.target_file,
-                                         line.line_type,
-                                         PURPOSE_TO_ANNOTATION[file_purpose],
-                                         file_purpose,
-                                         [(0, Token.Text, line.value), ])
+                self.add_line_annotation(line_no=line_idx_hunk,
+                                         hunk_idx=self.hunk_idx,
+                                         in_hunk=in_hunk_changed_line_idx,
+                                         file_line_no=self.file_line_no(line),
+                                         source_file=self.patched_file.source_file,
+                                         target_file=self.patched_file.target_file,
+                                         change_type=line.line_type,
+                                         line_annotation=PURPOSE_TO_ANNOTATION[file_purpose],
+                                         purpose=file_purpose,
+                                         tokens=[(0, Token.Text, line.value), ])
+                if line.is_added or line.is_removed:
+                    in_hunk_changed_line_idx += 1
 
             return self.patch_data
 
@@ -1294,6 +1314,15 @@ class AnnotatedHunk:
                 # unexpectedly, there is no need to check for unidiff.LINE_TYPE_EMPTY
                 if line.line_type in {line_type, unidiff.LINE_TYPE_CONTEXT}
             }
+
+            in_hunk_changed_line_idx = 0
+            for i, line in enumerate(self.hunk):
+                if i not in line_data:
+                    continue
+
+                line_data[i]['in_hunk'] = in_hunk_changed_line_idx
+                if line.is_added or line.is_removed:
+                    in_hunk_changed_line_idx += 1
 
             tokens_group = self.tokens_for_type(line_type)
             if tokens_group is None:
@@ -1333,6 +1362,8 @@ class AnnotatedHunk:
 
                 self.add_line_annotation(
                     line_no=line_info['hunk_line_no'],
+                    hunk_idx=self.hunk_idx,
+                    in_hunk=line_info['in_hunk'],
                     file_line_no=line_info['file_line_no'],
                     source_file=self.patched_file.source_file,
                     target_file=self.patched_file.target_file,
@@ -1345,6 +1376,8 @@ class AnnotatedHunk:
         return self.patch_data
 
     def add_line_annotation(self, line_no: int,
+                            hunk_idx: int,
+                            in_hunk: int,
                             file_line_no: int,
                             source_file: str, target_file: str,
                             change_type: str, line_annotation: str, purpose: str,
@@ -1352,6 +1385,9 @@ class AnnotatedHunk:
         """Add line annotations for a given line in a hunk
 
         :param line_no: line number (line index) in a diff hunk body, 0-based
+        :param hunk_idx: hunk number (hunk index) in a diff patched file, 0-based
+        :param in_hunk: line number (line index) of _changed_ line in a diff hunk body;
+            only '-' lines and '+' lines counts, 0-based
         :param file_line_no: line number in a file the line came from, 1-based
         :param source_file: name of changed file in pre-image of diff,
             before changes
@@ -1365,6 +1401,8 @@ class AnnotatedHunk:
         """
         data = {
             'id': line_no,
+            'hunk_idx': hunk_idx,
+            'in_hunk_chg_idx': in_hunk,
             'file_line_no': file_line_no,
             'type': line_annotation,
             'purpose': purpose,
