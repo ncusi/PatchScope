@@ -11,8 +11,9 @@ from bokeh.models import PrintfTickFormatter
 from matplotlib.colors import LogNorm
 from matplotlib.figure import Figure
 
+from diffinsights_web.datastore import find_dataset_dir
 from diffinsights_web.datastore.timeline import \
-    find_dataset_dir, find_timeline_files, find_repos, \
+    find_timeline_files, find_repos, \
     get_timeline_data, get_timeline_df
 from diffinsights_web.utils import round_10s
 from diffinsights_web.views.plots.period import add_split_localtime, plot_periodicity_heatmap
