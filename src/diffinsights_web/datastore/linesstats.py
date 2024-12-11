@@ -4,6 +4,7 @@ from collections.abc import Container, Iterable
 from pathlib import Path, PurePosixPath
 from typing import Union, Optional
 
+import pandas as pd
 import panel as pn
 import param
 
@@ -275,9 +276,24 @@ def reduce_sankey_thin_out(data_counter: Counter,
     return res
 
 
+def sankey_df_from_triples(data_list: list[tuple[str, str, int]]) -> pd.DataFrame:
+    df = pd.DataFrame.from_records(data_list, columns=['source', 'target', 'count'])
+
+    df['from'] = df['source'] \
+        .str.rsplit(pat='/', n=2) \
+        .map(lambda l: l[-1], na_action='ignore') \
+        .str.replace(r'^\.$', '{qtile}', regex=True)
+    df['to'] = df['target'] \
+        .str.rsplit(pat='/', n=2) \
+        .map(lambda l: l[-1], na_action='ignore') \
+        .str.replace(r'^type\.(.*)$', lambda m: f"[{m.group(1)}]", regex=True)
+
+    return df
+
+
 def process_sankey(lines_stats_counter: Optional[Counter],
                    max_files: Optional[int] = None,
-                   threshold: float = 0.0):
+                   threshold: float = 0.0) -> pd.DataFrame:
     if lines_stats_counter is None:
         return None
 
@@ -294,8 +310,9 @@ def process_sankey(lines_stats_counter: Optional[Counter],
         sankey_counter = reduce_sankey_thin_out(sankey_counter, threshold_ratio=threshold)
 
     sankey_triples = sankey_triples_from_counter(sankey_counter)
+    sankey_df = sankey_df_from_triples(sankey_triples)
 
-    return sankey_triples
+    return sankey_df
 
 
 class LinesStatsDataStore(pn.viewable.Viewer):
@@ -330,7 +347,7 @@ class LinesStatsDataStore(pn.viewable.Viewer):
             options=[10,100,None],
             value=100,
         )
-        self.sankey_data_rx = pn.rx(process_sankey)(
+        self.sankey_df_rx = pn.rx(process_sankey)(
             lines_stats_counter=self.lines_stats_counter_rx,
             max_files=self.num_files_widget,
         )
