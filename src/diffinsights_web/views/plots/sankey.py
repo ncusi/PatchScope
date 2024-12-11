@@ -46,11 +46,13 @@ def sankey_plot_from_df(sankey_df: pd.DataFrame,
 
 
 def plot_sankey(sankey_df: pd.DataFrame,
-                timeseries_file: str,
-                width: int = 800,
+                data_store: LinesStatsDataStore,
+                width: int = 1000,
                 height: int = 400):
     if isinstance(sankey_df, param.rx):
         sankey_df = sankey_df.rx.value
+
+    timeseries_file = data_store.timeseries_file
 
     if sankey_df is None or len(sankey_df) == 0:  # or df.shape[0]
         return pn.pane.HTML(
@@ -58,7 +60,10 @@ def plot_sankey(sankey_df: pd.DataFrame,
             f"<tt>{Path(timeseries_file).name!r}</tt></p>")
     else:
         #print(f"plot_sankey(): {type(sankey_data)=}")
-        return sankey_plot_from_df(sankey_df, width, height)
+        return pn.Column(
+            data_store,
+            sankey_plot_from_df(sankey_df, width, height),
+        )
 
 
 class SankeyPlot(pn.viewable.Viewer):
@@ -71,5 +76,6 @@ class SankeyPlot(pn.viewable.Viewer):
 
         self.plot_sankey_rx = pn.rx(plot_sankey)(
             sankey_df=self.data_store.sankey_df_rx,
-            timeseries_file=self.data_store.param.timeseries_file.rx(),
+            data_store=self.data_store,
+            #timeseries_file=self.data_store.param.timeseries_file.rx(),
         )

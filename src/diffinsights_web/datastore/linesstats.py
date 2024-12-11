@@ -347,3 +347,12 @@ class LinesStatsDataStore(pn.viewable.Viewer):
             lines_stats_counter=self.lines_stats_counter_rx,
             max_files=self.num_files_widget,
         )
+
+        self._widgets = [
+            self.num_files_widget,
+        ]
+
+    def __panel__(self) -> pn.viewable.Viewable:
+        return pn.Row(
+            *self._widgets,
+        )
