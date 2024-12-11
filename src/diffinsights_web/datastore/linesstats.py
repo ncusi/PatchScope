@@ -280,12 +280,8 @@ def sankey_df_from_triples(data_list: list[tuple[str, str, int]]) -> pd.DataFram
     df = pd.DataFrame.from_records(data_list, columns=['source', 'target', 'count'])
 
     df['from'] = df['source'] \
-        .str.rsplit(pat='/', n=2) \
-        .map(lambda l: l[-1], na_action='ignore') \
         .str.replace(r'^\.$', '{qtile}', regex=True)
     df['to'] = df['target'] \
-        .str.rsplit(pat='/', n=2) \
-        .map(lambda l: l[-1], na_action='ignore') \
         .str.replace(r'^type\.(.*)$', lambda m: f"[{m.group(1)}]", regex=True)
 
     return df

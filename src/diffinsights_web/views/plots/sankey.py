@@ -34,7 +34,7 @@ def sankey_plot_from_df(sankey_df: pd.DataFrame,
         height=height,
         # tools
         default_tools=[],
-        # active_tools=['hover'],
+        # active_tools=['hover'],  # does not work, causes strange error
         tools=[
             'pan',
             'box_zoom',
