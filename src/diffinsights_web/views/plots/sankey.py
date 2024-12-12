@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import Optional
 
 import holoviews as hv
 import pandas as pd
@@ -60,10 +59,7 @@ def plot_sankey(sankey_df: pd.DataFrame,
             f"<tt>{Path(timeseries_file).name!r}</tt></p>")
     else:
         #print(f"plot_sankey(): {type(sankey_data)=}")
-        return pn.Column(
-            data_store,
-            sankey_plot_from_df(sankey_df, width, height),
-        )
+        return sankey_plot_from_df(sankey_df, width, height)
 
 
 class SankeyPlot(pn.viewable.Viewer):
@@ -79,3 +75,9 @@ class SankeyPlot(pn.viewable.Viewer):
             data_store=self.data_store,
             #timeseries_file=self.data_store.param.timeseries_file.rx(),
         )
+
+    def __panel__(self) -> pn.viewable.Viewable:
+        return self.plot_sankey_rx
+
+    def widgets(self) -> pn.viewable.Viewable:
+        return pn.panel(self.data_store)

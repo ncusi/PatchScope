@@ -325,6 +325,11 @@ class LinesStatsDataStore(pn.viewable.Viewer):
         allow_refs=True,  # allow for reactive expressions, and widgets
         doc="Name of the repository, for selecting data",
     )
+    disable_widgets = param.Boolean(
+        default=False,
+        allow_refs=True,  # allow for reactive expressions, and widgets
+        doc="Whether to disable widgets controlling construction of Sankey diagram"
+    )
 
     def __init__(self, **params):
         super().__init__(**params)
@@ -353,6 +358,8 @@ class LinesStatsDataStore(pn.viewable.Viewer):
         ]
 
     def __panel__(self) -> pn.viewable.Viewable:
-        return pn.Row(
+        return pn.WidgetBox(  # column
+            'Sankey diagram',
             *self._widgets,
+            disabled=self.disable_widgets,
         )
