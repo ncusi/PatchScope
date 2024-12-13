@@ -12,6 +12,10 @@ nav:
   #- contributing: contributing.md
   #- authors: authors.md
   #- history: history.md
+  - schema: schema.md
+  - examples: examples.md
+  - notebooks: notebooks.md
+  - web: diffinsights_web.md
 theme:
   name: material
   language: en
