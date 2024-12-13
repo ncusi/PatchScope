@@ -59,6 +59,18 @@ version = {attr = "diffannotator.config.__version__"}
 dev = [
   "pytest==8.3.4",
 ]
+doc = [
+  "mkdocs==^1.2.3",
+  "mkdocs-include-markdown-plugin==^3.2.3",
+  "mkdocs-autorefs==^0.3.1",
+  "mkdocstrings==^0.18.0",
+  "mkdocs-material==^8.1.11",
+  "mkdocs-material-extension==^1.0.3",
+  #"mike==^1.1.2",
+  #"setuptools==^68.0",
+  #"pkginfo==^1.9",
+  #"virtualenv==^20.0",
+]
 pylinguist = [
   "linguist@git+https://github.com/retanoj/linguist#egg=master",
 ]
