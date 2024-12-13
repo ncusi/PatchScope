@@ -34,7 +34,7 @@ python -m pip install patchscope@git+ssh://git@github.com/ncusi/PatchScope.git#e
 
 ## Usage
 
-![Overview of tool components](./images/PatchScope%20diagram%20freehand%20-%20white%20background.png)
+![Overview of tool components](./docs/assets/PatchScope%20diagram%20freehand%20-%20white%20background.png)
 
 This tool integrates four key components
 1. extracting patches from version control system or user-provided folders<br>
