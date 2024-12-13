@@ -8,7 +8,7 @@ nav:
   - home: index.md
   #- installation: installation.md
   #- usage: usage.md
-  - modules: api.md
+  #- modules: api.md
   #- contributing: contributing.md
   #- authors: authors.md
   #- history: history.md
