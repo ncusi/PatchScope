@@ -8,7 +8,7 @@ nav:
   - home: index.md
   #- installation: installation.md
   #- usage: usage.md
-  #- modules: api.md
+  - modules: api.md
   #- contributing: contributing.md
   #- authors: authors.md
   #- history: history.md
@@ -84,6 +84,16 @@ plugins:
   - search:  # adds a search bar to the header; powered by lunr.js
       lang: en
   - mkdocstrings:  # automatic documentation from sources for MkDocs
+      default_handler: python
+      handlers:
+        python:
+          paths: [ "src" ]
+          show_bases: true
+          docstring_style: sphinx
+          #docstring_section_style: spacy
+          show_signature: true
+          separate_signature: true
+          show_signature_annotations: true
       watch:
         - PatchScope
 #extra:
