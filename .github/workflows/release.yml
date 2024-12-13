@@ -1,0 +1,128 @@
+# Publish package on release branch if it's tagged with 'v*'
+
+name: build & release
+
+on:
+  # Triggers the workflow on push events but only for the 'main' branch
+  push:
+    branches: [ "main" ]
+    tags:
+      - 'v*'
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
+# via this GitHub Action
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# NOTE: alternative would be to write to 'gh-pages' branch
+# which might be needed if we want to have documentation for multiple versions
+# https://squidfunk.github.io/mkdocs-material/publishing-your-site/
+#permissions:
+#  contents: write
+
+# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
+# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        python-versions: ["3.10"]
+
+    # map step outputs to job outputs so they can be share among jobs
+    outputs:
+      #package_version: ${{ steps.variables_step.outputs.package_version }}
+      #package_name: ${{ steps.variables_step.outputs.package_name }}
+      repo_name: ${{ steps.variables_step.outputs.repo_name }}
+      repo_owner: ${{ steps.variables_step.outputs.repo_owner }}
+
+    steps:
+      - name: Checkout project source code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-versions }}
+          cache: pip
+
+      - name: Store the 'cache_id' environmental variable
+        run: |
+          echo "cache_id=$(date --utc '+%V')" >> $GITHUB_ENV
+
+      - name: Restore cached virtualenv
+        uses: actions/cache/restore@v4
+        with:
+          key: venv-${{ runner.os }}-${{ steps.setup_python.outputs.python-version }}-${{ hashFiles('requirements.txt') }}
+          path: .venv
+
+      - name: Install dependencies, using cached venv
+        run: |
+          # use [cached] virtual environment, see https://adamj.eu/tech/2023/11/02/github-actions-faster-python-virtual-environments/
+          python -m venv .venv
+          source .venv/bin/activate
+          # upgrade pip
+          python -m pip install --upgrade pip
+          # install the package and its dependencies; note: it could use requirements.txt
+          python -m pip install --editable .[dev,doc]
+          # add to $VIRTUAL_ENV/bin to $PATH to be able to run scripts
+          echo "$VIRTUAL_ENV/bin" >> $GITHUB_PATH
+          # add information about active virtual environment to environment variables
+          echo "VIRTUAL_ENV=$VIRTUAL_ENV" >> $GITHUB_ENV
+
+      - name: Saved cached virtualenv
+        uses: actions/cache/save@v4
+        with:
+          key: venv-${{ runner.os }}-${{ steps.setup_python.outputs.python-version }}-${{ hashFiles('requirements.txt') }}
+          path: .venv
+
+      - name: Declare variables for convenient use
+        id: variables_step
+        run: |
+          echo "repo_owner=${GITHUB_REPOSITORY%/*}" >> $GITHUB_OUTPUT
+          echo "repo_name=${GITHUB_REPOSITORY#*/}" >> $GITHUB_OUTPUT
+          #echo "package_name=`poetry version | awk '{print $1}'`" >> $GITHUB_OUTPUT
+          #echo "package_version=`poetry version --short`" >> $GITHUB_OUTPUT
+        shell: bash
+
+      - name: Configure Git Credentials
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Build documentation
+        run: |
+          mkdocs build --site-dir public
+
+      - name: Upload documentation as artifact
+        id: deployment
+        uses: actions/upload-pages-artifact@v3
+        with:
+          name: documentation
+          path: public/
+
+  # Deployment job
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    runs-on: ubuntu-latest
+    needs: release
+    steps:
+      - name: Deploy documentation to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
