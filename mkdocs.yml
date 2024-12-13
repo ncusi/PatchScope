@@ -49,7 +49,7 @@ markdown_extensions:
   - pymdownx.arithmatex:  # block and inline block equations: $...$, $$...$$
       generic: true
   - pymdownx.highlight:  # syntax highlighting of code blocks (with superfences)
-      linenums: true
+      linenums: false
   - pymdownx.superfences  #  arbitrary nesting of code and content blocks
     #  custom_fences:
     #    - name: mermaid
