@@ -1,0 +1,97 @@
+site_name: PatchScope Documentation
+site_url: https://ncusi.github.io/PatchScope
+repo_url: https://github.com/ncusi/PatchScope
+repo_name: PatchScope
+#strict: true
+nav:
+  - home: index.md
+  #- installation: installation.md
+  #- usage: usage.md
+  #- modules: api.md
+  #- contributing: contributing.md
+  #- authors: authors.md
+  #- history: history.md
+theme:
+  name: material
+  language: en
+  logo: favicon.png
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  features:
+    - navigation.indexes
+    - navigation.tabs
+    - navigation.instant
+    - navigation.tabs.sticky
+markdown_extensions:
+  #- pymdownx.emoji:  # inserting emoji via simple short names, e.g. :thumbsup:
+  #    emoji_index: !!python/name:materialx.emoji.twemoji  # problems with materialx, ...
+  ## ERROR: Could not find a version that satisfies the requirement mkdocs-material-extension~=1.0.3;
+  ##        extra == "doc" (from patchscope[dev,doc]) (from versions: none)
+  ## ERROR: No matching distribution found for mkdocs-material-extension~=1.0.3; extra == "doc"
+  #    emoji_generator: !!python/name:material.extensions.emoji.to_svg  # problems with material.extensions
+  ## Error: MkDocs encountered an error parsing the configuration file: while constructing a Python object
+  ## cannot find module 'material.extensions.emoji' (No module named 'material.extensions')
+  ##   in "/home/runner/work/PatchScope/PatchScope/mkdocs.yml", line 36, column 20
+  #- pymdownx.critic  # editorial change tracking in plain text files
+  - pymdownx.caret  # ^^insert^^, text^superscript
+  #- pymdownx.mark  # ==mark me==
+  - pymdownx.tilde  # ~~delete~~, text~subscript
+  - pymdownx.tabbed  # tabbed contents
+  - pymdownx.arithmatex:  # block and inline block equations: $...$, $$...$$
+      generic: true
+  - pymdownx.highlight:  # syntax highlighting of code blocks (with superfences)
+      linenums: true
+  - pymdownx.superfences  #  arbitrary nesting of code and content blocks
+    #  custom_fences:
+    #    - name: mermaid
+    #      class: mermaid
+    #      format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.details  # make admonition call-outs collapsible
+  - pymdownx.tasklist:  #  GitHub Flavored Markdown inspired task lists
+      custom_checkbox: true  # replace native checkbox styles with icons
+  - admonition  # admonitions (or call-outs), !!! note "optional title"...
+  - attr_list  # add HTML attributes and CSS classes to alnost every element
+  - toc:  # automatically generate a table of contents
+      baselevel: 2
+      permalink: true
+      slugify: !!python/name:pymdownx.slugs.uslugify
+  - meta
+plugins:
+  - include-markdown  # including (embedding) Markdown files, by default within {% and %}
+  - search:  # adds a search bar to the header; powered by lunr.js
+      lang: en
+  - mkdocstrings:  # automatic documentation from sources for MkDocs
+      watch:
+        - PatchScope
+#extra:
+#  version:
+#    provider: mike
+#  social:
+#    - icon: fontawesome/brands/twitter
+#      # replace with your own tweet link below
+#      link: http://www.jieyu.ai
+#      name: Tweet
+#    - icon: fontawesome/brands/facebook
+#      # replace with your own facebook link below
+#      link: http://www.jieyu.ai
+#      name: Facebook
+#    - icon: fontawesome/brands/github
+#      link: https://github.com/jnareb/python_project_wizard_demo
+#      name: Github
+#    - icon: material/email
+#      link: "mailto:jnareb@gmail.com"
+#  # to enable disqus, uncomment the following and put your disqus id below
+#  # disqus: disqus_id
+# uncomment the following and put your google tracking id below to enable GA
+#google_analytics:
+  #- UA-xxx
+  #- auto
