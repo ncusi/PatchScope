@@ -106,6 +106,7 @@ jobs:
       - name: Build documentation
         run: |
           mkdocs build --site-dir public
+          cp favicon*.{png,svg} public/
 
       - name: Upload documentation as artifact
         id: deployment
