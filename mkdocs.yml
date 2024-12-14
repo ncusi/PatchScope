@@ -12,6 +12,7 @@ nav:
   #- contributing: contributing.md
   #- authors: authors.md
   #- history: history.md
+  - CLI: cli.md
   - API: reference/
   - schema: schema.md
   - examples: examples.md
@@ -84,6 +85,7 @@ markdown_extensions:
       permalink: true
       slugify: !!python/name:pymdownx.slugs.uslugify
   - meta
+  - mkdocs-typer  # generate documentation for Typer command line applications
 plugins:
   - include-markdown  # including (embedding) Markdown files, by default within {% and %}
   - search:  # adds a search bar to the header; powered by lunr.js

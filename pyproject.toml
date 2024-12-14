@@ -67,6 +67,7 @@ doc = [
   "mkdocs-gen-files~=0.5.0",
   "mkdocs-literate-nav~=0.6.1",
   "mkdocs-section-index~=0.3.9",
+  "mkdocs-typer~=0.0.3",
   "mkdocs-material~=9.5.48",
   #"mike~=1.1.2",
   #"setuptools~=68.0",
