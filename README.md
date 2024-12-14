@@ -13,6 +13,9 @@ and performs statistical analysis on the generated annotation data.
 > and the python package was called 'diffannotator' instead of being called 'patchscope',
 > so there are some references to that older name, for example in directory names
 > in some Jupyter Notebooks.
+ 
+You can find early version of the project documentation at <https://ncusi.github.io/PatchScope/>,
+but it is currently incomplete and unpolished.
 
 ## Installation
 
