@@ -201,7 +201,7 @@ def reduce_sankey_thin_out(data_counter: Counter,
     #print("reduce_sankey_thin_out():")
     # TODO: use threshold on max value, not on sum of values
 
-    total_lines = 0
+    total_lines = 0  #: total changed lines in whole project
     for (p_f, p_t), v in data_counter.items():
         if p_f != '.':
             continue
@@ -289,7 +289,7 @@ def sankey_df_from_triples(data_list: list[tuple[str, str, int]]) -> pd.DataFram
 
 def process_sankey(lines_stats_counter: Optional[Counter],
                    max_files: Optional[int] = None,
-                   threshold: float = 0.0) -> pd.DataFrame:
+                   threshold: float = 0.0) -> Optional[pd.DataFrame]:
     if lines_stats_counter is None:
         return None
 
