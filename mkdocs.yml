@@ -2,6 +2,7 @@ site_name: PatchScope Documentation
 site_url: https://ncusi.github.io/PatchScope
 repo_url: https://github.com/ncusi/PatchScope
 repo_name: PatchScope
+edit_uri: ""  # turn off the feature
 #strict: true
 nav:
   - home: index.md
@@ -11,10 +12,20 @@ nav:
   #- contributing: contributing.md
   #- authors: authors.md
   #- history: history.md
+  - CLI: cli.md
+  - API: reference/
+  - schema: schema.md
+  - examples: examples.md
+  - notebooks: notebooks.md
+  - web: diffinsights_web.md
 theme:
   name: material
   language: en
-  logo: favicon.png
+  logo: favicon.svg
+  #favicon: favicon.png
+  icon:
+    #repo: fontawesome/brands/git-alt  # the default
+    repo: fontawesome/brands/github
   palette:
     - media: "(prefers-color-scheme: light)"
       scheme: default
@@ -27,10 +38,17 @@ theme:
         icon: material/weather-sunny
         name: Switch to light mode
   features:
-    - navigation.indexes
-    - navigation.tabs
-    - navigation.instant
-    - navigation.tabs.sticky
+    - navigation.indexes  # documents can be directly attached to sections (for overview pages)
+    - navigation.instant  # clicks on all internal links will be dispatched via XHR
+    - navigation.instant.progress  # progress indicator on slow connections when using instant navigation
+    - navigation.tabs  # top-level sections are rendered in a menu layer below the header
+    - navigation.tabs.sticky  # navigation tabs will lock below the header and always remain visible
+    - navigation.top  # add floating backt-to-top button
+    - navigation.tracking  # automatically update URL with the active anchor
+    #- toc.follow  # scroll sidebar so that the active anchor is always visible
+    #- search.suggest  # enable search suggestions, can be accepted with 'Right' key
+    - header.autohide  # hide header when the user scrolls past a certain threshold
+    - navigation.footer  # links to the previous and next page of the current page
 markdown_extensions:
   #- pymdownx.emoji:  # inserting emoji via simple short names, e.g. :thumbsup:
   #    emoji_index: !!python/name:materialx.emoji.twemoji  # problems with materialx, ...
@@ -49,9 +67,11 @@ markdown_extensions:
   - pymdownx.arithmatex:  # block and inline block equations: $...$, $$...$$
       generic: true
   - pymdownx.highlight:  # syntax highlighting of code blocks (with superfences)
-      linenums: true
+      linenums: false
   - pymdownx.superfences  #  arbitrary nesting of code and content blocks
+    #  preserve_tabs: true
     #  custom_fences:
+    #    # Mermaid diagrams
     #    - name: mermaid
     #      class: mermaid
     #      format: !!python/name:pymdownx.superfences.fence_code_format
@@ -59,19 +79,39 @@ markdown_extensions:
   - pymdownx.tasklist:  #  GitHub Flavored Markdown inspired task lists
       custom_checkbox: true  # replace native checkbox styles with icons
   - admonition  # admonitions (or call-outs), !!! note "optional title"...
-  - attr_list  # add HTML attributes and CSS classes to alnost every element
+  - attr_list  # add HTML attributes and CSS classes to almost every element
   - toc:  # automatically generate a table of contents
       baselevel: 2
       permalink: true
       slugify: !!python/name:pymdownx.slugs.uslugify
   - meta
+  - mkdocs-typer  # generate documentation for Typer command line applications
 plugins:
   - include-markdown  # including (embedding) Markdown files, by default within {% and %}
   - search:  # adds a search bar to the header; powered by lunr.js
       lang: en
+  # automatic generation of files for mkdocstrings
+  # see https://mkdocstrings.github.io/recipes/#automatic-code-reference-pages
+  - gen-files:  # generate mkdocstrings pages on-the-fly
+      scripts:
+        - scripts/gen_ref_pages.py
+  - literate-nav:  # generate a literate navigation file for mkdocstrings pages
+      nav_file: SUMMARY.md
+  - section-index  # bind pages to sections themselves in mkdocstrings pages
+  # generating documentation from docstrings, now automatically
   - mkdocstrings:  # automatic documentation from sources for MkDocs
-      watch:
-        - PatchScope
+      default_handler: python
+      handlers:
+        python:
+          paths: [ "src" ]
+          show_bases: true
+          docstring_style: sphinx
+          #docstring_section_style: spacy
+          show_signature: true
+          separate_signature: true
+          show_signature_annotations: true
+      watch:  # for `mkdocs serve`, to trigger rebuild
+        - src
 #extra:
 #  version:
 #    provider: mike
@@ -95,3 +135,8 @@ plugins:
 #google_analytics:
   #- UA-xxx
   #- auto
+
+#extra_javascript:
+#  - optionalConfig.js
+#  - https://unpkg.com/mermaid@10.6.1/dist/mermaid.min.js
+#  - extra-loader.js

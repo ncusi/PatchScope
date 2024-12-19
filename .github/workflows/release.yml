@@ -106,12 +106,13 @@ jobs:
       - name: Build documentation
         run: |
           mkdocs build --site-dir public
+          cp favicon*.{png,svg} public/
 
       - name: Upload documentation as artifact
         id: deployment
         uses: actions/upload-pages-artifact@v3
         with:
-          name: documentation
+          name: github-pages
           path: public/
 
   # Deployment job
