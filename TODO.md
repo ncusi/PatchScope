@@ -21,8 +21,8 @@
     - [ ] use `packaging.version.Version` (as `key` function for sorting)
           to find cases where `__version__` is newer than installed version
           (in which case we are for sure in editable install mode)
-    - [ ] add `docs/` directory (for man pages, and maybe API documentation)
-      - [ ] use [MkDocs][] or [Material for MkDocs][mkdocs-material] for general documentation
+    - [x] add `docs/` directory (for man pages, and maybe API documentation)
+      - [x] use [MkDocs][] or [Material for MkDocs][mkdocs-material] for general documentation
       - [ ] generate API documentation using [mkdocstrings][]
       - [ ] generate documentation for scripts using [mkdocs-typer][]
             ([typer][] is used for parsing CLI arguments)
