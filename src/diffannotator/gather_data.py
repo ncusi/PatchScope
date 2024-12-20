@@ -137,7 +137,9 @@ def _is_not_changes(key: str, value: dict,
 
 
 class PurposeCounterResults:
-    """Override this datastructure to gather results"""
+    """Example class to count purposes of each hunk
+
+    Override this datastructure to gather results"""
 
     def __init__(self, processed_files: list,
                  hunk_purposes: Counter[str], added_line_purposes: Counter[str], removed_line_purposes: Counter[str]):
@@ -215,6 +217,52 @@ class PurposeCounterResults:
                 for removed_line in removed_lines:
                     removed_line_purposes[removed_line['purpose']] += 1
         return PurposeCounterResults([file_path], file_purposes, added_line_purposes, removed_line_purposes)
+
+
+class ListAddedLinesResults:
+    """Example class to gather added lines from each hunk
+
+    Override this datastructure to gather results"""
+
+    def __init__(self, processed_files, added_lines):
+        self._processed_files = processed_files
+        self._added_lines = added_lines
+
+    def __add__(self, other):
+        if isinstance(other, ListAddedLinesResults):
+            new_instance = ListAddedLinesResults(
+                self._processed_files + other._processed_files,
+                self._added_lines + other._added_lines)
+            return new_instance
+
+    def __repr__(self):
+        return f"ListAddedLinesResults(_processed_files={self._processed_files!r}, _added_lines={self._added_lines!r}"
+
+    @staticmethod
+    def default():
+        """
+        Constructs empty datastructure to work as 0 for addition via "+"
+
+        :return: empty datastructure
+        """
+        return ListAddedLinesResults([], [])
+
+    @staticmethod
+    def create(file_path, data):
+        """
+        Override this function for single annotation handling
+
+        :param file_path: path to processed file
+        :param data: dictionary with annotations (file content)
+        :return: datastructure instance
+        """
+        added_lines = []
+        for hunk in data:
+            print(hunk)
+            print(data[hunk]['purpose'])
+            if '+' in data[hunk]:
+                added_lines.extend(data[hunk]['+'])
+        return ListAddedLinesResults([file_path], added_lines)
 
 
 class AnnotatedFile:
@@ -826,7 +874,7 @@ def purpose_counter(
 
         <dataset_directory>/<bug_directory>/annotation/<patch_file>.json
 
-    Each dataset can consist of many BUGs, each BUG should include patch
+    Each dataset can consist of many bugs, each bug should include patch
     of annotated *diff.json file in 'annotation/' subdirectory.
     """
     result = {}
@@ -1034,6 +1082,34 @@ def timeline(
 
     # TODO: support other formats than JSON
     save_result(result, output_file)
+
+
+@app.command()
+def list_added_lines(datasets: Annotated[
+    List[Path],
+    typer.Argument(
+        exists=True,
+        file_okay=False,
+        dir_okay=True,
+        readable=True,
+        writable=False,
+    )
+]):
+    """List added lines from all bugs in provided datasets
+
+    Each dataset is expected to be existing directory with the following
+    structure:
+
+        <dataset_directory>/<bug_directory>/annotation/<patch_file>.json
+
+    Each dataset can consist of many bugs, each bug should include patch
+    of annotated *diff.json file in 'annotation/' subdirectory.
+    """
+    for dataset in datasets:
+        print(f"Dataset {dataset}")
+        annotated_bugs = AnnotatedBugDataset(dataset)
+        data = annotated_bugs.gather_data(ListAddedLinesResults.create, ListAddedLinesResults.default)
+        print(data)
 
 
 if __name__ == "__main__":
