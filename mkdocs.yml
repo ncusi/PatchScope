@@ -68,13 +68,13 @@ markdown_extensions:
       generic: true
   - pymdownx.highlight:  # syntax highlighting of code blocks (with superfences)
       linenums: false
-  - pymdownx.superfences  #  arbitrary nesting of code and content blocks
-    #  preserve_tabs: true
-    #  custom_fences:
-    #    # Mermaid diagrams
-    #    - name: mermaid
-    #      class: mermaid
-    #      format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.superfences:  #  arbitrary nesting of code and content blocks
+      preserve_tabs: true
+      custom_fences:
+        # Mermaid diagrams
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
   - pymdownx.details  # make admonition call-outs collapsible
   - pymdownx.tasklist:  #  GitHub Flavored Markdown inspired task lists
       custom_checkbox: true  # replace native checkbox styles with icons
@@ -97,7 +97,8 @@ plugins:
         - scripts/gen_ref_pages.py
   - literate-nav:  # generate a literate navigation file for mkdocstrings pages
       nav_file: SUMMARY.md
-  - section-index  # bind pages to sections themselves in mkdocstrings pages
+  # NOTE: section-index is turned off, because it interfered with adding API docs for diffannotator
+  #- section-index  # bind pages to sections themselves in mkdocstrings pages
   # generating documentation from docstrings, now automatically
   - mkdocstrings:  # automatic documentation from sources for MkDocs
       default_handler: python
@@ -136,7 +137,8 @@ plugins:
   #- UA-xxx
   #- auto
 
-#extra_javascript:
-#  - optionalConfig.js
-#  - https://unpkg.com/mermaid@10.6.1/dist/mermaid.min.js
-#  - extra-loader.js
+extra_javascript:
+  - assets/optionalConfig.js
+  - https://unpkg.com/mermaid@11.4.1/dist/mermaid.min.js
+  # or https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js
+  - assets/extra-loader.js
