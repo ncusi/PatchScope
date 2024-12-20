@@ -97,7 +97,8 @@ plugins:
         - scripts/gen_ref_pages.py
   - literate-nav:  # generate a literate navigation file for mkdocstrings pages
       nav_file: SUMMARY.md
-  - section-index  # bind pages to sections themselves in mkdocstrings pages
+  # NOTE: section-index is turned off, because it interfered with adding API docs for diffannotator
+  #- section-index  # bind pages to sections themselves in mkdocstrings pages
   # generating documentation from docstrings, now automatically
   - mkdocstrings:  # automatic documentation from sources for MkDocs
       default_handler: python
