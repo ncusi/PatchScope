@@ -1086,7 +1086,7 @@ def timeline(
 
 @app.command()
 def list_added_lines(datasets: Annotated[
-    List[Path],
+    list[Path],
     typer.Argument(
         exists=True,
         file_okay=False,
