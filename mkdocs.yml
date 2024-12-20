@@ -138,7 +138,7 @@ plugins:
   #- auto
 
 extra_javascript:
-  - optionalConfig.js
+  - assets/optionalConfig.js
   - https://unpkg.com/mermaid@11.4.1/dist/mermaid.min.js
   # or https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js
-  - extra-loader.js
+  - assets/extra-loader.js
