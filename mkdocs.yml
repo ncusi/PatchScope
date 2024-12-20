@@ -80,6 +80,7 @@ markdown_extensions:
       custom_checkbox: true  # replace native checkbox styles with icons
   - admonition  # admonitions (or call-outs), !!! note "optional title"...
   - attr_list  # add HTML attributes and CSS classes to almost every element
+  - footnotes  # footnoted[^1] ... [^1]: footnote text
   - toc:  # automatically generate a table of contents
       baselevel: 2
       permalink: true
