@@ -79,6 +79,7 @@ template = pn.template.MaterialTemplate(
     favicon="favicon.svg",
     sidebar=[
         timeline_data_store,
+        lines_stats_data_store,
         *authors_info_panel.widgets(),
 
         pn.layout.Divider(),  # - - - - - - - - - - - - -
