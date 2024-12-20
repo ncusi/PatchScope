@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Optional
 
 
-__version__: str = "0.4.0"
+__version__: str = "0.4.1"
 
 # configure logging
 logger = logging.getLogger(__name__)
