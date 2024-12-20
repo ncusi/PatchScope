@@ -13,7 +13,9 @@ nav:
   #- authors: authors.md
   #- history: history.md
   - CLI: cli.md
-  - API: reference/
+  - API:
+     - api.md
+     - reference/
   - schema: schema.md
   - examples: examples.md
   - notebooks: notebooks.md
