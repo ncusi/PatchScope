@@ -122,4 +122,21 @@ PatchScope's DiffInsights Web app draws
 deletions using the red line color, and additions using the green line color,
 just like the color when syntax-highlighting diffs (in most cases).
 
+### Files changed over time
+
+This plot shows the sum over given period of time (over week by default)
+of number of files changed by the commit (or a patch).  The previous example
+diff involved only a single file.
+
+Note: This is not a number of unique files that were changed within given period
+(for example within given week).
+
+Here is how it looks in PatchScope (version **0.4.1**):
+
+![](assets/screenshots/patchscope-contributors-qtile-all-files_changed.png)
+
+Note that it counts different _file name_ in a commit (or a patch),
+excluding special case of `/dev/null`.  This means that file rename
+counts as changing two files for the purposes of this plot.
+
 ## Ad-hoc exploration with Perspectives
