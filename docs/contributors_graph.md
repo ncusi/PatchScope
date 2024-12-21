@@ -69,4 +69,57 @@ plots created by PatchScope are based on annotations taken at some fixed point o
 That is one of the reasons why numbers of commits per author doesn't match
 between those two apps (services).
 
+### Additions and deletions over time
+
+This plot shows total number of added or deleted lines over given period of time,
+that is the sum of number of added/deleted lines in a commit over all commits
+that were authored in a given period of time (by default: over week).
+
+This information is extracted from unified diff of changes in the commit (patch).
+Note that changing a line in this method of counting shows as deleting
+the old version, and adding a new version of a line.
+
+For example, in the following [diff from the `tqdm` repository][335308-diff]
+```diff
+diff --git a/README.rst b/README.rst
+index 7823c4b..9323c52 100644
+--- a/README.rst
++++ b/README.rst
+@@ -3,8 +3,8 @@ Unidiff
+
+ Simple Python library to parse and interact with unified diff data.
+
+-.. image:: https://travis-ci.org/matiasb/python-unidiff.svg?branch=master
+-    :target: https://travis-ci.org/matiasb/python-unidiff
++.. image:: https://www.travis-ci.com/matiasb/python-unidiff.svg?branch=master
++    :target: https://travis-ci.com/matiasb/python-unidiff
+
+ Installing unidiff
+ ------------------
+```
+there are 2 deleted lines and 2 added lines in a single commit (patch).
+
+[335308-diff]: https://github.com/matiasb/python-unidiff/commit/3353080f357a36c53d21c2464ece041b100075a1#diff-7b3ed02bc73dc06b7db906cf97aa91dec2b2eb21f2d92bc5caa761df5bbc168f
+
+The GitHub Insights version of this plot looks like the following
+(for the additions):
+
+![](assets/screenshots/github-qtile_qtile-graphs_contributors-all-additions.png)
+
+Note that the grid of per-author plots is now sorted by the number of added lines
+(the "++" line), though in this case it is the same order as sorted by the number
+of commits.
+
+GitHub Insights draws all plots using the same line color.
+
+The PatchScope Contributors Graph version of the added lines plot looks like this<br>
+taken from **0.4.1** version of PatchScope,
+modified to remove line types percentage info:
+
+![](assets/screenshots/patchscope-contributors-qtile-all-additions_plot.png)
+
+PatchScope's DiffInsights Web app draws
+deletions using the red line color, and additions using the green line color,
+just like the color when syntax-highlighting diffs (in most cases).
+
 ## Ad-hoc exploration with Perspectives
