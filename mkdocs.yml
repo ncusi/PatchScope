@@ -7,7 +7,8 @@ edit_uri: ""  # turn off the feature
 nav:
   - home: index.md
   #- installation: installation.md
-  #- usage: usage.md
+  - usage:
+     - contributors_graph.md
   #- modules: api.md
   #- contributing: contributing.md
   #- authors: authors.md
