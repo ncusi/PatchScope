@@ -139,4 +139,84 @@ Note that it counts different _file name_ in a commit (or a patch),
 excluding special case of `/dev/null`.  This means that file rename
 counts as changing two files for the purposes of this plot.
 
+### Patch size and patch spreading (lines) over time
+
+The definition of patch size and of patch spreading was taken from
+the Defects4J-Dissection paper[^defects4j-dissection].
+
+#### Patch size metrics
+
+The **_patch size_** metric is sum of the number of added, modified, and removed lines.
+Lines are considered _modified_ when sequences of removed lines are straight followed by added lines ~~(or vice-versa).~~
+To count each modified line, a pair of adjacent added and removed lines is needed.
+The Defects4J-Dissection paper[^defects4j-dissection] shows on Listing 1 (shown below)
+an example of patch with one modified line (line 635),
+two non-paired removed lines (the old 636 and 639 lines),
+and none non-paired added line, getting patch size of 3 lines.
+
+![](assets/defects4j_dissection.Listing_1.Closure-40.2x.png)
+
+You can also view the diff shown on the figure above at [Dissection of Closure 40][Closure-40-repair]
+entry in the [Defects4J Dissection](https://program-repair.org/defects4j-dissection/#!/) web app
+(on [program-repair.org](https://program-repair.org/)) accompanying the [defects4j-repair][] repository
+that contains the raw experimental results of the experiments,
+discussed in Defect4J-Repair paper[^defects4j-repair],
+and referenced in Defects4J-Dissection paper[^defects4j-dissection].
+
+Note that this diff is "Human Patch", and not [`git diff` patch text][git-diff-patch],
+or [unified diff][detailed-unified], or even [context diff][detailed-context] format.
+
+You can find the git commit corresponding to the Closure-40 patch inside
+[Closure/commits-db][Closure-commit-db] CSV file in the [defects4j][] repository.
+Note that [Closure/patches/40.src.patch][Closure-40-defects4j] in the same repository
+is, for some reason, reverse of the "Human Patch" mentioned above.
+
+The closest to the "Human Patch" is the diff for the [6ebc0c3d7d][6ebc0c3d7d4da7d2cf95f53d4ea790e89d3abc7a]
+commit in [google/closure-compiler](https://github.com/google/closure-compiler)
+(now on GitHub, originally on Google Code Project Hosting), with `--ignore-all-space`/`-w`
+option, limited to project files (that is, excluding changes to tests):
+```diff
+diff --git a/src/com/google/javascript/jscomp/NameAnalyzer.java b/src/com/google/javascript/jscomp/NameAnalyzer.java
+index 351210dd4..6e9e47036 100644
+--- a/src/com/google/javascript/jscomp/NameAnalyzer.java
++++ b/src/com/google/javascript/jscomp/NameAnalyzer.java
+@@ -632,14 +632,12 @@ final class NameAnalyzer implements CompilerPass {
+         Node nameNode = n.getFirstChild();
+         NameInformation ns = createNameInformation(t, nameNode, n);
+         if (ns != null && ns.onlyAffectsClassDef) {
+-          JsName name = getName(ns.name, false);
+-          if (name != null) {
++          JsName name = getName(ns.name, true);
+           refNodes.add(new ClassDefiningFunctionNode(
+               name, n, parent, parent.getParent()));
+         }
+       }
+     }
+-    }
+
+     /**
+      * Records the assignment of a value to a global name.
+```
+For this diff/patch you get the same patch size of 3 lines: 1 modified, 2 removed
+(this patch would count as having 3 deletions, and 1 addition).
+
+[git-diff-patch]: https://git-scm.com/docs/git-diff#generate_patch_text_with_p "git-diff Documentation :: Generating patch text with -p"
+[detailed-unified]: https://www.gnu.org/software/diffutils/manual/html_node/Detailed-Unified.html "GNU Diffutils :: Detailed Description of Unified Format"
+[detailed-context]: https://www.gnu.org/software/diffutils/manual/html_node/Detailed-Context.html "GNU Diffutils :: Detailed Description of Context Format"
+[6ebc0c3d7d4da7d2cf95f53d4ea790e89d3abc7a]: https://github.com/google/closure-compiler/commit/6ebc0c3d7d4da7d2cf95f53d4ea790e89d3abc7a?w=1&diff=split#diff-39a510ebc48ca3e1ac8049858cd1cf91e218503b73191ba406099b8ba63a1934
+
+[^defects4j-repair]: Matias Martinez, Thomas Durieux, Romain Sommerard, Jifeng Xuan, and Martin Monperrus _"Automatic Repair of Real Bugs in Java: A Large-Scale Experiment on the Defects4J Dataset"_, ESE (2016), https://hal.archives-ouvertes.fr/hal-01387556/document
+
+[^defects4j-dissection]: Victor Sobreira, Thomas Durieux, Fernanda Madeiral, Martin Monperrus, and Marcelo de Almeida Maia _"Dissection of a Bug Dataset: Anatomy of 395 Patches from Defects4J"_, SANER 2018, https://doi.org/10.1109/SANER.2018.8330203
+
+[defects4j]: https://github.com/rjust/defects4j
+[defects4j-repair]: https://github.com/Spirals-Team/defects4j-repair
+[Closure-40-defects4j]: https://github.com/rjust/defects4j/blob/master/framework/projects/Closure/patches/40.src.patch
+[Closure-commit-db]: https://github.com/rjust/defects4j/blob/master/framework/projects/Closure/commit-db
+[Closure-40-repair]: https://program-repair.org/defects4j-dissection/#!/bug/Closure/40
+
+Here is how it looks in PatchScope (version **0.4.1**):
+
+![](assets/screenshots/patchscope-contributors-qtile-all-patch_size.png)
+
 ## Ad-hoc exploration with Perspectives
