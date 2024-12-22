@@ -144,7 +144,7 @@ counts as changing two files for the purposes of this plot.
 The definition of patch size and of patch spreading was taken from
 the Defects4J-Dissection paper[^defects4j-dissection].
 
-#### Patch size metrics
+#### Patch size metric
 
 The **_patch size_** metric is sum of the number of added, modified, and removed lines.
 Lines are considered _modified_ when sequences of removed lines are straight followed by added lines ~~(or vice-versa).~~
@@ -218,5 +218,37 @@ For this diff/patch you get the same patch size of 3 lines: 1 modified, 2 remove
 Here is how it looks in PatchScope (version **0.4.1**):
 
 ![](assets/screenshots/patchscope-contributors-qtile-all-patch_size.png)
+
+#### Patch spreading metric
+
+The **_patch spreading (lines)_** metric shown in the PatchScope web app
+is the second patch spreading metric from Defects4J-Dissection paper[^defects4j-dissection],
+namely _spreading of chunks_ in a patch.
+
+A _chunk_ is defined in Defects4J-Dissection[^defects4j-dissection] as
+a sequence of continuous changes in a file, consisting of the combination of
+addition, removal, and modification of lines.  We will call it a _change group_
+to avoid confusion with _hunk_ as defined by (unified) diff format.
+
+The measure _spreading of chunk_ / _chunks spreading_ , we consider the number of lines
+interleaving chunks (change groups).  In a patch with only one chunk, this value
+is naturally zero, because such patch represents a continuous sequence of changes.
+In a patch with two chunks, at least one line separates the chunks.
+For patches involving more than one file, we sum the spreading of chunks of all files
+to get the final spreading of the patch.
+
+For the Closure-40 patch on Listing 1 figure above,
+between the old line 636 (end of the first chunk)
+and the old line 639 (beginning of the second chunk)
+there is only 2 lines, which is the value of the
+_spreading of chunks_ metric in this case.
+
+Here is how it looks in PatchScope (version **0.4.1**):
+
+![](assets/screenshots/patchscope-contributors-qtile-all-patch_spreading.png)
+
+Note that empty and comment lines were discarded for _chunk spreading_ calculations
+in Defects4J-Dissection paper[^defects4j-dissection], but this was **not** done
+in the PatchScope pipeline (patch annotation) and visualization.
 
 ## Ad-hoc exploration with Perspectives
