@@ -249,6 +249,44 @@ Here is how it looks in PatchScope (version **0.4.1**):
 
 Note that empty and comment lines were discarded for _chunk spreading_ calculations
 in Defects4J-Dissection paper[^defects4j-dissection], but this was **not** done
-in the PatchScope pipeline (patch annotation) and visualization.
+by the PatchScope pipeline (patch annotation) and visualization.
+
+### Line types distribution \[%] (area plot)
+
+**TODO**
+
+### Line types heatmap ±\[%]
+
+All line types distribution plots show how many changed lines are of given type.
+What counts as line of specific type depends on the configuration of the
+annotation process.  For `*.timeline.purpose-to-type.json` data files, the following
+rules were applied:
+
+- if the changed file purpose (the changed line belong to) was either
+  of "data", "documentation", "markup", "other", "project", or "test",
+  then the line counts as that type,
+- if line consists only of whitespace and comments, or is inside docstring,
+  it counts as "documentation",
+- otherwise it counts as "code".
+
+This is not the only possible configuration.  For example, you might want
+comments in "test" files to count as "documentation", and only lines with
+some code count as "test".  This can be done with line callback.
+
+For the ± percentage (\[%]) line types distribution plots, like this heatmap
+plot, the percentage is computed as the number of added ('+') or deleted ('-')
+lines of given type (kind), over total number of added or deleted lines.
+
+![](assets/screenshots/patchscope-contributors-qtile-all-line_types_perc_heatmap.png)
+
+Note that the color scale is linear, and that values in **0.4.1** of the ratio
+were not rescaled from 0..1 range to 0%..100% range.
+
+It is also, as of **0.4.1**, non-interactive (the app uses [Seaborn][sns.heatmap]
+and [Matplotlib][], rather than [hvPlot][hvPlot-heatmap] to generate this plot).
+
+[Matplotlib]: https://matplotlib.org/
+[sns.heatmap]: https://seaborn.pydata.org/generated/seaborn.heatmap.html
+[hvPlot]: https://hvplot.holoviz.org/user_guide/Plotting.html#heatmap
 
 ## Ad-hoc exploration with Perspectives
