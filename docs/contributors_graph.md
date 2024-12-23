@@ -147,7 +147,7 @@ the Defects4J-Dissection paper[^defects4j-dissection].
 #### Patch size metric
 
 The **_patch size_** metric is sum of the number of added, modified, and removed lines.
-Lines are considered _modified_ when sequences of removed lines are straight followed by added lines ~~(or vice-versa).~~
+Lines are considered _modified_ when sequences of removed lines are straight followed by added lines ~~(or vice versa).~~
 To count each modified line, a pair of adjacent added and removed lines is needed.
 The Defects4J-Dissection paper[^defects4j-dissection] shows on Listing 1 (shown below)
 an example of patch with one modified line (line 635),
@@ -287,6 +287,46 @@ and [Matplotlib][], rather than [hvPlot][hvPlot-heatmap] to generate this plot).
 
 [Matplotlib]: https://matplotlib.org/
 [sns.heatmap]: https://seaborn.pydata.org/generated/seaborn.heatmap.html
-[hvPlot]: https://hvplot.holoviz.org/user_guide/Plotting.html#heatmap
+[hvPlot-heatmap]: https://hvplot.holoviz.org/user_guide/Plotting.html#heatmap
+
+### Flow from path to line type (Sankey diagram)
+
+**Sankey diagrams** are a data visualisation technique or flow diagram
+that emphasizes flow/movement/change from one state to another (or one time to another),
+in which the width of the arrows is proportional to the flow rate
+of the depicted extensive property.
+
+In the case of PatchScope's DiffInsights Web app, the property described
+is the number of changed lines (sum of added and deleted lines), and
+the state is either a subdirectory in the project (from the left side, following
+the directory hierarchy), or a line type (on the far right side).
+
+The [Sankey Diagram](https://www.data-to-viz.com/graph/sankey.html) is in this
+case used for showing _source to end_ flow.
+
+There are a few examples of [Python implementations of Sankey diagram](https://python-graph-gallery.com/sankey-diagram/)
+shown on [The Python Graph Gallery](https://python-graph-gallery.com/) site,
+including with Plotly and with pySankey.  Currently, PatchScope **0.4.1**
+uses [HoloViews Sankey Element with Bokeh backend](https://holoviews.org/reference/elements/bokeh/Sankey.html),
+but use of [Plotly](https://plotly.com/python/sankey-diagram/) is planned
+(and possibly [Mermaid.js](https://mermaid.js.org/syntax/sankey.html)).
+
+Here is how it looks in PatchScope (version **0.4.1**):
+
+![](assets/screenshots/patchscope-contributors-hellogitworld-all-sankey_diagram.png)
+
+For example, on the diagram above, you can see that there was one changed
+line in some file in `src/main/java/com/github/` subdirectory which counted
+as "documentation" (it must have been line that consisted only of comments).
+
+Note that to plot Sankey diagram one needs more information that is present
+in the `*.timeline.*.json` data file, because "timeline" data file contains
+only summary information about commits/bug-fixes/patches, and not individual
+changed files.
+
+Therefore, to be able to draw Sankey diagram, there needs to be corresponding
+`*.lines-stats.*.json` file present.  As of **0.4.1**, PatchScope does not _yet_
+use the timeline data to limit Sankey to subset of commits: either limiting
+to given time period, or limiting to commits authored by given author.
 
 ## Ad-hoc exploration with Perspectives
