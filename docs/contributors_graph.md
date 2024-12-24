@@ -330,3 +330,53 @@ use the timeline data to limit Sankey to subset of commits: either limiting
 to given time period, or limiting to commits authored by given author.
 
 ## Ad-hoc exploration with Perspectives
+
+At the bottom of the main part of Contributors Graph app of PatchScope's
+DiffInsights web app, there is tabbed view, which shows the original JSON data,
+and which shows various derived DataFrames.
+
+DataFrames are shown using the [Perspective][] pane from HoloViz [Panel][],
+which provide visualization component for large, real-time datasets.
+This pane is built on the [Perspective Project][].
+
+The Perspective pane is a very good alternative to the [Tabulator][] widget
+that is used as one of views in Author Statistics app.  Tabulator widget
+built on the [Tabulator library][].
+
+The Perspective pane provides many plugins, ranging from (the default)
+Datagrid that shows the original DataFrame (and where you can save the DataFrame
+to a file from ![](assets/export-icon.svg) "Export" menu), to X/Y Scatter,
+and many others.
+
+![](assets/screenshots/patchscope-contributors-qtile-all-perspective-resampled_df-datagrid.png)
+
+Here are few examples of ad-hoc plots generated using the Perspective pane:
+
+![](assets/screenshots/patchscope-contributors-qtile-all-perspective-data_df-xy_scatter-pm_count.png)
+
+This plot shows how the number of added lines ('+:count') correlates with
+the number of deleted lines ('-:count'), zooming on a fragment of the plot.
+This plot shows, for example, that pure file additions ('-:count' of 0)
+are larger than pure file deletions ('+:count' of 0).
+
+It's an example of plot done on the original data, not on weekly aggregates
+(not on resampled data).
+
+![](assets/screenshots/patchscope-contributors-qtile-all-perspective-resampled_df-xy_scatter-patch_size_vs_patch_spreading.png)
+
+This plot shows how the patch size ('diff.patch_size', see [above](#patch-size-metric) for explanation)
+correlates with patch spreading ('diff.groups_spread', see [above](#patch-spreading-metric) for explanation),
+number of affected files per commit ('file_names', color) and number of commits ('n_commits', marker size).
+All values are weekly contributions, that is sums over the week period.  You can see which week
+given point corresponds to on the tooltip: 'author_date' (it shows the end date, translated from
+UTC at midnight to local time: CEST/CET in this figure).
+
+![](assets/screenshots/patchscope-contributors-qtile-all-perspective-authors_info_df-x_bar-n_commits_groupby.png)
+
+This horizontal bar plot shows most prolific authors by number of commits, sorted
+by number of commits per author name.
+
+[Perspective]: https://panel.holoviz.org/reference/panes/Perspective.html
+[Perspective Project]: https://perspective.finos.org/
+[Tabulator]: https://panel.holoviz.org/reference/widgets/Tabulator.html
+[Tabulator library]: https://tabulator.info/
