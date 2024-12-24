@@ -329,6 +329,23 @@ Therefore, to be able to draw Sankey diagram, there needs to be corresponding
 use the timeline data to limit Sankey to subset of commits: either limiting
 to given time period, or limiting to commits authored by given author.
 
+### No plot
+
+This option is here to be able to easier compare non-plot information among
+top-N authors in the authors grid.
+
+With this option it is easy to compare the totals (number of commits, number
+of additions ('++'), number of deletions ('--')), and distribution of changed
+lines (as percentage '\[%]') among "code", "documentation" (including comments
+and docstrings), "test", "data", "markup", and "other".
+
+See the _"[Line types heatmap ±\[%]](#line-types-heatmap-)"_ section for description
+how types of changed lines were annotated.
+
+Here is how it looks in PatchScope (version **0.4.1**):
+
+![](assets/screenshots/patchscope-contributors-qtile-all-no_plot-line_types_perc.png)
+
 ## Ad-hoc exploration with Perspectives
 
 At the bottom of the main part of Contributors Graph app of PatchScope's
