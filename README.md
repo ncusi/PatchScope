@@ -116,6 +116,11 @@ See the basic [demo on Heroku](https://patchscope-9d05e7f15fec.herokuapp.com/):
 - <img height="20" src="favicon.png" width="20" />&nbsp;[Contributors Graph app](https://patchscope-9d05e7f15fec.herokuapp.com/contributors)
 - <img height="20" src="favicon-author.png" width="20" />&nbsp;[Author Statistics app](https://patchscope-9d05e7f15fec.herokuapp.com/author)
 
+You can find description of those two apps, with screenshots, at
+
+- `docs/author_statistics.md` (**TODO**)
+- [`docs/contributors_graph.md`](docs/contributors_graph.md)
+
 [Panel]: https://panel.holoviz.org/
 
 

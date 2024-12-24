@@ -11,6 +11,45 @@ This directory includes the following notebooks:
   and it's various subcommands, using annotations generated with
   `diff-annotate from-repo`.
 
+## `panel` and `bokeh` subdirectories
+
+The **`bokeh/`** subdirectory contains some Python scripts that
+create various interactive plots to visualize annotation results.
+Plots are created using the [Bokeh][][^bokeh] library.
+
+[^bokeh]: Bokeh is an interactive visualization library for modern web browsers.
+
+The **`panel/`** subdirectory contains Jupyter notebooks (`*.ipynb`)
+and Python scripts (`*.py`), which use [Panel][][^panel] (member of the [HoloViz][] ecosystem)
+to explore various way of interactively visualizing and analysing
+annotation results; though some are there just to explore [Panel][] features.
+See its [`panel/README.md`](./panel/README.md).
+
+[^panel]: Panel is an open-source Python library designed to streamline the development of robust tools, dashboards, and complex applications entirely within Python.
+
+[Bokeh]: https://bokeh.org/
+[Panel]: https://panel.holoviz.org/
+[HoloViz]: https://holoviz.org/
+
+## `experiments` subdirectory
+
+The **`experiments/` subdirectory contains Jupyter notebooks that are part
+of comparing automatic line annotations from this tool (PatchScope), with
+different datasets that include manual line annotations.
+
+- [`00-HaPy_Bug-Paper.ipynb`](./experiments/00-HaPy_Bug-Paper.ipynb)
+  reproduces results in the HaPy-Bug paper[^hapy-bug].
+- [`01-compare_annotations.ipynb`](./experiments/01-compare_annotations.ipynb)
+  compares automatic annotations from PatchScope with manual annotations
+  in BugsInPy subset of HaPy-Bug dataset.
+- [`02-compare_annotations_Herbold.ipynb`](./experiments/02-compare_annotations_Herbold.ipynb)
+  compares automatic annotations from PatchScope with manual annotations
+  from Herbold et al. paper[^herbold].
+
+[^hapy-bug]: Piotr Przymus, Mikołaj Fejzer, Jakub Narębski, Radosław Woźniak, Łukasz Halada, Aleksander Kazecki, Mykhailo Molchanov and Krzysztof Stencel _"HaPy-Bug – Human Annotated Python Bug Resolution Dataset"_ (2024)
+
+[^herbold]: Steffen Herbold et al. _"A fine-grained data set and analysis of tangling in bug fixing commits"_ https://doi.org/10.1007/s10664-021-10083-5
+
 ## Running notebooks
 
 If needed, install required packages with
