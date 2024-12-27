@@ -44,7 +44,7 @@ This app includes, as of PatchScope version **0.4.1**, the following plots:
 As of version **0.4.1** almost all plots are created using [Seaborn][] and/or
 [Matplotlib][] libraries, and displayed using [Panel][]'s
 [Matplotlib pane](https://panel.holoviz.org/reference/panes/Matplotlib.html),
-with SVG rendering.
+with PNG or SVG rendering.
 There are exceptions that use [hvPlot][] library (with some [HoloViews][] use),
 with the [Bokeh][] backend.
 
@@ -70,3 +70,41 @@ as of **0.4.1** not yet grouped into single tabbed widget like in
 [Matplotlib]: https://matplotlib.org/
 [Panel]: https://panel.holoviz.org/
 [Seaborn]: https://seaborn.pydata.org/
+
+### Code frequency over time, for author
+
+This plot shows, by default, the total number of added and deleted lines
+over given period of time (weekly, semi-monthly, monthly, quarterly, etc.),
+that is the sum of number of added and deleted lines in a commit over all commits
+that were authored by given author in a given period of time.
+
+Added lines are shown with <i>y</i>-axis pointing up, using green line color, while
+deleted lines are shown with <i>y</i>-axis pointing down, using red line color.
+
+Here is an example for qtile repository (from PatchScope version **0.4.1**):
+
+![](assets/screenshots/patchscope-author-qtile-Tycho_Andersen-line_counts-QE-sum.png)
+
+It is step area plot; step function was selected to denote that it is aggregate
+over given period of time - in the example above, over quarter (QE - quarter end).
+
+Here is the same plot, but with smaller resample period, monthly (ME - month end):
+
+![](assets/screenshots/patchscope-author-qtile-Tycho_Andersen-line_counts-ME-sum.png)
+
+And here is with even smaller resample period, weekly (W - week):
+
+![](assets/screenshots/patchscope-author-qtile-Tycho_Andersen-line_counts-W-sum.png)
+
+This plot is very similar to the Code Frequency plot in GitHub Insights pane
+for a repository, but the GitHub Code Frequency plot is for the whole repository,
+not for selected author, and the resample frequency is fixed: weekly.
+
+Here is an example for qtile repo from
+<https://github.com/qtile/qtile/graphs/code-frequency>:
+
+![](assets/screenshots/github-qtile_qtile-code_frequency.png)
+
+This plot uses solid green line for additions, and dashed red line for deletions.
+It literally uses negative values for deletions, instead of inverting
+the y-axis.  It is an interactive plot - you can get exact values on hover.
