@@ -9,6 +9,7 @@ nav:
   #- installation: installation.md
   - usage:
      - contributors_graph.md
+     - author_statistics.md
   #- modules: api.md
   #- contributing: contributing.md
   #- authors: authors.md

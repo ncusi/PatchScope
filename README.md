@@ -118,7 +118,7 @@ See the basic [demo on Heroku](https://patchscope-9d05e7f15fec.herokuapp.com/):
 
 You can find description of those two apps, with screenshots, at
 
-- `docs/author_statistics.md` (**TODO**)
+- [`docs/author_statistics.md`](docs/author_statistics.md)
 - [`docs/contributors_graph.md`](docs/contributors_graph.md)
 
 [Panel]: https://panel.holoviz.org/
