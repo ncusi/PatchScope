@@ -108,3 +108,81 @@ Here is an example for qtile repo from
 This plot uses solid green line for additions, and dashed red line for deletions.
 It literally uses negative values for deletions, instead of inverting
 the y-axis.  It is an interactive plot - you can get exact values on hover.
+
+### Line type frequency over time, for author
+
+The next plot is the 'line type / file purpose counts' plot
+(though as of version **0.4.1**, only line type are turned on and available).
+This uses the same type of plot as the previous one,
+that its it shows contributions from added and deleted lines on the same plot,
+with contribution from deleted lines shown on reversed y-axis.
+
+The difference is where the data to plot comes from.  Instead of considering
+each changed line, as in the case of the previous plot, you can select
+what kind of lines you want to count.  The line types present in the
+input data depend on the configuration of the annotation process (`diff-annotate`),
+and  optionally on the configuration of the post-processing step (`diff-gather-stats`).
+
+What counts as line of specific type also depends on the configuration of the
+annotation process.  For `*.timeline.purpose-to-type.json` data files, the following
+rules were applied (see also similar description in [Contributors Graph](contributors_graph.md)
+documentation):
+
+- if the changed file purpose (the changed line belong to) was either
+  of "data", "documentation", "markup", "other", "project", or "test",
+  then the line counts as that type,
+- if line consists only of whitespace and comments, or is inside docstring,
+  it counts as "documentation",
+- otherwise it counts as "code".
+
+This is not the only possible configuration.  For example, you might want
+comments in "test" files to count as "documentation", and only lines with
+some code count as "test".  This can be done with a line callback.
+
+The following "columns" (line types) are available for the example data
+files, as of PatchScope **0.4.1**:
+
+- type.code
+- type.documentation
+- type.test
+- type.data
+- type.markup
+- type.project
+- type.other
+
+GitHub Linguist uses the following categorization for _language_ types
+(those are for the file as a whole; depending on configuration of the
+annotation process, every changed line can be labelled as having that
+type):
+
+- data (for example: `*.afm`, `CODEOWNERS`, `*.csv`, `*.json`, `*.diff`,
+  but it also includes some project files, like Pip Requirements: `requirements.txt`;
+  "project" files are specified in PatchScope with custom rules), 
+- programming (for example: `*.asm`, `*.c`, `*.cpp`, `*.py`,
+  but it includes also some project files, like `CMakeLists.txt` and `Makefile`),
+- markup (for example: `*.css`, `*.html`, `*.jinja`, `*.ipynb`, `*.tex`), 
+- prose (for example: `*.po` (gettext), `*.md` (Markdown), `*.txt` (plain text)), 
+- nil
+
+Here is an example of the plot for 'type.data' changed lines (added and deleted
+lines, plotted separately but on the same plot), the quarterly ('QE') count
+('sum' as aggregation function), for selected author in selected repository:
+
+![](assets/screenshots/patchscope-author-qtile-Tycho_Andersen-line_type-type_data-QE-sum.png)
+
+This plot is from PatchScope version **0.4.1**.
+
+For each line type (like 'type.code', for example) there is also corresponding
+line type percentage equivalent (like 'type.code \[%]', for example).
+This percentage is computed as the number of added ('+') or deleted ('-')
+lines of given type (kind), over total number of added or deleted lines.
+
+Here is an example of the plot for 'type.code \[%]' (from version **0.4.1**
+of PatchScope):
+
+![](assets/screenshots/patchscope-author-qtile-Tycho_Andersen-line_type-type_code_perc-QE-sum.png)
+
+The figure above shows that for this author, in this specific repository,
+changes to code dominate.  Note that cases where both percentages are zero
+('+:type.code' and '-:type.code') means that for given period of time there
+were no commits contributed by the selected author.
