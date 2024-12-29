@@ -332,10 +332,12 @@ The very same plot is also available in the authors grid part of the
 "[Commits over time](contributors_graph.md#commits-over-time)" subsection),
 and in authors grid part of Contributors Graph part of GitHub Insights for repo:
 
-![](assets/screenshots/github-qtile_qtile-graphs_contributors-all-commits-tych0.png)
+![](assets/screenshots/github-qtile_qtile-graphs_contributors-all-commits-tych0.v2.png)
 
-Note that in GitHub Insights case the plot scale is selected according to
-the commit counts plot for the whole repository.
+Note that in GitHub Insights case the plot scale can (!) be selected according to
+the commit counts plot for the whole repository, like in the example below.
+
+![](assets/screenshots/github-qtile_qtile-graphs_contributors-all-commits-tych0.v1.png)
 
 
 ### Histogram of −/+ counts per commit, for author
