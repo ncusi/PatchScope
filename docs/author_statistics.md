@@ -308,3 +308,31 @@ The current version of the algorithm (as of PatchScope **0.4.1**),
 when run on the git diff, says  that there are 4 modified lines, and 1 added line,
 while in reality  this part was completely rewritten,
 and the correct answer should be 4 deletions (removals) and 1 addition.
+
+
+### Commit counts over time, for author
+
+This plot shows number of commits made by selected author, per given period of time.
+There is similar plot in authors grid part of GitHub Insights tab for a repository,
+in Contributors Graph section, but in it this is always the weekly number of commits,
+that is total number of commits in a given week.  For PatchScope, it is configurable
+(via sidebar widgets).
+
+Here is an example for qtile repository (from PatchScope version **0.4.1**),
+for quarterly frequency ('QE'):
+
+![](assets/screenshots/patchscope-author-qtile-Tycho_Andersen-commit_counts-QE.png)
+
+Here is the same case, but with the weekly frequency ('W') that GitHub Insights use:
+
+![](assets/screenshots/patchscope-author-qtile-Tycho_Andersen-commit_counts-W.png)
+
+The very same plot is also available in the authors grid part of the
+[Contributors Graph](contributors_graph.md) app (see the
+"[Commits over time](contributors_graph.md#commits-over-time)" subsection),
+and in authors grid part of Contributors Graph part of GitHub Insights for repo:
+
+![](assets/screenshots/github-qtile_qtile-graphs_contributors-all-commits-tych0.png)
+
+Note that in GitHub Insights case the plot scale is selected according to
+the commit counts plot for the whole repository.
