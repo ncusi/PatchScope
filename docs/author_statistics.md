@@ -336,3 +336,34 @@ and in authors grid part of Contributors Graph part of GitHub Insights for repo:
 
 Note that in GitHub Insights case the plot scale is selected according to
 the commit counts plot for the whole repository.
+
+
+### Histogram of −/+ counts per commit, for author
+
+This plot shows (bi)histogram of distribution of numbers of added lines
+('+:count') and of numbers of deleted lines ('-:count'), put together on
+one plot, with '-:count' counting in negatives.
+
+In this case it is histogram of line counts (added or deleted) per _commit_,
+for all commits created by selected author.
+
+Here is an example for qtile repository (from PatchScope version **0.4.1**):
+
+![](assets/screenshots/patchscope-author-qtile-Tycho_Andersen-histogram_of_line_counts_per_commit-bw=3-max_val=100.png)
+
+The figura above is for the default values.  If we zoom a bit we can
+see the trend (for this specific author, in this specific repository)
+more clear (and with controls shown explicitly):
+
+![](assets/screenshots/patchscope-author-qtile-Tycho_Andersen-histogram_of_line_counts_per_commit-bw=1-max_val=35-with_controls.png)
+
+This figure shows that statistically, larger additions are more common
+than large deletions, but that small changes are most common.
+
+This (bi)histogram does not show the correlation between the number of
+deleted and added lines, though.
+
+
+### Histogram of −/+ counts per resample period, for author
+
+**TODO**
