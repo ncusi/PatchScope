@@ -186,3 +186,125 @@ The figure above shows that for this author, in this specific repository,
 changes to code dominate.  Note that cases where both percentages are zero
 ('+:type.code' and '-:type.code') means that for given period of time there
 were no commits contributed by the selected author.
+
+### Patch size components over time, for author
+
+The definition of patch size (and its components) was taken from
+the Defects4J-Dissection paper[^defects4j-dissection].
+
+[^defects4j-dissection]: Victor Sobreira, Thomas Durieux, Fernanda Madeiral, Martin Monperrus, and Marcelo de Almeida Maia _"Dissection of a Bug Dataset: Anatomy of 395 Patches from Defects4J"_, SANER 2018, https://doi.org/10.1109/SANER.2018.8330203
+
+The patch size metric is sum of the number of added, modified, and removed (deleted) lines.
+Lines are considered _modified_ when sequences of removed lines are straight followed by added lines ~~(or vice versa).~~
+To count each modified line, a pair of adjacent added and removed lines is needed.
+
+Take for example the following diff, which is a part of commit
+[46bf2086](https://github.com/qtile/qtile/commit/46bf2086273d52049d9b8c6ee528a3d5aeb16ee2)
+in qtile repository (first hunk of changes):
+
+```diff
+diff --git a/test/test_hook.py b/test/test_hook.py
+index effd70a9..e005ac68 100644
+--- a/test/test_hook.py
++++ b/test/test_hook.py
+@@ -27,14 +27,12 @@ import pytest
+
+ import libqtile.log_utils
+ import libqtile.utils
+-from libqtile import hook
++from libqtile import config, hook, layout
++from libqtile.config import Match
+ from libqtile.resources import default_config
+-from test.conftest import BareConfig
++from test.conftest import BareConfig, dualmonitor
+ from test.helpers import Retry
+
+-# TODO: more tests required.
+-# 1. Check all hooks that can be fired
+-
+
+ class Call:
+     def __init__(self, val):
+```
+
+This diff consists of 3 sequences of changed lines (change groups,
+or "chunks" using the term from Defects4j-Dissection paper[^defects4j-dissection]).
+In 1st group there is 1 modified line and 1 added line,
+in 2nd group there is 1 modified line, and
+in 3rd group there are 3 deleted (removed) lines.
+In total, for this hunk of changes in `test/test_hook.py` file,
+the algorithm finds 3 removed lines, 2 modified lines, and 1 added line.
+
+The 'patch sizes' plot (shown below) counts things a bit differently:
+it counts modified lines and added lines up, adding to all '+' lines, and
+it counts modified lines and removed lines down, adding to all '-' lines.
+
+![](assets/screenshots/patchscope-author-qtile-Tycho_Andersen-patch_sizes-QE.png)
+
+This means that modified lines are kind of counted twice,
+once pointing up (adding to added lines, to sum to '+' lines),
+once pointing down (adding to removed lines, to sum to '-' lines).
+On one hand, it means that the height of the plot is not equal to
+the patch size; on the other hand it means that the plot looks
+very similar to the code frequency over time or 'line counts' plot:
+
+![](assets/screenshots/patchscope-author-qtile-Tycho_Andersen-line_counts-QE-sum.png)
+
+Both plots were created using PatchScope version **0.4.1**.
+
+Note that it is not always that first deleted line corresponds to first added line,
+creating modified line.  In the following diff (taken from commit
+[1db6bab2](https://github.com/qtile/qtile/commit/1db6bab250eda20159b425de4378d27241b2997e)
+in qtile repository):
+```diff
+diff --git a/libqtile/widget/notify.py b/libqtile/widget/notify.py
+index a87281e5..8a1eec1f 100644
+--- a/libqtile/widget/notify.py
++++ b/libqtile/widget/notify.py
+@@ -219,5 +219,6 @@ class Notify(base._TextBox):
+             self._invoke()
+
+     def finalize(self):
+-        notifier.unregister(self.update, on_close=self.on_close)
++        if notifier is not None:
++            notifier.unregister(self.update, on_close=self.on_close)
+         base._TextBox.finalize(self)
+
+```
+it is the second added line that was modified (if we consider whitespace
+changes to be a modification).
+
+See also similar description in the [Contributors Graph](contributors_graph.md)
+documentation.
+
+This algorithm does not always give the correct results.  Take for example
+the [928a0447 commit](https://github.com/qtile/qtile/commit/928a0447f52a24f0c39cc135cb958a551c3855bb)
+from the qtile repository:
+
+```diff
+diff --git a/docs/manual/releasing.rst b/docs/manual/releasing.rst
+index ff7b31eb..0b935ee0 100644
+--- a/docs/manual/releasing.rst
++++ b/docs/manual/releasing.rst
+@@ -39,9 +39,10 @@ Be sure that you GPG-sign (i.e. the ``-S`` argument to ``git commit``) this comm
+ 6. Make sure all of these actions complete as green. The release should show up
+    in a few minutes after completion here: https://pypi.org/project/qtile/
+
+-7. send a mail to qtile-dev@googlegroups.com; I sometimes just use
+-   git-send-email with the release commit, but a manual copy/paste of the
+-   release notes into an e-mail is fine as well. Additionally, drop a message
+-   in IRC/Discord.
++7. Push your tag commit to master.
++
++8. Update `the release string
++   <https://github.com/qtile/qtile.org/blob/master/config.toml#L49>`_ on
++   qtile.org.
+
+ 8. Relax and enjoy a $beverage. Thanks for releasing!
+
+```
+
+The current version of the algorithm (as of PatchScope **0.4.1**),
+when run on the git diff, says  that there are 4 modified lines, and 1 added line,
+while in reality  this part was completely rewritten,
+and the correct answer should be 4 deletions (removals) and 1 addition.
