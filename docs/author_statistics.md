@@ -410,3 +410,53 @@ Commits will appear on ones contributions graph if they meet all the following
 conditions: email matches the GitHub account, they are made in standalone
 repository, on repository's default branch or the `gh-pages` branch
 (with some additional conditions).
+
+
+### Periodic behavior, local time
+
+This heatmap plot, together with its marginal histograms, is geared towards
+detecting periodicity in selected authors behavior (in selected repository).
+It plots total number of commits (a sum) that were created during specific
+hour of the day (on x-axis) and specific day of the week (on y-axis).
+
+It converts Unix timestamps to localtime date using the timezone data from commit
+(assuming that timezone information is correctly configured); though this matters
+more for the hour dimension than for the day of week dimension: see figures
+below.
+
+![](assets/hour_UTC_vs_hour_localtime-ezhulenev.png)
+
+![](assets/day_of_week-localtime_vs_UTC-ezhulenev.png)
+
+You can see that without switching to localtime one would get incorrect results
+(results that looks to be incorrect).
+
+Both of those figures above come from the `notebooks/panel/02-contributors_graph.ipynb`
+Jupyter Notebook
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/ncusi/PatchScope/main?labpath=notebooks%2Fpanel%2F02-contributors_graph.ipynb).
+
+This plot can be used to detect different behaviors.  For example,
+the following plot shows contributions of an author that looks like
+they perform during workdays (Monday to Friday), and during working hours,
+with most work done 11-15:
+
+![](assets/screenshots/patchscope-author-tensorflow-Eugene_Zhulenev-periodic_behavior_heatmap.png)
+
+Here is the plot that shows contributions of an author which,
+what looks like, perform their work outside working hours (16-01),
+any day of the week:
+
+![](assets/screenshots/patchscope-author-tensorflow-Yong_Tang-periodic_behavior_heatmap.png)
+
+Here, though in different repository, is one that shows contributions
+of the author that performs their work mostly during weekends (Saturday-Sunday)
+at day hours (7-21), with some work done during workdays outside working hours.
+
+![](assets/screenshots/patchscope-author-qtile-Tycho_Andersen-periodic_behavior_heatmap.png)
+
+There is a similar plot in GitHub, namely the contributions heatmap
+in the user's profile, though it is week of the month on x-axis
+versus day of the week on y-axis (with week starting on Sunday),
+for a selected year.
+
+![](assets/screenshots/github-tych0_contributions_heatmap.png)
