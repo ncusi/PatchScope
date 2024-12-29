@@ -109,6 +109,16 @@ This plot uses solid green line for additions, and dashed red line for deletions
 It literally uses negative values for deletions, instead of inverting
 the y-axis.  It is an interactive plot - you can get exact values on hover.
 
+Both the [Contributors Graph](contributors_graph.md) app
+and the Contributors Graph part of the GitHub Insights tab for repository
+include _separate_ plots for added and deleted lines.
+
+For example, here is weekly per-author plot for additions from `contributors` app:<br>
+![](assets/screenshots/patchscope-contributors-qtile-per_author-Tycho_Andersen-additions-W.png)<br>
+and here is one from GitHub Insights (scaled to per-repo contributions):<br>
+![](assets/screenshots/github-qtile_qtile-graphs_contributors-all-additions-tych0.png)
+
+
 ### Line type frequency over time, for author
 
 The next plot is the 'line type / file purpose counts' plot
@@ -330,6 +340,9 @@ Here is the same case, but with the weekly frequency ('W') that GitHub Insights 
 The very same plot is also available in the authors grid part of the
 [Contributors Graph](contributors_graph.md) app (see the
 "[Commits over time](contributors_graph.md#commits-over-time)" subsection),
+
+![](assets/screenshots/patchscope-contributors-qtile-per_author-Tycho_Andersen-commits-W.png)
+
 and in authors grid part of Contributors Graph part of GitHub Insights for repo:
 
 ![](assets/screenshots/github-qtile_qtile-graphs_contributors-all-commits-tych0.v2.png)
@@ -395,7 +408,7 @@ Differently from "[Line types heatmap ±\[%]](contributors_graph.md#line-types-h
 in [Contributors Graph](contributors_graph.md) app, this heatmap plot shows line counts,
 though using logarithmic color scale, rather than ± percentages (\[%]) of line types.
 
-**_TODO_**: Add relevant plot from 'contributors.py' app
+![](assets/screenshots/patchscope-contributors-qtile-per_author-Tycho_Andersen-line_types_heatmap-QE.png)
 
 GitHub provides somewhat tangentially related heatmap on the authors profile page;
 for example, here is heatmap of contributions for the same (GitHub) author
