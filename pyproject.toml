@@ -83,7 +83,7 @@ examples = [
 ]  # dvc-s3 is needed to access 'dagshub' dvc remote
 web = [
   "panel==1.5.5",
-  "param==2.1.1",
+  "param==2.2.0",
   # data processing
   "pandas==2.2.3",
   "python-dateutil==2.9.0.post0",
