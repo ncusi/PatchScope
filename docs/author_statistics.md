@@ -367,3 +367,46 @@ deleted and added lines, though.
 ### Histogram of −/+ counts per resample period, for author
 
 **TODO**
+
+
+### Line types heatmap ±
+
+All line types distribution plots show how many changed lines are of given type.
+What counts as line of specific type depends on the configuration of the
+annotation process, as described above.
+
+The heatmap plot tries to show on a single plot the distribution of changes
+with respect to line type (and whether line was added or deleted)
+versus time.  You have time on x-axis, divided into resample frequency period
+(as of PatchScope **0.4.1** it is always monthly aggregates: 'ME'), using selected
+aggregation functions (by default it is 'sum'), with line type on y-axis,
+and color denoting the aggregation of number of lines of specific type.
+
+Here is an example from tensorflow repository:
+
+![](assets/screenshots/patchscope-author-tensorflow-Yong_Tang-line_type-heatmap-ME-sum-cmap_log.png)
+
+Note that as of PatchScope **0.4.1** defaults are specified for one specific
+example to look nice, and might result in less readable output for other cases.
+
+Differently from "[Line types heatmap ±\[%]](contributors_graph.md#line-types-heatmap-)",
+in [Contributors Graph](contributors_graph.md) app, this heatmap plot shows line counts,
+though using logarithmic color scale, rather than ± percentages (\[%]) of line types.
+
+**_TODO_**: Add relevant plot from 'contributors.py' app
+
+GitHub provides somewhat tangentially related heatmap on the authors profile page;
+for example, here is heatmap of contributions for the same (GitHub) author
+(<https://github.com/yongtang>) as in figure above:
+
+![](assets/screenshots/github-yongtang_contributions_heatmap.png)
+
+Here the profile contributions graph is a record of contributions given author
+made to repositories on GitHub (not limited to given repository).
+
+Issues, pull requests, and discussions will appear on ones contribution graph
+on GitHub if they were opened in a standalone repository, not a fork.
+Commits will appear on ones contributions graph if they meet all the following
+conditions: email matches the GitHub account, they are made in standalone
+repository, on repository's default branch or the `gh-pages` branch
+(with some additional conditions).
