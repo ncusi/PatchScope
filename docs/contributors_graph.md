@@ -215,6 +215,10 @@ For this diff/patch you get the same patch size of 3 lines: 1 modified, 2 remove
 [Closure-commit-db]: https://github.com/rjust/defects4j/blob/master/framework/projects/Closure/commit-db
 [Closure-40-repair]: https://program-repair.org/defects4j-dissection/#!/bug/Closure/40
 
+
+See also similar discussion in [Author Statistics](author_statistics.md)
+documentation.
+
 Here is how it looks in PatchScope (version **0.4.1**):
 
 ![](assets/screenshots/patchscope-contributors-qtile-all-patch_size.png)
@@ -272,6 +276,9 @@ rules were applied:
 This is not the only possible configuration.  For example, you might want
 comments in "test" files to count as "documentation", and only lines with
 some code count as "test".  This can be done with line callback.
+
+See also similar discussion in [Author Statistics](author_statistics.md)
+documentation.
 
 For the ± percentage (\[%]) line types distribution plots, like this heatmap
 plot, the percentage is computed as the number of added ('+') or deleted ('-')
