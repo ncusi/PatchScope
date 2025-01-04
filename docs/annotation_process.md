@@ -97,9 +97,9 @@ you can use `--use-fanout` flag to limit the number of files stored in
 a single directory.
 
 You can select which commits you want to annotate by providing appropriate
-_<revision-range>_ argument, which is passed to `git log`.  If not provided,
+_&lt;revision-range&gt;_ argument, which is passed to `git log`.  If not provided,
 it defaults to `HEAD` (that is, the whole history of the current branch).
-For a complete list of ways to spell _<revision-range>_, see the
+For a complete list of ways to spell _&lt;revision-range&gt;_, see the
 _"Specifying Ranges"_ section of the [gitrevisions(7) manpage](https://git-scm.com/docs/gitrevisions).
 
 Here are a few `git log` options that are often used with
