@@ -321,6 +321,7 @@ data.
 # Other TODOs
 
 - [`notebooks/panel/TODO.md`](./notebooks/panel/TODO.md)
+- [`src/diffinsights_web/TODO.md`](./src/diffinsights_web/TODO.md)
 
 [click]: https://click.palletsprojects.com/
 [typer]: https://typer.tiangolo.com/
