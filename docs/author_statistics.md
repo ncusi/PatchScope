@@ -317,7 +317,7 @@ index ff7b31eb..0b935ee0 100644
 The current version of the algorithm (as of PatchScope **0.4.1**),
 when run on the git diff, says  that there are 4 modified lines, and 1 added line,
 while in reality  this part was completely rewritten,
-and the correct answer should be 4 deletions (removals) and 1 addition.
+and the correct answer should be 4 deletions (removals) and 5 additions.
 
 
 ### Commit counts over time, for author

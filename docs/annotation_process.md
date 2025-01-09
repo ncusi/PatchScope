@@ -431,9 +431,165 @@ in the `HaPy-Bug/` subdirectory, as [`hapybug_line_callback_func.py`](../data/ex
 >
 > (as of PatchScope version **0.4.1**)
 
+
 ## Computing commit and diff metadata
 
-**TODO**
+Beside annotating each changed line, and each changed file, the `diff-annotate`
+script also gathers metadata and computes statistics about the commit the
+changes (changeset) belong to, and about diff (changes) as a whole.
+
+### Commit metadata
+
+Currently (as of version **0.4.1**), commit metadata is available only for
+`from-repo` command, or maybe if `git show` or `git log -p` was saved as
+the `*.diff` file to be parsed.  There is no support yet for `*.patch`
+files with `git format-patch` output, or for parsing `*.message` files
+accompanying bare-diff `*.diff` files (like in the BugsInPy dataset[^BugsInPy-paper]).
+
+The following commit metadata is extracted and stored:
+
+- commit ID
+- parents (commit IDs of commit parents)
+- tree ID
+- author and committer
+  - name
+  - email
+  - timestamp
+  - timezone
+- commit message
+
+### Diff metadata
+
+The diff metadata is computed by default, unless `--no-sizes-and-spreads`
+flag is passed to the `diff-annotate` script.
+
+The following basic diff metadata is stored:
+- number of changed files (file names involved);
+- number of added, removed, and renamed files, and of changed binary files (if any),
+- number of added and removed lines,
+  i.e. total number of '+' and '-' lines in hunks of patched file
+- total number of hunks (in the unified diff meaning)
+
+#### Patch size metrics
+
+The definition of patch size (and its components) was taken from
+the Defects4J-Dissection paper[^defects4j-dissection].
+
+[^defects4j-dissection]: Victor Sobreira, Thomas Durieux, Fernanda Madeiral, Martin Monperrus, and Marcelo de Almeida Maia _"Dissection of a Bug Dataset: Anatomy of 395 Patches from Defects4J"_, SANER 2018, https://doi.org/10.1109/SANER.2018.8330203
+
+The patch size metric is sum of the number of added, modified, and removed (deleted) lines.
+Lines are considered _modified_ when sequences of removed lines are straight followed by added lines ~~(or vice versa).~~
+To count each modified line, a pair of adjacent added and removed lines is needed.
+
+Note that it is not always that first deleted line corresponds to first added line,
+creating modified line.  Current algorithm only computes the numbers, but does
+not tell which changed lines counts as modified, and which as removed or added.
+
+The current algorithm does not always give the correct results.  It cannot
+distinguish total rewrite from a modification, see for example
+the [928a0447 commit](https://github.com/qtile/qtile/commit/928a0447f52a24f0c39cc135cb958a551c3855bb)
+from the qtile repository:
+
+```diff
+diff --git a/docs/manual/releasing.rst b/docs/manual/releasing.rst
+index ff7b31eb..0b935ee0 100644
+--- a/docs/manual/releasing.rst
++++ b/docs/manual/releasing.rst
+@@ -39,9 +39,10 @@ Be sure that you GPG-sign (i.e. the ``-S`` argument to ``git commit``) this comm
+ 6. Make sure all of these actions complete as green. The release should show up
+    in a few minutes after completion here: https://pypi.org/project/qtile/
+
+-7. send a mail to qtile-dev@googlegroups.com; I sometimes just use
+-   git-send-email with the release commit, but a manual copy/paste of the
+-   release notes into an e-mail is fine as well. Additionally, drop a message
+-   in IRC/Discord.
++7. Push your tag commit to master.
++
++8. Update `the release string
++   <https://github.com/qtile/qtile.org/blob/master/config.toml#L49>`_ on
++   qtile.org.
+
+ 8. Relax and enjoy a $beverage. Thanks for releasing!
+
+```
+The current version of the algorithm (as of PatchScope **0.4.1**),
+says  that there are 4 modified lines and 1 added line,
+while in reality  this part was completely rewritten,
+and the correct answer should be 4 deletions (removals) and 5 additions.
+
+Here are all metrics that relate to the diff size
+(counting number and size of changes):
+
+- total number of hunks (in the unified diff meaning)
+- total number of modified, added and removed lines for patched file, counting
+  a pair of adjacent removed and added line as single modified line,
+- total number of changed lines: sum of number of modified, added, and removed lines,
+  (where numbers of modified, added and removed lines are defined as described above),
+- total number of '+' and '-' lines in hunks of patched file (without extracting modified lines),
+- number of all lines in all hunks of patched file, including context lines,
+  but excluding hunk headers and patched file headers.
+
+#### Patch spread metrics
+
+The definition of patch spread metrics was also taken from
+the Defects4J-Dissection paper[^defects4j-dissection].  These
+metrics describe how many different pieces are touched by changes,
+and how spread those changes are.
+
+Let's define _chunk_ (following Defects4J-Dissection[^defects4j-dissection]) as
+a sequence of continuous changes in a file, consisting of the combination of
+addition, removal, and modification of lines.  We will also call it a _change group_
+to avoid confusion with _hunk_ as defined by (unified) diff format.
+
+Here are all metrics that relate to the patch spread
+that are calculated by `diff-annotate`:
+
+- total number of change groups,
+  i.e. contiguous spans of removed and added lines, not interrupted by context line
+  (called "_number of chunks_" by Defect4J-Dissection),
+- _number of modified files_
+  (or rather number of different file names that occur in the diff),
+- number of modified binary files, if any;
+  for those files there can be no information about "lines",
+  like the number of hunks, change groups (chunks), changed lines, etc.
+- _spreading of chunks_ / change groups in a patch, defined[^defects4j-dissection]
+  as sum over each patched file of the number of lines interleaving chunks
+  in a patch; measuring how wide across file contents the patch spreads,
+- sum of distances in context lines between groups (chunks) inside hunk,
+  for all hunks in patched file, for all changed (patched) files,
+  i.e. inner-hunk spread; this does not count context lines between hunks
+  (that are mostly do not show in the patch, except for leading and trailing
+  context lines in hunk)
+- difference between the number of last changed line and first changed line,
+  summed over changed files; this metric is computed separately for pre-image
+  (source) and post-image (target) in changed files.
+
+The last two metrics (and the number of binary files) do not appear in
+Defects4J-Dissection[^defects4j-dissection] paper.
+
+In a patch with only one chunk, the value of spreading of chunks is naturally zero,
+because it represents a continuous sequence of changes. In a patch with two chunks
+for a single patched file, at least one line separates the chunks. For more chunks,
+naturally, this value tends to increase.  On the other hand, a patch with
+two modified files has zero spreading if the patch has just two chunks,
+one in each file.
+
+It is worth noting that in Defects4J-Dissection[^defects4j-dissection] calculations
+empty and comment lines were discarded for chunk spreading calculations. The
+justification given in the paper is that these lines have no influence on program
+behavior, and considering them would make more sense for code readability.
+This is not the case for `diff-annotate` calculations, and as of version **0.4.1**
+there is no option to do it (it would also slow down calculations, and very much
+require access to the repository).
+
+Defects4J-Dissection[^defects4j-dissection] paper also computes the following
+patch spreading metrics, that `diff-annotate` currently does not compute:
+
+- number of modified classes,
+- number of modified methods.
+
+Here they consider only source code files.  Those metrics are also bit specific
+to Java, and they make sense only for object-oriented programming languages.
 
 ## Output format
 
