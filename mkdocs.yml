@@ -8,6 +8,7 @@ nav:
   - home: index.md
   #- installation: installation.md
   - usage:
+     - annotation_process.md
      - contributors_graph.md
      - author_statistics.md
   #- modules: api.md

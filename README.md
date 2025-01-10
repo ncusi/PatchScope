@@ -91,6 +91,9 @@ Each script and subcommand supports the `--help` option.
     - `diff-gather-stats timeline [OPTIONS] OUTPUT_FILE DATASETS...`:
       calculate timeline of bugs with per-bug count of different types of lines;
 
+You can find more information about the annotation process in
+_"[Annotation process](docs/annotation_process.md)"_ documentation.
+
 ### Running web app (dashboard)
 
 This package also includes web dashboard, created using the [Panel][]
