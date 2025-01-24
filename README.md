@@ -297,6 +297,12 @@ python -m pytest
 
 See [`TODO.md`](./TODO.md).
 
+## Publications
+
+- Piotr Przymus, Jakub Narębski, Mikołaj Fejzer, and Krzysztof Stencel:
+  _"PatchScope – A Modular Tool for Annotating and Analyzing Contributions"_ (2024),
+  preprint: <https://ncusi.github.io/PatchScope/articles/patchscope_2024.pdf>
+
 ## Related projects
 
 Here are some related projects that can also be used
