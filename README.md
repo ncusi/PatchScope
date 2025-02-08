@@ -14,8 +14,26 @@ and performs statistical analysis on the generated annotation data.
 > so there are some references to that older name, for example in directory names
 > in some Jupyter Notebooks.
  
-You can find early version of the project documentation at <https://ncusi.github.io/PatchScope/>,
+You can find early draft of the project documentation at <https://ncusi.github.io/PatchScope/>,
 but it is currently incomplete and unpolished.
+
+## Disambiguation
+
+There are a few projects, research, and products with a similar or the same name:
+
+- Asma Ghandeharioun, Avi Caciularu, Adam Pearce, Lucas Dixon, Mor Geva:
+  _"Patchscopes: A Unifying Framework for Inspecting Hidden Representations of Language Models"_ (2024)
+  [arXiv:2401.06102](https://arxiv.org/abs/2401.06102)
+- Lei Zhao, Yuncong Zhu, Jiang Ming, Yichen Zhang, Haotian Zhang, Heng Yin:
+  _"PatchScope: Memory Object Centric Patch Diffing"_ (2020)
+  [DOI:10.1145/3372297.3423342](https://doi.org/10.1145/3372297.3423342)
+- [diffoscope](https://diffoscope.org/): In-depth comparison of files, archives, and directories
+- [DiffLens](https://www.difflens.com/): Language Aware Diffs for your GitHub Pull Requests;
+  available as GitHub App and as VS Code Extension
+- [GitScope](https://github.com/HacktiveMindset/GitScope): GitHub User Information Retrieval Tool
+- [Scientifica PatchScope](https://www.scientifica.uk.com/products/patchscope)
+  is a motorised inverted phase contrast microscope.
+
 
 ## Installation
 
