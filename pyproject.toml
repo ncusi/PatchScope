@@ -73,7 +73,7 @@ doc = [
   #"setuptools~=68.0",
   #"pkginfo~=1.9",
   #"virtualenv~=20.0",
-  "black~=24.10.0",
+  "black~=25.1.0",
 ]
 pylinguist = [
   "linguist@git+https://github.com/retanoj/linguist#egg=master",
