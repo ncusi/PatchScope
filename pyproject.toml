@@ -56,8 +56,9 @@ version = {attr = "diffannotator.config.__version__"}
 #
 # see: https://setuptools.pypa.io/en/latest/userguide/pyproject_config.html#dynamic-metadata
 [project.optional-dependencies]
-dev = [
+dev = [  # or 'test'
   "pytest==8.3.4",
+  "pytest-benchmark==5.1.0",
 ]
 doc = [
   "mkdocs~=1.6.1",
