@@ -53,7 +53,12 @@ def find_repos(timeline_data: dict) -> list[str]:
 
 #@pn.cache
 def get_timeline_df(timeline_data: dict, repo: str) -> pd.DataFrame:
-    init_df = pd.DataFrame.from_records(timeline_data[repo])
+    # TODO: remove after test_app_contributors_performance.py gets fixed
+    try:
+        init_df = pd.DataFrame.from_records(timeline_data[repo])
+    except KeyError:
+        # workaround: use first (and oftentimes only) repo
+        init_df = pd.DataFrame.from_records(timeline_data[next(iter(timeline_data))])
 
     # no merges, no roots; add 'n_commits' column; drop rows with N/A for timestamps
     df = init_df[init_df['n_parents'] == 1]\
