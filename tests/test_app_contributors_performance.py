@@ -8,13 +8,15 @@ pn = pytest.importorskip("panel")
 from diffinsights_web.datastore import timeline
 from diffinsights_web.views import info
 from diffinsights_web.views.plots import timeseries
-from diffinsights_web.apps.contributors import template, dataset_dir
+from diffinsights_web.apps.contributors import template, dataset_dir, timeline_data_store
 
 
 @pytest.fixture
 def app():
     return template
 
+
+@pytest.mark.slow
 def test_contributors_run_performance(app, benchmark):
     #for k, v in app.param.objects().items():
     #    print(f"{app.__class__.name}.{k} = {repr(v.default)} ({type(v)})")
@@ -54,7 +56,11 @@ def test_contributors_run_performance(app, benchmark):
     #    value=str(dataset_dir.joinpath('qtile.timeline.purpose-to-type.json')),
     #)
 
-    #print(template.sidebar[0][0].value)
+    print(template.sidebar[0][0].value)
+    timeline_data_store.select_file_widget.param.update(
+        value=str(dataset_dir.joinpath('qtile.timeline.purpose-to-type.json')),
+    )
+    print(template.sidebar[0][0].value)
 
     # Benchmark the time it takes to render the Panel app
     def render_app():
@@ -63,11 +69,19 @@ def test_contributors_run_performance(app, benchmark):
         pn.io.save.save(app, filename=buffer, embed=True)
         return buffer.getvalue()
 
-    # Run the benchmark
+    # Run the benchmark (no caching)
+    # --------------------------------------------------- benchmark: 1 tests -------------------------------
+    # repo (time in s)     Min     Max    Mean  StdDev  Median     IQR  Outliers     OPS  Rounds  Iterations
+    # ------------------------------------------------------------------------------------------------------
+    # 'hellogitworld'   1.4775  2.8561  2.1144  0.5713  1.9781  0.9547       2;0  0.4730       5           1
+    # 'qtiles'          1.6314  2.0680  1.7746  0.1812  1.7147  0.2475       1;0  0.5635       5           1
+    # 'tensorflow'      1.4393  2.1075  1.8422  0.2583  1.8559  0.3392       2;0  0.5428       5           1
+    # ------------------------------------------------------------------------------------------------------
     result = benchmark(render_app)
 
     # Optional: Add an assertion for maximum acceptable render time (in seconds)
     assert result is not None, "App rendering failed"
+
 
 # add `benchmark` fixture as parameter when performing benchmark (single use)
 def test_contributors_steps_performance():
