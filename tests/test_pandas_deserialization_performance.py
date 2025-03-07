@@ -23,6 +23,7 @@ def qtile_dataframe() -> pd.DataFrame:
         json_path=json_path,
     )
     timeline_df = get_timeline_df(
+        json_path=json_path,
         timeline_data=timeline_data,
         repo='qtile',
     )

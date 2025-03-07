@@ -81,6 +81,7 @@ repos_widget = pn.widgets.Select(
     disabled=find_repos_rx.rx.pipe(len) <= 1,
 )
 get_timeline_df_rx = pn.rx(get_timeline_df)(
+    json_path=select_file_widget,
     timeline_data=get_timeline_data_rx,
     repo=repos_widget,
 )

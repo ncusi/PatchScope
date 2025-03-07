@@ -42,6 +42,15 @@ def get_timeline_data(json_path: Optional[Path]) -> dict:
     if json_path is None:
         return {}
 
+    # NOTE: json_path can be 'str', not 'Path'
+    if not isinstance(json_path, Path):
+        json_path = Path(json_path)
+    if json_path.with_suffix('.feather').is_file():
+        # assume only one repo, with name given by first part of JSON file pathname
+        # TODO: implement better handling than this special case
+        #print(f"get_timeline_data({json_path=}) -> found .feather cache")
+        return { json_path.stem.split(sep='.', maxsplit=1)[0]: None }
+
     with open(json_path, mode='r') as json_fp:
         return json.load(json_fp)
 
@@ -52,7 +61,29 @@ def find_repos(timeline_data: dict) -> list[str]:
 
 
 #@pn.cache
-def get_timeline_df(timeline_data: dict, repo: str) -> pd.DataFrame:
+def get_timeline_df(json_path: Optional[Path], timeline_data: dict, repo: str) -> pd.DataFrame:
+    """Create timeline DataFrame from timeline data in JSON file
+
+    :param json_path: used to find cached data, if present, and possibly
+        for error and debug messages (when logging)
+    :param timeline_data: per-repo data to convert to pd.DataFrame and process;
+        usually there is only a single repo (single key) in `timeline_data` dict
+    :param repo: data from which repo to extract from `timeline_data`
+    :return: augmented dataframe, for example with 'n_commits' column added
+    """
+    # NOTE: json_path can be 'str', not 'Path'
+    cache_file = Path(json_path).with_suffix('.feather')
+    if json_path is not None and cache_file.is_file():
+        # read cached data
+        try:
+            #print(f"get_timeline_df({json_path=}, {timeline_data=}, {repo=}) -> read .feather cache")
+            return pd.read_feather(cache_file)
+        except ModuleNotFoundError:
+            # No module named 'pyarrow'
+            # TODO: log warning for this problem
+            print("get_timeline_df -> ModuleNotFoundError")
+            pass
+
     # TODO: remove after test_app_contributors_performance.py gets fixed
     try:
         init_df = pd.DataFrame.from_records(timeline_data[repo])
@@ -380,6 +411,7 @@ class TimelineDataStore(pn.viewable.Viewer):
         )
         # convert extracted data to pd.DataFrame
         self.timeline_df_rx = pn.rx(get_timeline_df)(
+            json_path=self.select_file_widget,
             timeline_data=self.timeline_data_rx,
             repo=self.select_repo_widget,
         )

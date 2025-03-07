@@ -101,8 +101,9 @@ def test_contributors_steps_performance():
     )
     # (time in ms)   105.3941  129.7154  113.6983  8.6321  110.7477  11.2657       1;0  8.7952       7           1
     timeline_df = timeline.get_timeline_df(
-       timeline_data=timeline_data,
-       repo='qtile',
+        json_path=json_path,
+        timeline_data=timeline_data,
+        repo='qtile',
     )
     # (time in us)    62.2000  886.7000   95.1186 53.6248   71.9000  42.7000   240;117  10.5132   2086           1
     timeline_max_date = timeline.get_max_date(
