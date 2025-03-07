@@ -88,6 +88,8 @@ web = [
   # data processing
   "pandas==2.2.3",
   "python-dateutil==2.9.0.post0",
+  # data serialization
+  "pyarrow==19.0.1",
   # plots
   "holoviews==1.20.0",
   "hvplot==0.11.2",
