@@ -71,18 +71,19 @@ def get_timeline_df(json_path: Optional[Path], timeline_data: dict, repo: str) -
     :param repo: data from which repo to extract from `timeline_data`
     :return: augmented dataframe, for example with 'n_commits' column added
     """
-    # NOTE: json_path can be 'str', not 'Path'
-    cache_file = Path(json_path).with_suffix('.feather')
-    if json_path is not None and cache_file.is_file():
-        # read cached data
-        try:
-            #print(f"get_timeline_df({json_path=}, {timeline_data=}, {repo=}) -> read .feather cache")
-            return pd.read_feather(cache_file)
-        except ModuleNotFoundError:
-            # No module named 'pyarrow'
-            # TODO: log warning for this problem
-            print("get_timeline_df -> ModuleNotFoundError")
-            pass
+    if json_path is not None:
+        # NOTE: json_path can be 'str', not 'Path'
+        cache_file = Path(json_path).with_suffix('.feather')
+        if cache_file.is_file():
+            # read cached data
+            try:
+                #print(f"get_timeline_df({json_path=}, {timeline_data=}, {repo=}) -> read .feather cache")
+                return pd.read_feather(cache_file)
+            except ModuleNotFoundError:
+                # No module named 'pyarrow'
+                # TODO: log warning for this problem
+                print("get_timeline_df -> ModuleNotFoundError")
+                pass
 
     # TODO: remove after test_app_contributors_performance.py gets fixed
     try:
