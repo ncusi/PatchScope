@@ -10,6 +10,10 @@ import param
 from diffinsights_web.utils.notifications import warning_notification
 
 
+# global variables:
+read_cached_df: bool = True  #: whether to use  cached DataFrames if available
+
+
 #@pn.cache
 def find_timeline_files(dataset_dir: Union[Path, str, param.Path, None]) -> dict[str, str]:
     if dataset_dir is None:
@@ -45,7 +49,7 @@ def get_timeline_data(json_path: Optional[Path]) -> dict:
     # NOTE: json_path can be 'str', not 'Path'
     if not isinstance(json_path, Path):
         json_path = Path(json_path)
-    if json_path.with_suffix('.feather').is_file():
+    if read_cached_df and json_path.with_suffix('.feather').is_file():
         # assume only one repo, with name given by first part of JSON file pathname
         # TODO: implement better handling than this special case
         #print(f"get_timeline_data({json_path=}) -> found .feather cache")
@@ -74,7 +78,7 @@ def get_timeline_df(json_path: Optional[Path], timeline_data: dict, repo: str) -
     if json_path is not None:
         # NOTE: json_path can be 'str', not 'Path'
         cache_file = Path(json_path).with_suffix('.feather')
-        if cache_file.is_file():
+        if read_cached_df and cache_file.is_file():
             # read cached data
             try:
                 #print(f"get_timeline_df({json_path=}, {timeline_data=}, {repo=}) -> read .feather cache")
