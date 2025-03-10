@@ -17,6 +17,74 @@ def app():
 
 
 @pytest.mark.slow
+def test_contributors_trigger_performance(app, benchmark):
+    timeline_data_store.select_file_widget.param.update(
+        value=str(dataset_dir.joinpath('tensorflow.timeline.purpose-to-type.json')),
+    )
+
+    # Trigger watchers for widget that results in full re-render
+    def run():
+        app.sidebar[0][0].param.trigger('value')
+
+    # hellogitworld.timeline.purpose-to-type.json, no *.feather file
+    # ----------------------------------------------------- benchmark: 1 tests -----------------------------------------------------
+    # Name (time in s)                             Min     Max    Mean  StdDev  Median     IQR  Outliers     OPS  Rounds  Iterations
+    # ------------------------------------------------------------------------------------------------------------------------------
+    # test_contributors_trigger_performance     3.3202  5.7774  4.8386  0.9641  4.7957  1.2286       1;0  0.2067       5           1
+    # ------------------------------------------------------------------------------------------------------------------------------
+    #
+    # hellogitworld.timeline.purpose-to-type.json, no authors grid, no *.feather file
+    # ---------------------------------------------------------- benchmark: 1 tests ----------------------------------------------------------
+    # Name (time in ms)                              Min       Max      Mean   StdDev    Median      IQR  Outliers     OPS  Rounds  Iterations
+    # ----------------------------------------------------------------------------------------------------------------------------------------
+    # test_contributors_trigger_performance     268.1344  363.8641  319.7347  37.3099  319.9098  56.3036       2;0  3.1276       5           1
+    # test_contributors_trigger_performance     257.9792  392.9983  296.1503  55.9785  267.1482  55.3986       1;0  3.3767       5           1
+    # ----------------------------------------------------------------------------------------------------------------------------------------
+
+    # qtile.timeline.purpose-to-type.json, timeline.read_cached_df=True
+    # ------------------------------------------------------ benchmark: 1 tests ------------------------------------------------------
+    # Name (time in s)                             Min      Max     Mean  StdDev  Median     IQR  Outliers     OPS  Rounds  Iterations
+    # --------------------------------------------------------------------------------------------------------------------------------
+    # test_contributors_trigger_performance     6.1609  13.0829  10.2299  2.7676  9.8133  3.9643       2;0  0.0978       5           1
+    # --------------------------------------------------------------------------------------------------------------------------------
+    #
+    # qtile.timeline.purpose-to-type.json, no authors grid, timeline.read_cached_df=False
+    # ------------------------------------------------------------ benchmark: 1 tests ------------------------------------------------------------
+    # Name (time in ms)                              Min         Max        Mean   StdDev    Median      IQR  Outliers     OPS  Rounds  Iterations
+    # --------------------------------------------------------------------------------------------------------------------------------------------
+    # test_contributors_trigger_performance     960.3151  1,168.4843  1,013.9247  88.7530  966.2547  86.4760       1;0  0.9863       5           1
+    # --------------------------------------------------------------------------------------------------------------------------------------------
+    #
+    # qtile.timeline.purpose-to-type.json, no authors grid, timeline.read_cached_df=True
+    # ----------------------------------------------------------- benchmark: 1 tests -----------------------------------------------------------
+    # Name (time in ms)                              Min       Max      Mean    StdDev    Median       IQR  Outliers     OPS  Rounds  Iterations
+    # ------------------------------------------------------------------------------------------------------------------------------------------
+    # test_contributors_trigger_performance     640.0732  969.0689  778.7443  126.1164  766.8316  172.4780       2;0  1.2841       5           1
+    # ------------------------------------------------------------------------------------------------------------------------------------------
+
+    # tensorflow.timeline.purpose-to-type.json, 2 authors, no *.feather cache file
+    # ----------------------------------------------------- benchmark: 1 tests -----------------------------------------------------
+    # Name (time in s)                             Min     Max    Mean  StdDev  Median     IQR  Outliers     OPS  Rounds  Iterations
+    # ------------------------------------------------------------------------------------------------------------------------------
+    # test_contributors_trigger_performance     3.4923  7.6465  6.0484  1.7178  6.7785  2.5960       1;0  0.1653       5           1
+    # ------------------------------------------------------------------------------------------------------------------------------
+    #
+    # tensorflow.timeline.purpose-to-type.json, no authors grid, no *.feather cache file
+    # ---------------------------------------------------------- benchmark: 1 tests ----------------------------------------------------------
+    # Name (time in ms)                              Min       Max      Mean   StdDev    Median      IQR  Outliers     OPS  Rounds  Iterations
+    # ----------------------------------------------------------------------------------------------------------------------------------------
+    # test_contributors_trigger_performance     627.5975  798.9041  688.2241  65.3847  664.9114  60.3836       1;0  1.4530       5           1
+    # ----------------------------------------------------------------------------------------------------------------------------------------
+    benchmark(run)
+    print(f"{template.sidebar[0][0].value=}")
+    print(f"{timeline.read_cached_df=}")
+    cache_path = dataset_dir.joinpath('qtile.timeline.purpose-to-type.feather')
+    print(f"{cache_path=}, {cache_path.is_file()=}")
+
+    assert True
+
+
+@pytest.mark.slow
 def test_contributors_run_performance(app, benchmark):
     #for k, v in app.param.objects().items():
     #    print(f"{app.__class__.name}.{k} = {repr(v.default)} ({type(v)})")
