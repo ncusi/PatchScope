@@ -61,16 +61,16 @@ contributions_perc_header = ContributionsPercHeader(
     data_store=timeline_data_store,
     from_date_str=page_header.select_period_from_widget,
 )
-authors_info_panel = AuthorInfo(
-    data_store=timeline_data_store,
-    authors_info_df=timeseries_plot.authors_info_df_rx,
-)
-authors_grid = AuthorsGrid(
-    data_store=timeline_data_store,
-    main_plot=timeseries_plot,
-    authors_info_df=timeseries_plot.authors_info_df_rx,
-    top_n=authors_info_panel.top_n_widget,
-)
+# authors_info_panel = AuthorInfo(
+#     data_store=timeline_data_store,
+#     authors_info_df=timeseries_plot.authors_info_df_rx,
+# )
+# authors_grid = AuthorsGrid(
+#     data_store=timeline_data_store,
+#     main_plot=timeseries_plot,
+#     authors_info_df=timeseries_plot.authors_info_df_rx,
+#     top_n=authors_info_panel.top_n_widget,
+# )
 
 # Create the dashboard layout
 template = pn.template.MaterialTemplate(
@@ -80,7 +80,7 @@ template = pn.template.MaterialTemplate(
     sidebar=[
         timeline_data_store,
         lines_stats_data_store,
-        *authors_info_panel.widgets(),
+        #*authors_info_panel.widgets(),
 
         pn.layout.Divider(),  # - - - - - - - - - - - - -
 
@@ -99,7 +99,7 @@ template = pn.template.MaterialTemplate(
             ),
             collapsible=False, hide_header=True,
         ),
-        authors_grid,
+        #authors_grid,
     ],
 )
 timeline_perspective = TimelinePerspective(data_store=timeline_data_store)
@@ -119,7 +119,7 @@ template.main.extend([
                             from_date=page_header.select_period_from_widget)
             )
         ),
-        ('selected author', authors_info_panel),
+        #('selected author', authors_info_panel),
     ),
 ])
 
