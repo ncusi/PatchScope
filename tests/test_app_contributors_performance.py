@@ -25,7 +25,7 @@ def test_contributors_trigger_performance(app, benchmark):
 
     # Trigger watchers for widget that results in full re-render
     def run():
-        app.sidebar[0][0].param.trigger('value')
+        timeline_data_store.select_file_widget.param.trigger('value')
 
     # hellogitworld.timeline.purpose-to-type.json, no *.feather file
     # ----------------------------------------------------- benchmark: 1 tests -----------------------------------------------------
@@ -124,7 +124,7 @@ def test_contributors_trigger_performance(app, benchmark):
     # test_contributors_trigger_performance     627.5975  798.9041  688.2241  65.3847  664.9114  60.3836       1;0  1.4530       5           1
     # ----------------------------------------------------------------------------------------------------------------------------------------
     benchmark(run)
-    print(f"{template.sidebar[0][0].value=}")
+    print(f"{timeline_data_store.select_file_widget.value=}")
     print(f"{timeline.read_cached_df=}")
     cache_path = dataset_dir.joinpath('qtile.timeline.purpose-to-type.feather')
     print(f"{cache_path=}, {cache_path.is_file()=}")
@@ -173,11 +173,11 @@ def test_contributors_run_performance(app, benchmark):
     #    value=str(dataset_dir.joinpath('qtile.timeline.purpose-to-type.json')),
     #)
 
-    print(template.sidebar[0][0].value)
+    print(timeline_data_store.select_file_widget.value)
     timeline_data_store.select_file_widget.param.update(
         value=str(dataset_dir.joinpath('qtile.timeline.purpose-to-type.json')),
     )
-    print(template.sidebar[0][0].value)
+    print(timeline_data_store.select_file_widget.value)
 
     # Benchmark the time it takes to render the Panel app
     def render_app():
