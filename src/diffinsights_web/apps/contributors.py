@@ -77,16 +77,16 @@ template = pn.template.MaterialTemplate(
     site="PatchScope",
     title="Contributors Graph",  # TODO: make title dynamic
     favicon="favicon.svg",
-    sidebar=[
-        timeline_data_store,
-        lines_stats_data_store,
-        *authors_info_panel.widgets(),
-
-        pn.layout.Divider(),  # - - - - - - - - - - - - -
-
-        timeseries_plot.select_plot_theme_widget,
-        ClearCacheButton(),
-    ],
+#    sidebar=[
+#        timeline_data_store,
+#        lines_stats_data_store,
+#        *authors_info_panel.widgets(),
+#
+#        pn.layout.Divider(),  # - - - - - - - - - - - - -
+#
+#        timeseries_plot.select_plot_theme_widget,
+#        ClearCacheButton(),
+#    ],
     main=[
         pn.Column(
             page_header,
@@ -102,26 +102,26 @@ template = pn.template.MaterialTemplate(
         authors_grid,
     ],
 )
-timeline_perspective = TimelinePerspective(data_store=timeline_data_store)
-template.main.extend([
-    pn.layout.Divider(),
-    pn.Tabs(
-        ('JSON', TimelineJSONViewer(data_store=timeline_data_store)),
-        ('data', timeline_perspective.panel(TimelineDataFrameEnum.TIMELINE_DATA)),
-        ('resampled', timeline_perspective.panel(TimelineDataFrameEnum.RESAMPLED_DATA)),
-        ('by author+resampled', timeline_perspective.panel(TimelineDataFrameEnum.BY_AUTHOR_DATA)),
-        (
-            'authors info',
-            perspective_pane(
-                df=timeseries_plot.authors_info_df_rx,
-                title=pn.rx("Authors info for repo={repo!r}, from={from_date!r}") \
-                    .format(repo=timeline_data_store.select_repo_widget,
-                            from_date=page_header.select_period_from_widget)
-            )
-        ),
-        ('selected author', authors_info_panel),
-    ),
-])
+#timeline_perspective = TimelinePerspective(data_store=timeline_data_store)
+#template.main.extend([
+#    pn.layout.Divider(),
+#    pn.Tabs(
+#        ('JSON', TimelineJSONViewer(data_store=timeline_data_store)),
+#        ('data', timeline_perspective.panel(TimelineDataFrameEnum.TIMELINE_DATA)),
+#        ('resampled', timeline_perspective.panel(TimelineDataFrameEnum.RESAMPLED_DATA)),
+#        ('by author+resampled', timeline_perspective.panel(TimelineDataFrameEnum.BY_AUTHOR_DATA)),
+#        (
+#            'authors info',
+#            perspective_pane(
+#                df=timeseries_plot.authors_info_df_rx,
+#                title=pn.rx("Authors info for repo={repo!r}, from={from_date!r}") \
+#                    .format(repo=timeline_data_store.select_repo_widget,
+#                            from_date=page_header.select_period_from_widget)
+#            )
+#        ),
+#        ('selected author', authors_info_panel),
+#    ),
+#])
 
 # Serve the dashboard
 template.servable()
