@@ -11,7 +11,8 @@ from diffinsights_web.utils.notifications import warning_notification
 
 
 # global variables:
-read_cached_df: bool = True  #: whether to use  cached DataFrames if available
+read_cached_df: bool = True  #: whether to use cached DataFrames if available
+save_cached_df: bool = True  #: whether to save DataFrames as *.parquet files
 
 
 #@pn.cache
@@ -68,6 +69,11 @@ def find_repos(timeline_data: dict) -> list[str]:
 def get_timeline_df(json_path: Optional[Path], timeline_data: dict, repo: str) -> pd.DataFrame:
     """Create timeline DataFrame from timeline data in JSON file
 
+    If global variable `read_cached_df` is True, and *.feather file with cached
+    data exists, read DataFrame from that file.  If global variable `save_cached_df`
+    is True, and *.feather file with cached data does not exist, save DataFrame
+    to that file.
+
     :param json_path: used to find cached data, if present, and possibly
         for error and debug messages (when logging)
     :param timeline_data: per-repo data to convert to pd.DataFrame and process;
@@ -104,6 +110,13 @@ def get_timeline_df(json_path: Optional[Path], timeline_data: dict, repo: str) -
             author_date    = lambda x: pd.to_datetime(x['author.timestamp'],    unit='s', utc=True),
             committer_date = lambda x: pd.to_datetime(x['committer.timestamp'], unit='s', utc=True),
         )
+
+    if save_cached_df and json_path is not None:
+        # TODO: add logging
+        cache_file = Path(json_path).with_suffix('.feather')
+        # TODO: check if json_path is newer
+        if not cache_file.is_file():
+            df.to_feather(cache_file)
 
     return df
 
