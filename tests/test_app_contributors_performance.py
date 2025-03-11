@@ -156,7 +156,7 @@ def test_contributors_trigger_performance(app, benchmark):
 
 
 @pytest.mark.slow
-def test_contributors_run_performance(app, benchmark):
+def test_contributors_save_performance(app, benchmark):
     #for k, v in app.param.objects().items():
     #    print(f"{app.__class__.name}.{k} = {repr(v.default)} ({type(v)})")
 
