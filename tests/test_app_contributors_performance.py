@@ -6,7 +6,7 @@ param = pytest.importorskip("param")
 pn = pytest.importorskip("panel")
 
 from diffinsights_web.datastore import timeline
-from diffinsights_web.views import info
+from diffinsights_web.views import info, authorsgrid
 from diffinsights_web.views.plots import timeseries
 from diffinsights_web.apps.contributors import template, dataset_dir, timeline_data_store
 
@@ -52,7 +52,8 @@ def test_contributors_trigger_performance(app, benchmark):
     # ------------------------------------------------------------ benchmark: 1 tests ------------------------------------------------------------
     # Name (time in ms)                              Min         Max        Mean   StdDev    Median      IQR  Outliers     OPS  Rounds  Iterations
     # --------------------------------------------------------------------------------------------------------------------------------------------
-    # test_contributors_trigger_performance     960.3151  1,168.4843  1,013.9247  88.7530  966.2547  86.4760       1;0  0.9863       5           1
+    # [this might be wrong]                     960.3151  1,168.4843  1,013.9247  88.7530  966.2547  86.4760       1;0  0.9863       5           1
+    # test_contributors_trigger_performance   1,004.7     1,216.6     1,074.6     87.0   1,029.1    109.1          1;0  0.9306       5           1
     # --------------------------------------------------------------------------------------------------------------------------------------------
     #
     # qtile.timeline.purpose-to-type.json, no authors grid, timeline.read_cached_df=True
@@ -60,6 +61,7 @@ def test_contributors_trigger_performance(app, benchmark):
     # Name (time in ms)                              Min       Max      Mean    StdDev    Median       IQR  Outliers     OPS  Rounds  Iterations
     # ------------------------------------------------------------------------------------------------------------------------------------------
     # test_contributors_trigger_performance     640.0732  969.0689  778.7443  126.1164  766.8316  172.4780       2;0  1.2841       5           1
+    # test_contributors_trigger_performance     570.6308  951.9380  727.4108  176.2168  637.6462  309.8764       1;0  1.3747       5           1
     # ------------------------------------------------------------------------------------------------------------------------------------------
 
     # tensorflow.timeline.purpose-to-type.json, 2 authors, no *.feather cache file
@@ -229,4 +231,18 @@ def test_contributors_steps_performance():
         column='n_commits',
         frequency_names_map=timeline.frequency_names,
         min_max_date=date_range,
+    )
+
+    ## AuthorInfo
+    #                   Min      Max     Mean   StdDev   Median     IQR  Outliers  OPS (Kops/s)  Rounds  Iterations
+    # (time in us)  23.9000  69.2000  28.2529  10.8287  24.7000  2.0250       1;3       35.3945      17           1
+    authors_list = authorsgrid.authors_list(
+        authors_df=authors_info_df,
+        top_n=100,
+    )
+    #                    Min       Max      Mean   StdDev    Median      IQR  Outliers  OPS (Kops/s)  Rounds  Iterations
+    # (time in us)  279.6000  444.2000  300.6714  36.4261  287.8000  18.4500       2;2        3.3259      21           1
+    author_timeline_df_rx = authorsgrid.author_timeline_df(
+        resample_by_author_df=resampled_timeline_by_author,
+        author_id=authors_list[0],  # some random author, first in some ordering
     )
