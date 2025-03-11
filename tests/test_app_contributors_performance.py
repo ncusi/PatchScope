@@ -34,6 +34,13 @@ def test_contributors_trigger_performance(app, benchmark):
     # test_contributors_trigger_performance     3.3202  5.7774  4.8386  0.9641  4.7957  1.2286       1;0  0.2067       5           1
     # ------------------------------------------------------------------------------------------------------------------------------
     #
+    # hellogitworld.timeline.purpose-to-type.json, no perspectives, no @pn.cache, no *.feather file
+    # ----------------------------------------------------- benchmark: 1 tests -----------------------------------------------------
+    # Name (time in s)                             Min     Max    Mean  StdDev  Median     IQR  Outliers     OPS  Rounds  Iterations
+    # ------------------------------------------------------------------------------------------------------------------------------
+    # test_contributors_trigger_performance     2.7742  4.3923  3.5007  0.6930  3.2159  1.1620       2;0  0.2857       5           1
+    # ------------------------------------------------------------------------------------------------------------------------------
+    #
     # hellogitworld.timeline.purpose-to-type.json, no authors grid, no *.feather file
     # ---------------------------------------------------------- benchmark: 1 tests ----------------------------------------------------------
     # Name (time in ms)                              Min       Max      Mean   StdDev    Median      IQR  Outliers     OPS  Rounds  Iterations
@@ -48,6 +55,14 @@ def test_contributors_trigger_performance(app, benchmark):
     # --------------------------------------------------------------------------------------------------------------------------------
     # test_contributors_trigger_performance     6.1609  13.0829  10.2299  2.7676  9.8133  3.9643       2;0  0.0978       5           1
     # --------------------------------------------------------------------------------------------------------------------------------
+    #
+    # qtile.timeline.purpose-to-type.json, no perspectives, no @pn.cache, timeline.read_cached_df=True
+    # ----------------------------------------------------- benchmark: 1 tests -----------------------------------------------------
+    # Name (time in s)                             Min     Max    Mean  StdDev  Median     IQR  Outliers     OPS  Rounds  Iterations
+    # ------------------------------------------------------------------------------------------------------------------------------
+    # test_contributors_trigger_performance     4.6550  8.9293  6.7644  1.7694  6.5680  3.0067       2;0  0.1478       5           1
+    #   =>  7.94 s, 15.31 s, 22.86 s, 30.28 s, 38.42 s - switch to qtile, looking at spinner (???)
+    # ------------------------------------------------------------------------------------------------------------------------------
     #
     # qtile.timeline.purpose-to-type.json, no authors grid, timeline.read_cached_df=False
     # ------------------------------------------------------------ benchmark: 1 tests ------------------------------------------------------------
@@ -93,6 +108,13 @@ def test_contributors_trigger_performance(app, benchmark):
     # Name (time in s)                             Min     Max    Mean  StdDev  Median     IQR  Outliers     OPS  Rounds  Iterations
     # ------------------------------------------------------------------------------------------------------------------------------
     # test_contributors_trigger_performance     3.4923  7.6465  6.0484  1.7178  6.7785  2.5960       1;0  0.1653       5           1
+    # ------------------------------------------------------------------------------------------------------------------------------
+    #
+    # tensorflow.timeline.purpose-to-type.json, 2 authors, no perspectives, no @pn.cache, no *.feather cache file
+    # ----------------------------------------------------- benchmark: 1 tests -----------------------------------------------------
+    # Name (time in s)                             Min     Max    Mean  StdDev  Median     IQR  Outliers     OPS  Rounds  Iterations
+    # ------------------------------------------------------------------------------------------------------------------------------
+    # test_contributors_trigger_performance     3.5529  5.1915  4.4779  0.7120  4.5155  1.2623       2;0  0.2233       5           1
     # ------------------------------------------------------------------------------------------------------------------------------
     #
     # tensorflow.timeline.purpose-to-type.json, no authors grid, no *.feather cache file
