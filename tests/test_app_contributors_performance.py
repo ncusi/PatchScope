@@ -1,4 +1,5 @@
 import io
+from collections import namedtuple
 
 import pytest
 
@@ -19,7 +20,7 @@ def app():
 @pytest.mark.slow
 def test_contributors_trigger_performance(app, benchmark):
     timeline_data_store.select_file_widget.param.update(
-        value=str(dataset_dir.joinpath('tensorflow.timeline.purpose-to-type.json')),
+        value=str(dataset_dir.joinpath('qtile.timeline.purpose-to-type.json')),
     )
 
     # Trigger watchers for widget that results in full re-render
@@ -246,3 +247,47 @@ def test_contributors_steps_performance():
         resample_by_author_df=resampled_timeline_by_author,
         author_id=authors_list[0],  # some random author, first in some ordering
     )
+
+    ## AuthorsGrid
+    authors_grid = pn.layout.GridBox(
+        ncols=2,
+    )
+    def authors_cards():
+        result = []
+
+        # TODO: pass `field_names` or `Row` as parameters
+        RowT = namedtuple(typename='Pandas', field_names=['Index', 'n_commits', 'p_count', 'm_count', 'author_name'])
+        row: RowT
+        for i, row in enumerate(authors_info_df.head(100).itertuples(), start=1):
+            ## TimeseriesPlotForAuthor
+            resampled_df = timeline.author_timeline_df_freq(
+                resample_by_author_df=resampled_timeline_by_author,
+                author_id=row.Index,
+                resample_rate='W',
+            )
+            plots = timeseries.plot_commits(
+                resampled_df=resampled_df,
+                column='n_commits',
+                from_date_str='',
+                xlim=date_range,
+                ylim=value_range,  # TODO: allow to switch between totals, max N, and own
+            )
+            result.append(plots)
+
+        return result
+
+    # itertuples only, (time in us)  662.8000  2,056.9000  746.6058  126.1879  696.8500  87.5000     80;64        1.3394     862           1
+    # resampled_df     (time in ms)  299.5121    381.2438  322.8718   33.1905  309.7927  27.2960      1;1         3.0972       5           1
+    # + plot_commits   (time in s)     2.6941      3.0048    2.8306    0.1301    2.8483   0.2154      2;0         0.3533       5           1
+    # + return         (time in s)     2.7732      3.0713    2.9085    0.1172    2.8711   0.1733      2;0         0.3438       5           1
+    #benchmark(authors_cards)
+
+    def update_authors_grid():
+        authors_grid.clear()
+        authors_grid.extend(
+            authors_cards()
+        )
+
+    # (time in s)             Min     Max    Mean  StdDev  Median     IQR  Outliers     OPS  Rounds  Iterations
+    # update_authors_grid  3.3933  4.6600  3.7409  0.5264  3.5571  0.5123       1;0  0.2673       5           1
+    #benchmark(update_authors_grid)
