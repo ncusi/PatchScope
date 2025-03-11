@@ -3,6 +3,7 @@ import datetime
 from pathlib import Path
 from typing import Optional, Union
 
+import line_profiler
 import panel as pn
 import pandas as pd
 import param
@@ -10,7 +11,7 @@ import param
 from diffinsights_web.utils.notifications import warning_notification
 
 
-@pn.cache
+@line_profiler.profile
 def find_timeline_files(dataset_dir: Union[Path, str, param.Path, None]) -> dict[str, str]:
     if dataset_dir is None:
         warning_notification("No directory with data files to read")
@@ -36,8 +37,8 @@ def find_timeline_files(dataset_dir: Union[Path, str, param.Path, None]) -> dict
             for path in dataset_dir.glob('*.timeline.*.json')
         }
 
-
-@pn.cache
+@line_profiler.profile
+# @pn.cache
 def get_timeline_data(json_path: Optional[Path]) -> dict:
     if json_path is None:
         return {}
@@ -45,13 +46,13 @@ def get_timeline_data(json_path: Optional[Path]) -> dict:
     with open(json_path, mode='r') as json_fp:
         return json.load(json_fp)
 
-
-@pn.cache
+@line_profiler.profile
+# @pn.cache
 def find_repos(timeline_data: dict) -> list[str]:
     return list(timeline_data.keys())
 
-
-@pn.cache
+@line_profiler.profile
+# @pn.cache
 def get_timeline_df(timeline_data: dict, repo: str) -> pd.DataFrame:
     init_df = pd.DataFrame.from_records(timeline_data[repo])
 

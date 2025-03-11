@@ -17,6 +17,8 @@ from diffinsights_web.utils.notifications import warning_notification
 from diffinsights_web.views import TimelineView, SpecialColumnEnum, column_to_contribution
 from diffinsights_web.views.plots.sankey import SankeyPlot
 
+import line_profiler
+
 
 def line_type_sorting_key(column_name: str) -> int:
     if 'type.code' in column_name:
@@ -399,6 +401,7 @@ class TimeseriesPlotForAuthor(TimelineView):
     main_plot = param.ClassSelector(class_=TimeseriesPlot)
     author_email = param.String()
 
+    @line_profiler.profile
     def __init__(self, **params):
         #print("TimeseriesPlotForAuthor.__init__()")
         super().__init__(**params)

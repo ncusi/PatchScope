@@ -3,12 +3,13 @@ from collections import Counter, defaultdict
 from collections.abc import Container, Iterable
 from pathlib import Path, PurePosixPath
 from typing import Union, Optional
+import line_profiler
 
 import pandas as pd
 import panel as pn
 import param
 
-
+@line_profiler.profile
 def get_lines_stats_data(dataset_dir: str, timeseries_file: str) -> Optional[dict]:
     timeseries_file_path = Path(timeseries_file)
     if not timeseries_file_path.is_absolute():
@@ -24,7 +25,7 @@ def get_lines_stats_data(dataset_dir: str, timeseries_file: str) -> Optional[dic
     else:
         return None
 
-
+@line_profiler.profile
 def count_file_x_line_in_lines_stats(lines_stats_data: Optional[dict],
                                      repo_name: str,
                                      change_type: str = "+/-",
@@ -54,7 +55,7 @@ def count_file_x_line_in_lines_stats(lines_stats_data: Optional[dict],
 
     return result
 
-
+@line_profiler.profile
 def sorted_changed_files(lines_stats_counter: Optional[Counter]) -> Optional[list[str]]:
     if lines_stats_counter is None:
         return None

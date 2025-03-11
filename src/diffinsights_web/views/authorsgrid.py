@@ -12,6 +12,7 @@ from diffinsights_web.views import TimelineView
 from diffinsights_web.views.dataexplorer import perspective_pane
 from diffinsights_web.views.info import ContributionsPercHeader
 from diffinsights_web.views.plots.timeseries import TimeseriesPlotForAuthor, TimeseriesPlot
+import line_profiler 
 
 
 def authors_list(authors_df: pd.DataFrame,
@@ -120,6 +121,7 @@ class AuthorsGrid(TimelineView):
     def __panel__(self) -> pn.viewable.Viewable:
         return self.authors_grid
 
+    @line_profiler.profile
     def authors_cards(self):
         #print("RUNNING AuthorsGrid::authors_cards()")
         result: list[pn.layout.Card] = []
