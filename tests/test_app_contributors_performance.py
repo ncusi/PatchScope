@@ -57,6 +57,29 @@ def test_contributors_trigger_performance(app, benchmark):
     # test_contributors_trigger_performance   1,004.7     1,216.6     1,074.6     87.0   1,029.1    109.1          1;0  0.9306       5           1
     # --------------------------------------------------------------------------------------------------------------------------------------------
     #
+    # qtile.timeline.purpose-to-type.json, no authors grid, @pn.cache -> empty?, timeline.read_cached_df=False
+    # ----------------------------------------------------- benchmark: 1 tests -----------------------------------------------------
+    # Name (time in s)                             Min     Max    Mean  StdDev  Median     IQR  Outliers     OPS  Rounds  Iterations
+    # ------------------------------------------------------------------------------------------------------------------------------
+    # 0*@pn.cache                               1.0628  1.2603  1.1501  0.0953  1.1149  0.1802       1;0  0.8695       5           1
+    # 0*@pn.cache
+    #   => Largest Contentful Paint (LCP) 12.04 s (on start), 4.50 s (reload), 4.18 s (next reload)
+    #   => 8.71 s, 10.22 s, 8.73 s, 8.18+ s, 8.61 s - switch to qtile, looking at spinner
+    #   => 1.25 s,  1.59 s, 1.23 s, 1.66 s,  1.59 s - change contributions, looking at spinner
+    # 1*@pn.cache                               1.0141  1.2112  1.0793  0.0838  1.0296  0.1149       1;0  0.9266       5           1
+    # 2*@pn.cache                               0.8722  1.0887  0.9416  0.0847  0.9109  0.0691       1;1  1.0620       5           1
+    # 3*@pn.cache -> up to find_repos           4.6574  6.4733  5.3773  0.7429  5.3664  1.1427       1;0  0.1860       5           1
+    # 3*@pn.cache -> excl. find_repos, get_time 4.6574  6.4733  5.3773  0.7429  5.3664  1.1427       1;0  0.1860       5           1
+    # 3*@pn.cache -> 2 excl., count_col         4.6574  6.4733  5.3773  0.7429  5.3664  1.1427       1;0  0.1860       5           1
+    # 3*@pn.cache -> 3 excl., resample_timeline 0.9897  1.9716  1.5362  0.3623  1.6263  0.4242       2;0  0.6510       5           1
+    # 6*@pn.cache -> 3 excl., get_value_range   0.9106  1.3507  1.0710  0.1700  1.0628  0.1885       1;0  0.9337       5           1
+    # 9*@pn.cache                               8.0522  9.8538  8.5953  0.7517  8.1867  0.8848       1;0  0.1163       5           1
+    # 9*@pn.cache
+    #   => Largest Contentful Paint (LCP) 4.72 s (on start), 5.04 s (reload), 3.86 s (next reload)
+    #   => 21.10 s (clear cache), 19.48 s, 19.30 s, 20.23 s, 23.18 s - switch to qtile, looking at spinner
+    #   =>  1.23 s (clear cache),  1.52 s,  1.54 s, <1.29 s,  1.57 s - change contributions, looking at spinner
+    # ------------------------------------------------------------------------------------------------------------------------------
+    #
     # qtile.timeline.purpose-to-type.json, no authors grid, timeline.read_cached_df=True
     # ----------------------------------------------------------- benchmark: 1 tests -----------------------------------------------------------
     # Name (time in ms)                              Min       Max      Mean    StdDev    Median       IQR  Outliers     OPS  Rounds  Iterations
@@ -83,6 +106,7 @@ def test_contributors_trigger_performance(app, benchmark):
     print(f"{timeline.read_cached_df=}")
     cache_path = dataset_dir.joinpath('qtile.timeline.purpose-to-type.feather')
     print(f"{cache_path=}, {cache_path.is_file()=}")
+    print(f"{pn.state.cache.keys()=}")
 
     assert True
 
