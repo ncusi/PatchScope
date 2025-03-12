@@ -70,6 +70,14 @@ def test_contributors_trigger_performance(app, benchmark):
     # ------------------------------------------------------------------------------------------------------------------------------
     # test_contributors_trigger_performance     4.6550  8.9293  6.7644  1.7694  6.5680  3.0067       2;0  0.1478       5           1
     #   =>  7.94 s, 15.31 s, 22.86 s, 30.28 s, 38.42 s - switch to qtile, looking at spinner (???)
+    #
+    # qtile.timeline.purpose-to-type.json, perspectives moved, timeline.read_cached_df=True
+    # ----------------------------------------------------- benchmark: 1 tests -----------------------------------------------------
+    # Name (time in s)                             Min     Max    Mean  StdDev  Median     IQR  Outliers     OPS  Rounds  Iterations
+    # ------------------------------------------------------------------------------------------------------------------------------
+    # some @pn.cache's                          6.4903 13.3133  9.5409  2.6170  9.1191  3.7279       2;0  0.1048       5           1
+    # 0*@pn.cache                               4.1397 10.6390  6.9805  2.4556  6.9269  3.2579       2;0  0.1433       5           1
+    # 1*@pn.cache find_timeline_files           5.5131 10.7539  8.3548  1.9779  8.0777  2.6009       2;0  0.1197       5           1
     # ------------------------------------------------------------------------------------------------------------------------------
     #
     # qtile.timeline.purpose-to-type.feather, no perspectives or sidebar, no @pn.cache, timeline.read_cached_df=True

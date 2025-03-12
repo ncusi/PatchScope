@@ -12,7 +12,7 @@ from diffinsights_web.utils.notifications import warning_notification
 
 # global variables:
 read_cached_df: bool = True  #: whether to use cached DataFrames if available
-save_cached_df: bool = True  #: whether to save DataFrames as *.parquet files
+save_cached_df: bool = True  #: whether to save DataFrames as *.feather files
 
 
 #@pn.cache
