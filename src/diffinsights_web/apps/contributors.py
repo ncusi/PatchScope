@@ -77,6 +77,7 @@ template = pn.template.MaterialTemplate(
     site="PatchScope",
     title="Contributors Graph",  # TODO: make title dynamic
     favicon="favicon.svg",
+    collapsed_sidebar=True,
     sidebar=[
         timeline_data_store,
         lines_stats_data_store,
