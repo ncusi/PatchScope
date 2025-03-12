@@ -37,7 +37,7 @@ def find_timeline_files(dataset_dir: Union[Path, str, param.Path, None]) -> dict
 
         # assuming naming convention *.timeline.*.json for appropriate data files
         return {
-            str(path.stem): str(path)
+            str(path.stem)[0:str(path.stem).index('.')]: str(path)
             for path in dataset_dir.glob('*.timeline.*.json')
         }
 
@@ -412,7 +412,8 @@ class TimelineDataStore(pn.viewable.Viewer):
 
         # select JSON data file, and extract data from it
         self.select_file_widget = pn.widgets.Select(
-            name="input JSON file",
+            #name="input JSON file",
+            name="repository data",  # NOTE: this name is easier to understand, even if less correct
             options=find_timeline_files(self.param.dataset_dir)
         )
         self.timeline_data_rx = pn.rx(get_timeline_data)(
@@ -423,7 +424,8 @@ class TimelineDataStore(pn.viewable.Viewer):
             timeline_data=self.timeline_data_rx,
         )
         self.select_repo_widget = pn.widgets.Select(
-            name="repository",
+            #name="repository",
+            name="name of data subset",  # NOTE: in all examples there is only one subset
             options=self.find_repos_rx,
             disabled=len(self.find_repos_rx.rx.value) <= 1,
         )
