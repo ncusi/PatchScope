@@ -15,6 +15,17 @@ read_cached_df: bool = True  #: whether to use cached DataFrames if available
 save_cached_df: bool = True  #: whether to save DataFrames as *.feather files
 
 
+def path_to_name(file_path: Path) -> str:
+    basename = str(file_path.stem)
+    try:
+        # everything up to first '.', if present
+        # this should be the typical case
+        return basename[0:basename.index('.')]
+    except ValueError:
+        # otherwise return whole basename
+        return basename
+
+
 #@pn.cache
 def find_timeline_files(dataset_dir: Union[Path, str, param.Path, None]) -> dict[str, str]:
     if dataset_dir is None:
@@ -37,7 +48,7 @@ def find_timeline_files(dataset_dir: Union[Path, str, param.Path, None]) -> dict
 
         # assuming naming convention *.timeline.*.json for appropriate data files
         return {
-            str(path.stem)[0:str(path.stem).index('.')]: str(path)
+            path_to_name(path): str(path)
             for path in dataset_dir.glob('*.timeline.*.json')
         }
 
