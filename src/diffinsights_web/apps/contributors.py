@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import logging
+from pathlib import Path
 
 import panel as pn
 
 import diffinsights_web.utils.notifications as notifications
-from diffinsights_web.datastore.timeline import TimelineDataStore
+from diffinsights_web.datastore.timeline import TimelineDataStore, path_to_name
 from diffinsights_web.datastore import find_dataset_dir
 from diffinsights_web.utils.notifications import onload_callback
 from diffinsights_web.views.authorsgrid import AuthorInfo, AuthorsGrid
@@ -56,6 +57,41 @@ authors_grid = AuthorsGrid(
     authors_info_df=timeseries_plot.authors_info_df_rx,
     top_n=authors_info_panel.top_n_widget,
 )
+
+
+# handle URL params
+def onload_update_query_args():
+    onload_callback()
+    pn.state.location.update_query(
+        repo=path_to_name(Path(timeline_data_store.select_file_widget.value))
+    )
+
+
+def select_file_widget_watcher(*events):
+    for event in events:
+        if event.name == 'value':
+            pn.state.location.update_query(
+                repo=path_to_name(Path(event.new))
+            )
+
+
+if pn.state.location:
+    pn.state.onload(
+        onload_update_query_args
+    )
+    timeline_data_store.select_file_widget.param.watch(
+        select_file_widget_watcher,
+        ['value'],
+        onlychanged=True,
+    )
+    repo_arg = pn.state.session_args.get("repo", [b""])[0].decode()
+    if repo_arg in timeline_data_store.select_file_widget.options:
+        # TODO: add logging
+        timeline_data_store.select_file_widget.param.update(
+            value=timeline_data_store.select_file_widget.options[repo_arg],
+        )
+        # NOTE: alternative would be to use
+        # timeline_data_store.select_file_widget.value = timeline_data_store.select_file_widget.options[repo_arg]
 
 # Create the dashboard layout
 template = pn.template.MaterialTemplate(
