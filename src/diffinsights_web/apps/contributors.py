@@ -77,16 +77,16 @@ template = pn.template.MaterialTemplate(
     site="PatchScope",
     title="Contributors Graph",  # TODO: make title dynamic
     favicon="favicon.svg",
-    # sidebar=[
-    #     timeline_data_store,
-    #     lines_stats_data_store,
-    #     *authors_info_panel.widgets(),
-    #
-    #     pn.layout.Divider(),  # - - - - - - - - - - - - -
-    #
-    #     timeseries_plot.select_plot_theme_widget,
-    #     ClearCacheButton(),
-    # ],
+    sidebar=[
+        timeline_data_store,
+        lines_stats_data_store,
+        *authors_info_panel.widgets(),
+
+        pn.layout.Divider(),  # - - - - - - - - - - - - -
+
+        timeseries_plot.select_plot_theme_widget,
+        ClearCacheButton(),
+    ],
     main=[
         pn.Column(
             page_header,
