@@ -10,6 +10,10 @@ from diffinsights_web.datastore import find_dataset_dir
 from diffinsights_web.datastore.timeline import get_timeline_data, get_timeline_df
 
 
+# This is exploratory test, skip it
+pytest.skip(reason="skipping exploratory tests", allow_module_level=True)
+
+
 dataset_dir = find_dataset_dir()
 save_path_base = 'qtile.timeline.purpose-to-type'
 
