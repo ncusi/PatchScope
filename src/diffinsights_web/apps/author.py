@@ -46,7 +46,7 @@ all_possible_pm_col_perc_basenames = [f"{col} [%]" for col in all_possible_pm_co
 
 # ---------------------------------------------------------------------------
 # functions to get data, required to construct other widgets
-author_column = 'author.name'
+author_column = 'author.email'
 
 
 @pn.cache
