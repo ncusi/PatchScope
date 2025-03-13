@@ -1,5 +1,4 @@
 from collections import namedtuple
-from pathlib import Path
 from typing import Optional
 from urllib.parse import urlencode
 
@@ -126,7 +125,7 @@ class AuthorsGrid(TimelineView):
         #print("RUNNING AuthorsGrid::authors_cards()")
         result: list[pn.layout.Card] = []
         avatar_size = 20  # TODO: make it configurable, eg. via param
-        repo_arg = path_to_name(Path(self.data_store.select_file_widget.value))
+        repo_arg = path_to_name(self.data_store.select_file_widget.value)
 
         # TODO: pass `field_names` or `Row` as parameters
         RowT = namedtuple(typename='Pandas', field_names=['Index', 'n_commits', 'p_count', 'm_count', 'author_name'])

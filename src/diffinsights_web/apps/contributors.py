@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import logging
-from pathlib import Path
 
 import panel as pn
 
@@ -63,7 +62,7 @@ authors_grid = AuthorsGrid(
 def onload_update_query_args():
     onload_callback()
     pn.state.location.update_query(
-        repo=path_to_name(Path(timeline_data_store.select_file_widget.value))
+        repo=path_to_name(timeline_data_store.select_file_widget.value)
     )
 
 
@@ -71,7 +70,7 @@ def select_file_widget_watcher(*events):
     for event in events:
         if event.name == 'value':
             pn.state.location.update_query(
-                repo=path_to_name(Path(event.new)),
+                repo=path_to_name(event.new),
             )
 
 

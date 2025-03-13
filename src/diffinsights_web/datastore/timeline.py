@@ -15,7 +15,11 @@ read_cached_df: bool = True  #: whether to use cached DataFrames if available
 save_cached_df: bool = True  #: whether to save DataFrames as *.feather files
 
 
-def path_to_name(file_path: Path) -> str:
+def path_to_name(file_path: Union[Path, str]) -> str:
+    # handle the case where file_path is str, e.g. is widget value
+    if not isinstance(file_path, Path):
+        file_path = Path(file_path)
+
     basename = str(file_path.stem)
     try:
         # everything up to first '.', if present
