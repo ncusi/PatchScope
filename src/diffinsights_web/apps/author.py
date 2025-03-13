@@ -19,19 +19,11 @@ from diffinsights_web.utils import round_10s
 from diffinsights_web.views.plots.period import add_split_localtime, plot_periodicity_heatmap
 from diffinsights_web.widgets.caching import ClearCacheButton
 
-DEBUG = False
 
 logger = logging.getLogger("panel.author")
-if DEBUG:
-    pn.extension(
-        "jsoneditor", "tabulator", "perspective", "terminal",
-        design="material", sizing_mode="fixed",
-    )
-else:
-    pn.extension(
-        design="material", sizing_mode="fixed",
-    )
-
+pn.extension(
+    design="material", sizing_mode="fixed",
+)
 
 cols_plus_all  = [f"+:type.{line_type}"
                   for line_type in ['code', 'documentation', 'test', 'other', 'data', 'markup', 'project']]
@@ -1019,76 +1011,6 @@ template = pn.template.MaterialTemplate(
         ),
     ],
 )
-
-if DEBUG:
-    template.main.extend([
-        pn.layout.Divider(),
-        pn.Card(
-            pn.widgets.Debugger(
-                name='Debugger (level=DEBUG)',
-                only_last=False,
-                # at logging.DEBUG level there are many messages from Panel,
-                # so to avoid flooding the Debugger widget, limit it to application logger
-                level=logging.DEBUG, logger_names=['panel.timeline']),
-            header="Debugger: terminal with 01-timeline.ipynb logger output",
-        ),
-        pn.Card(
-            pn.widgets.JSONEditor(
-                value=get_timeline_data_rx,  # or get_timeline_data(), which is @pn.cache'd
-                mode='view',
-                menu=True, search=True,
-                width_policy='max',
-                height=400,
-            ),
-            # NOTE: change when there is widget to select or upload the JSON file
-            header="JSONEditor (view): input JSON file '{filename}'".format(filename=select_file_widget),
-            width_policy='max',
-        ),
-        pn.Card(
-            pn.widgets.Tabulator(
-                get_timeline_df_rx,  # TODO: use reactive component, instead of a global variable
-                show_index=False,
-                frozen_columns=['bug_id', 'patch_id'],
-                #editable=False,
-                editors={
-                    col: None
-                    for col in get_timeline_df_rx.rx.value.columns
-                },
-                header_filters=True,
-                configuration={
-                    'columnDefaults': {
-                        'headerSort': True,
-                        #'headerVertical': True,
-                    },
-                    'rowHeight': 12,
-                    'layout': 'fitColumns',
-                },
-                stylesheets=[
-                    """
-                    .tabulator-cell {
-                        font-size: 12px;
-                    }
-                    .tabulator-col-title {
-                        font-size: 14px;
-                    }
-                    """
-                ],
-                width=1100,
-                #width="100%",        # does not work
-                #width_policy='min',  # no horizontal scrollbar (?)
-                height=500,
-            ),
-            header=pn.rx("Tabulator: DataFrame with all data for '{repo}' repository").format(repo=repos_widget),
-        ),
-        pn.pane.Perspective(
-            resample_timeline_rx,  # or use reactive component, maybe
-            title=pn.rx("Perspective: resampled DataFrame, repo={repo}, author={author}, resample={resample!s}, agg={agg_func!s}")\
-                    .format(repo=repos_widget, author=authors_widget, resample=resample_rule_widget, agg_func=agg_func_widget),
-            editable=False,
-            width_policy='max',
-            height=500,
-        ),
-    ])
 
 template.servable()
 
