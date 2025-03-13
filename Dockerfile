@@ -10,7 +10,13 @@ RUN python3 -m pip install --no-cache-dir --upgrade -r /code/requirements.txt
 COPY . .
 RUN python3 -m pip install --no-cache-dir --upgrade .[web]
 
-CMD ["panel", "serve", "/code/src/diffinsights_web/apps/contributors.py", "/code/src/diffinsights_web/apps/author.py", "--address", "0.0.0.0", "--port", "7860",  "--allow-websocket-origin", "*"]
+EXPOSE 7860
+CMD ["panel", "serve", \
+     "/code/src/diffinsights_web/apps/contributors.py", \
+     "/code/src/diffinsights_web/apps/author.py", \
+     "--address", "0.0.0.0", "--port", "7860",  \
+     "--allow-websocket-origin", "*" \
+]
 
 RUN mkdir /.cache
 RUN chmod 777 /.cache
