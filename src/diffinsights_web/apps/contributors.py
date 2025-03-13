@@ -71,7 +71,8 @@ def select_file_widget_watcher(*events):
     for event in events:
         if event.name == 'value':
             pn.state.location.update_query(
-                repo=path_to_name(Path(event.new))
+                repo=path_to_name(Path(event.new)),
+                empty='', none=None,
             )
 
 
@@ -95,6 +96,10 @@ if pn.state.location:
 
     pn.state.location.sync(timeline_data_store.resample_frequency_widget, {'value': 'freq'})
     pn.state.location.sync(page_header.select_period_from_widget, {'value': 'from'})
+    # TODO: replace with similar mechanism like for 'repo' parameter
+    #       (but without onload), to use names like 'additions' instead
+    #       of 'timeline|+:count' encoded as 'timeline%7C%2B%3Acount'
+    pn.state.location.sync(page_header.select_contribution_type_widget, {'value': 'selectedMetric'})
 
 # Create the dashboard layout
 template = pn.template.MaterialTemplate(
