@@ -898,7 +898,7 @@ def mpl_card(fig: Figure, header: str) -> pn.Card:
 # page URL
 if pn.state.location:
     # pn.state.location.sync(repos_widget, {'value': 'repo'})
-    # pn.state.location.sync(authors_widget, {'value': 'author'})
+    pn.state.location.sync(authors_widget, {'value': 'author'})
     pn.state.location.sync(resample_rule_widget, {'value': 'freq'})
     pn.state.location.sync(agg_func_widget, {'value': 'agg_func'})
     pn.state.location.sync(column_base_widget, {'value': 'column'})
