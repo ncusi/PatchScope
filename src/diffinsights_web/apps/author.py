@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import logging
+from pathlib import Path
 from typing import Optional
 
 import numpy as np
@@ -14,7 +15,7 @@ from matplotlib.figure import Figure
 from diffinsights_web.datastore import find_dataset_dir
 from diffinsights_web.datastore.timeline import \
     find_timeline_files, find_repos, \
-    get_timeline_data, get_timeline_df
+    get_timeline_data, get_timeline_df, path_to_name
 from diffinsights_web.utils import round_10s
 from diffinsights_web.views.plots.period import add_split_localtime, plot_periodicity_heatmap
 from diffinsights_web.widgets.caching import ClearCacheButton
@@ -896,8 +897,45 @@ def mpl_card(fig: Figure, header: str) -> pn.Card:
 
 # ---------------------------------------------------------------------------
 # page URL
+
+# TODO: reduce code duplication with 'apps/contributors.py'
+# handle URL params
+def onload_update_query_args():
+    #onload_callback()
+    pn.state.location.update_query(
+        repo=path_to_name(Path(repos_widget.value)),
+        author=authors_widget.value,
+    )
+
+
+def select_file_widget_watcher(*events):
+    for event in events:
+        if event.name == 'value':
+            pn.state.location.update_query(
+                repo=path_to_name(Path(event.new)),
+            )
+
+
 if pn.state.location:
-    # pn.state.location.sync(repos_widget, {'value': 'repo'})
+    # NOTE: we cannot use the following commented out line, as it would use whole path
+    #pn.state.location.sync(repos_widget, {'value': 'repo'})
+    # TODO: reduce code duplication with 'app/contributors.py' (currently different widget reference)
+    pn.state.onload(
+        onload_update_query_args
+    )
+    select_file_widget.param.watch(
+        select_file_widget_watcher,
+        ['value'],
+        onlychanged=True,
+    )
+    repo_arg = pn.state.session_args.get("repo", [b""])[0].decode()
+    if repo_arg in select_file_widget.options:
+        # TODO: add logging
+        select_file_widget.param.update(
+            value=select_file_widget.options[repo_arg],
+        )
+
+
     pn.state.location.sync(authors_widget, {'value': 'author'})
     pn.state.location.sync(resample_rule_widget, {'value': 'freq'})
     pn.state.location.sync(agg_func_widget, {'value': 'agg_func'})
