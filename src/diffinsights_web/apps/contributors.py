@@ -72,7 +72,6 @@ def select_file_widget_watcher(*events):
         if event.name == 'value':
             pn.state.location.update_query(
                 repo=path_to_name(Path(event.new)),
-                empty='', none=None,
             )
 
 
