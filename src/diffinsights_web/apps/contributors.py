@@ -92,6 +92,15 @@ if pn.state.location:
         # NOTE: alternative would be to use
         # timeline_data_store.select_file_widget.value = timeline_data_store.select_file_widget.options[repo_arg]
 
+        # TODO?: do it right, and do not rely on the assumption below
+        # NOTE: this is workaround for widget being empty on reload
+        # assumes that there is only one repo in data, with name that can be derived
+        timeline_data_store.select_repo_widget.param.update(
+            options=[repo_arg],
+            value=repo_arg,
+            disabled=True,
+        )
+
     pn.state.location.sync(timeline_data_store.resample_frequency_widget, {'value': 'freq'})
     pn.state.location.sync(page_header.select_period_from_widget, {'value': 'from'})
     # TODO: replace with similar mechanism like for 'repo' parameter
