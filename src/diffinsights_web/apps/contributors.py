@@ -93,6 +93,9 @@ if pn.state.location:
         # NOTE: alternative would be to use
         # timeline_data_store.select_file_widget.value = timeline_data_store.select_file_widget.options[repo_arg]
 
+    pn.state.location.sync(timeline_data_store.resample_frequency_widget, {'value': 'freq'})
+    pn.state.location.sync(page_header.select_period_from_widget, {'value': 'from'})
+
 # Create the dashboard layout
 template = pn.template.MaterialTemplate(
     site="PatchScope",
