@@ -21,7 +21,7 @@ from diffinsights_web.widgets.caching import ClearCacheButton
 
 DEBUG = True
 
-logger = logging.getLogger("panel.author")
+logger = logging.getLogger("panel.explore_author")
 if DEBUG:
     pn.extension(
         "jsoneditor", "tabulator", "perspective", "terminal",
