@@ -14,6 +14,7 @@ EXPOSE 7860
 CMD ["panel", "serve", \
      "/code/src/diffinsights_web/apps/contributors.py", \
      "/code/src/diffinsights_web/apps/author.py", \
+     "--index=contributors", \
      "--reuse-sessions", "--global-loading-spinner", \
      "--address", "0.0.0.0", "--port", "7860",  \
      "--allow-websocket-origin", "*" \
