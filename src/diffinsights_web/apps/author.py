@@ -19,7 +19,7 @@ from diffinsights_web.utils import round_10s
 from diffinsights_web.views.plots.period import add_split_localtime, plot_periodicity_heatmap
 from diffinsights_web.widgets.caching import ClearCacheButton
 
-DEBUG = True
+DEBUG = False
 
 logger = logging.getLogger("panel.author")
 if DEBUG:
