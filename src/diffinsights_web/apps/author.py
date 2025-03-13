@@ -909,9 +909,8 @@ template = pn.template.MaterialTemplate(
     site="PatchScope",
     title="Author Statistics",
     favicon="favicon-author.svg",
-    #sidebar_width=sidebar_width.rx(),  # does not work!
-    #sidebar_width=sidebar_width.value, # TODO: to be tested
     sidebar_width=350,
+    collapsed_sidebar=True,
     sidebar=[
         select_file_widget,
         repos_widget,  # disabled, and UNBOUND!
