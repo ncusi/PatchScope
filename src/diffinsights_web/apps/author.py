@@ -51,7 +51,8 @@ author_column = 'author.email'
 
 @pn.cache
 def get_authors(tf_timeline_df: pd.DataFrame) -> list[str]:
-    return tf_timeline_df[author_column].unique().tolist()
+    #return tf_timeline_df[author_column].unique().tolist()
+    return tf_timeline_df[author_column].value_counts(sort=True).index.tolist()
 
 
 @pn.cache
