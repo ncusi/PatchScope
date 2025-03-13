@@ -7,6 +7,7 @@ import numpy as np
 import panel as pn
 import pandas as pd
 import seaborn as sns
+from bokeh.models import PrintfTickFormatter
 from matplotlib.colors import LogNorm
 from matplotlib.figure import Figure
 
@@ -18,11 +19,19 @@ from diffinsights_web.utils import round_10s
 from diffinsights_web.views.plots.period import add_split_localtime, plot_periodicity_heatmap
 from diffinsights_web.widgets.caching import ClearCacheButton
 
+DEBUG = True
 
-logger = logging.getLogger("panel.author")
-pn.extension(
-    design="material", sizing_mode="fixed",
-)
+logger = logging.getLogger("panel.explore_author")
+if DEBUG:
+    pn.extension(
+        "jsoneditor", "tabulator", "perspective", "terminal",
+        design="material", sizing_mode="fixed",
+    )
+else:
+    pn.extension(
+        design="material", sizing_mode="fixed",
+    )
+
 
 cols_plus_all  = [f"+:type.{line_type}"
                   for line_type in ['code', 'documentation', 'test', 'other', 'data', 'markup', 'project']]
@@ -171,6 +180,42 @@ hist_widget = pn.WidgetBox(
     disabled=False
 )
 
+# Scaling of 'n_mod' in patch size plots
+rescale_n_mod_widget = pn.widgets.Switch(
+    name="rescale_n_mod",
+    value=True
+)
+n_mod_widget = pn.Row(
+    pn.pane.Str("  mod"),
+    rescale_n_mod_widget,
+    pn.pane.Str("2*mod")
+)
+
+# Figure formatting: Matplotlib figsize parameter
+figsize_params = dict(
+    start=1, fixed_start=1,
+    end=8, fixed_end=10,
+    step=0.05,
+    value=5,
+    format=PrintfTickFormatter(format='%.2f in'),
+    margin=(-5, 10)
+)
+
+figsize_x_slider = pn.widgets.EditableFloatSlider(name='size.x', **figsize_params)
+figsize_y_slider = pn.widgets.EditableFloatSlider(name='size.y', **figsize_params)  # orientation='vertical' does not work (???)
+figsize_widget = pn.WidgetBox(
+    'figsize',
+    figsize_x_slider,
+    figsize_y_slider,
+    disabled=True
+)
+
+# Matplotlib pane formatting
+plot_width = pn.widgets.IntSlider(
+    name='width',
+    start=100, end=1200, step=50,
+    value=500
+)
 plot_sizing_mode = pn.widgets.Select(
     name='sizing_mode',
     options=['fixed', 'stretch_width'],
@@ -743,7 +788,7 @@ plot_counts_rx = pn.rx(plot_counts)(
     author_desc=authors_widget,
     resample_rate=resample_rule_widget,
     agg_func=agg_func_widget,
-    figsize=(5, 5),
+    figsize=(figsize_x_slider.value, figsize_y_slider.value),
 )
 
 # plot that depends on the reactive data, part 1, defined earlier, i.e. `resample_timeline_rx`
@@ -752,7 +797,7 @@ plot_commits_rx = pn.rx(plot_commits)(
     repo_desc=repos_widget,
     author_desc=authors_widget,
     resample_rate=resample_rule_widget, # 'n_commits' is excluded from selecting `agg_func`
-    figsize=(12, 5),
+    figsize=(figsize_x_slider.value, figsize_y_slider.value),  # NOTE: does not seem to work for some reason
 )
 
 # plot that depends on the special case of reactive data, part 1, defined earlier, i.e. `resample_timeline_ME_rx`
@@ -838,14 +883,13 @@ def mpl_card(fig: Figure, header: str) -> pn.Card:
             format=plot_format.rx(),
             fixed_aspect=False,
             sizing_mode='fixed',
-            width= 500,
-            height=500,
+            width= plot_width.rx(),
+            height=plot_width.rx(),
             styles={
                 "margin-left":  "auto",
                 "margin-right": "auto",
             },
         ),
-        collapsible=False,
         header=header,
     )
 
@@ -909,8 +953,9 @@ template = pn.template.MaterialTemplate(
     site="PatchScope",
     title="Author Statistics",
     favicon="favicon-author.svg",
+    #sidebar_width=sidebar_width.rx(),  # does not work!
+    #sidebar_width=sidebar_width.value, # TODO: to be tested
     sidebar_width=350,
-    collapsed_sidebar=True,
     sidebar=[
         select_file_widget,
         repos_widget,  # disabled, and UNBOUND!
@@ -919,37 +964,24 @@ template = pn.template.MaterialTemplate(
         resample_rule_widget,
         agg_func_widget,
         #n_mod_widget,   # composite: switch + descriptions
-        #pm_col_widget,  # composite: select + checkbox
+        pm_col_widget,  # composite: select + checkbox
         hist_widget,    # composite: two sliders
         ClearCacheButton(),
         pn.layout.VSpacer(),
         #pn.Spacer(height=100),
+        figsize_widget,
         plot_sizing_mode,
+        plot_width,
         plot_format,
     ],
     main=[
         pn.FlexBox(
-            pn.Card(
-                pn.pane.Matplotlib(
-                    plot_commits_rx,
-                    tight=True,
-                    format=plot_format.rx(),
-                    sizing_mode='fixed',
-                    # start of different values of parameters than mpl_card()
-                    fixed_aspect=True,
-                    width =1000,
-                    height= 500,
-                    # end of different parameters
-                    styles={
-                        "margin-left":  "auto",
-                        "margin-right": "auto",
-                    },
-                ),
-                collapsible=False,
-                header="commit counts",
-            ),
             mpl_card(plot_counts_rx, "line counts"),
+            mpl_card(plot_pm_col_rx, "line-type / file-purpose counts"),  # TODO: should it be here, in this order?
+            mpl_card(plot_diff_3sizes_rx, "patch sizes"),
+            mpl_card(plot_commits_rx, "commit counts"),
             mpl_card(bihist_pm_df_rx, "histogram of -/+ counts per commit"),
+            mpl_card(bihist_pm_df_resampled_rx, "histogram of -/+ counts per resample period"),
             pn.Card(
                 pn.pane.Matplotlib(
                     plot_heatmap_rx,
@@ -958,15 +990,14 @@ template = pn.template.MaterialTemplate(
                     sizing_mode='fixed',
                     # start of different values of parameters than mpl_card()
                     fixed_aspect=True,
-                    width =1000,
-                    height= 500,
+                    width =plot_width.rx()*2,
+                    height=plot_width.rx()*1,
                     # end of different parameters
                     styles={
                         "margin-left":  "auto",
                         "margin-right": "auto",
                     },
                 ),
-                collapsible=False,
                 header="heatmap: line-types",
             ),
             pn.Card(
@@ -975,20 +1006,89 @@ template = pn.template.MaterialTemplate(
                     plot_periodicity_heatmap_rx,
                     # sizes similar to the other heatmap
                     sizing_mode='fixed',
-                    width =1000,
-                    height= 500,
+                    width =plot_width.rx()*2,
+                    height=plot_width.rx()*1,
                     # end of different parameters
                     styles={
                         "margin-left":  "auto",
                         "margin-right": "auto",
                     },
                 ),
-                collapsible=False,
                 header="periodic behavior, local time",
             )
         ),
     ],
 )
+
+if DEBUG:
+    template.main.extend([
+        pn.layout.Divider(),
+        pn.Card(
+            pn.widgets.Debugger(
+                name='Debugger (level=DEBUG)',
+                only_last=False,
+                # at logging.DEBUG level there are many messages from Panel,
+                # so to avoid flooding the Debugger widget, limit it to application logger
+                level=logging.DEBUG, logger_names=['panel.timeline']),
+            header="Debugger: terminal with 01-timeline.ipynb logger output",
+        ),
+        pn.Card(
+            pn.widgets.JSONEditor(
+                value=get_timeline_data_rx,  # or get_timeline_data(), which is @pn.cache'd
+                mode='view',
+                menu=True, search=True,
+                width_policy='max',
+                height=400,
+            ),
+            # NOTE: change when there is widget to select or upload the JSON file
+            header="JSONEditor (view): input JSON file '{filename}'".format(filename=select_file_widget),
+            width_policy='max',
+        ),
+        pn.Card(
+            pn.widgets.Tabulator(
+                get_timeline_df_rx,  # TODO: use reactive component, instead of a global variable
+                show_index=False,
+                frozen_columns=['bug_id', 'patch_id'],
+                #editable=False,
+                editors={
+                    col: None
+                    for col in get_timeline_df_rx.rx.value.columns
+                },
+                header_filters=True,
+                configuration={
+                    'columnDefaults': {
+                        'headerSort': True,
+                        #'headerVertical': True,
+                    },
+                    'rowHeight': 12,
+                    'layout': 'fitColumns',
+                },
+                stylesheets=[
+                    """
+                    .tabulator-cell {
+                        font-size: 12px;
+                    }
+                    .tabulator-col-title {
+                        font-size: 14px;
+                    }
+                    """
+                ],
+                width=1100,
+                #width="100%",        # does not work
+                #width_policy='min',  # no horizontal scrollbar (?)
+                height=500,
+            ),
+            header=pn.rx("Tabulator: DataFrame with all data for '{repo}' repository").format(repo=repos_widget),
+        ),
+        pn.pane.Perspective(
+            resample_timeline_rx,  # or use reactive component, maybe
+            title=pn.rx("Perspective: resampled DataFrame, repo={repo}, author={author}, resample={resample!s}, agg={agg_func!s}")\
+                    .format(repo=repos_widget, author=authors_widget, resample=resample_rule_widget, agg_func=agg_func_widget),
+            editable=False,
+            width_policy='max',
+            height=500,
+        ),
+    ])
 
 template.servable()
 

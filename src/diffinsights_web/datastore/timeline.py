@@ -15,6 +15,21 @@ read_cached_df: bool = True  #: whether to use cached DataFrames if available
 save_cached_df: bool = True  #: whether to save DataFrames as *.feather files
 
 
+def path_to_name(file_path: Union[Path, str]) -> str:
+    # handle the case where file_path is str, e.g. is widget value
+    if not isinstance(file_path, Path):
+        file_path = Path(file_path)
+
+    basename = str(file_path.stem)
+    try:
+        # everything up to first '.', if present
+        # this should be the typical case
+        return basename[0:basename.index('.')]
+    except ValueError:
+        # otherwise return whole basename
+        return basename
+
+
 #@pn.cache
 def find_timeline_files(dataset_dir: Union[Path, str, param.Path, None]) -> dict[str, str]:
     if dataset_dir is None:
@@ -37,7 +52,7 @@ def find_timeline_files(dataset_dir: Union[Path, str, param.Path, None]) -> dict
 
         # assuming naming convention *.timeline.*.json for appropriate data files
         return {
-            str(path.stem): str(path)
+            path_to_name(path): str(path)
             for path in dataset_dir.glob('*.timeline.*.json')
         }
 
@@ -412,7 +427,8 @@ class TimelineDataStore(pn.viewable.Viewer):
 
         # select JSON data file, and extract data from it
         self.select_file_widget = pn.widgets.Select(
-            name="input JSON file",
+            #name="input JSON file",
+            name="repository data",  # NOTE: this name is easier to understand, even if less correct
             options=find_timeline_files(self.param.dataset_dir)
         )
         self.timeline_data_rx = pn.rx(get_timeline_data)(
@@ -423,7 +439,8 @@ class TimelineDataStore(pn.viewable.Viewer):
             timeline_data=self.timeline_data_rx,
         )
         self.select_repo_widget = pn.widgets.Select(
-            name="repository",
+            #name="repository",
+            name="name of data subset",  # NOTE: in all examples there is only one subset
             options=self.find_repos_rx,
             disabled=len(self.find_repos_rx.rx.value) <= 1,
         )

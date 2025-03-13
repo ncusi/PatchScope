@@ -1,11 +1,12 @@
 from collections import namedtuple
 from typing import Optional
+from urllib.parse import urlencode
 
 import pandas as pd
 import panel as pn
 import param
 
-from diffinsights_web.datastore.timeline import author_timeline_df
+from diffinsights_web.datastore.timeline import author_timeline_df, path_to_name
 from diffinsights_web.utils.avatars import gravatar_url
 from diffinsights_web.utils.humanize import html_int_humane
 from diffinsights_web.views import TimelineView
@@ -124,6 +125,7 @@ class AuthorsGrid(TimelineView):
         #print("RUNNING AuthorsGrid::authors_cards()")
         result: list[pn.layout.Card] = []
         avatar_size = 20  # TODO: make it configurable, eg. via param
+        repo_arg = path_to_name(self.data_store.select_file_widget.value)
 
         # TODO: pass `field_names` or `Row` as parameters
         RowT = namedtuple(typename='Pandas', field_names=['Index', 'n_commits', 'p_count', 'm_count', 'author_name'])
@@ -140,8 +142,9 @@ class AuthorsGrid(TimelineView):
                                 '<div class="author">'
                                 f'<img src="{gravatar_url(row.Index, avatar_size)}"'
                                 f' width="{avatar_size}" height="{avatar_size}" alt="" /> '
+                                f'<a href="/author?{urlencode([("repo", repo_arg), ("author", row.Index)])}">'
                                 f'{row.author_name} &lt;{row.Index}&gt;'
-                                '</div>'
+                                '</a></div>'
                             ),
                             # position in the top N list
                             pn.pane.HTML(f'<div class="chip">#{i}</div>', width=20),
