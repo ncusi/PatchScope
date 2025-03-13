@@ -7,7 +7,6 @@ import numpy as np
 import panel as pn
 import pandas as pd
 import seaborn as sns
-from bokeh.models import PrintfTickFormatter
 from matplotlib.colors import LogNorm
 from matplotlib.figure import Figure
 
@@ -172,42 +171,6 @@ hist_widget = pn.WidgetBox(
     disabled=False
 )
 
-# Scaling of 'n_mod' in patch size plots
-rescale_n_mod_widget = pn.widgets.Switch(
-    name="rescale_n_mod",
-    value=True
-)
-n_mod_widget = pn.Row(
-    pn.pane.Str("  mod"),
-    rescale_n_mod_widget,
-    pn.pane.Str("2*mod")
-)
-
-# Figure formatting: Matplotlib figsize parameter
-figsize_params = dict(
-    start=1, fixed_start=1,
-    end=8, fixed_end=10,
-    step=0.05,
-    value=5,
-    format=PrintfTickFormatter(format='%.2f in'),
-    margin=(-5, 10)
-)
-
-figsize_x_slider = pn.widgets.EditableFloatSlider(name='size.x', **figsize_params)
-figsize_y_slider = pn.widgets.EditableFloatSlider(name='size.y', **figsize_params)  # orientation='vertical' does not work (???)
-figsize_widget = pn.WidgetBox(
-    'figsize',
-    figsize_x_slider,
-    figsize_y_slider,
-    disabled=True
-)
-
-# Matplotlib pane formatting
-plot_width = pn.widgets.IntSlider(
-    name='width',
-    start=100, end=1200, step=50,
-    value=500
-)
 plot_sizing_mode = pn.widgets.Select(
     name='sizing_mode',
     options=['fixed', 'stretch_width'],
@@ -780,7 +743,7 @@ plot_counts_rx = pn.rx(plot_counts)(
     author_desc=authors_widget,
     resample_rate=resample_rule_widget,
     agg_func=agg_func_widget,
-    figsize=(figsize_x_slider.value, figsize_y_slider.value),
+    figsize=(5, 5),
 )
 
 # plot that depends on the reactive data, part 1, defined earlier, i.e. `resample_timeline_rx`
@@ -789,7 +752,7 @@ plot_commits_rx = pn.rx(plot_commits)(
     repo_desc=repos_widget,
     author_desc=authors_widget,
     resample_rate=resample_rule_widget, # 'n_commits' is excluded from selecting `agg_func`
-    figsize=(figsize_x_slider.value, figsize_y_slider.value),  # NOTE: does not seem to work for some reason
+    figsize=(12, 5),
 )
 
 # plot that depends on the special case of reactive data, part 1, defined earlier, i.e. `resample_timeline_ME_rx`
@@ -875,13 +838,14 @@ def mpl_card(fig: Figure, header: str) -> pn.Card:
             format=plot_format.rx(),
             fixed_aspect=False,
             sizing_mode='fixed',
-            width= plot_width.rx(),
-            height=plot_width.rx(),
+            width= 500,
+            height=500,
             styles={
                 "margin-left":  "auto",
                 "margin-right": "auto",
             },
         ),
+        collapsible=False,
         header=header,
     )
 
@@ -956,24 +920,37 @@ template = pn.template.MaterialTemplate(
         resample_rule_widget,
         agg_func_widget,
         #n_mod_widget,   # composite: switch + descriptions
-        pm_col_widget,  # composite: select + checkbox
+        #pm_col_widget,  # composite: select + checkbox
         hist_widget,    # composite: two sliders
         ClearCacheButton(),
         pn.layout.VSpacer(),
         #pn.Spacer(height=100),
-        figsize_widget,
         plot_sizing_mode,
-        plot_width,
         plot_format,
     ],
     main=[
         pn.FlexBox(
+            pn.Card(
+                pn.pane.Matplotlib(
+                    plot_commits_rx,
+                    tight=True,
+                    format=plot_format.rx(),
+                    sizing_mode='fixed',
+                    # start of different values of parameters than mpl_card()
+                    fixed_aspect=True,
+                    width =1000,
+                    height= 500,
+                    # end of different parameters
+                    styles={
+                        "margin-left":  "auto",
+                        "margin-right": "auto",
+                    },
+                ),
+                collapsible=False,
+                header="commit counts",
+            ),
             mpl_card(plot_counts_rx, "line counts"),
-            mpl_card(plot_pm_col_rx, "line-type / file-purpose counts"),  # TODO: should it be here, in this order?
-            mpl_card(plot_diff_3sizes_rx, "patch sizes"),
-            mpl_card(plot_commits_rx, "commit counts"),
             mpl_card(bihist_pm_df_rx, "histogram of -/+ counts per commit"),
-            mpl_card(bihist_pm_df_resampled_rx, "histogram of -/+ counts per resample period"),
             pn.Card(
                 pn.pane.Matplotlib(
                     plot_heatmap_rx,
@@ -982,14 +959,15 @@ template = pn.template.MaterialTemplate(
                     sizing_mode='fixed',
                     # start of different values of parameters than mpl_card()
                     fixed_aspect=True,
-                    width =plot_width.rx()*2,
-                    height=plot_width.rx()*1,
+                    width =1000,
+                    height= 500,
                     # end of different parameters
                     styles={
                         "margin-left":  "auto",
                         "margin-right": "auto",
                     },
                 ),
+                collapsible=False,
                 header="heatmap: line-types",
             ),
             pn.Card(
@@ -998,14 +976,15 @@ template = pn.template.MaterialTemplate(
                     plot_periodicity_heatmap_rx,
                     # sizes similar to the other heatmap
                     sizing_mode='fixed',
-                    width =plot_width.rx()*2,
-                    height=plot_width.rx()*1,
+                    width =1000,
+                    height= 500,
                     # end of different parameters
                     styles={
                         "margin-left":  "auto",
                         "margin-right": "auto",
                     },
                 ),
+                collapsible=False,
                 header="periodic behavior, local time",
             )
         ),
