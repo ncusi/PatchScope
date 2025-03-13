@@ -22,10 +22,16 @@ from diffinsights_web.widgets.caching import ClearCacheButton
 DEBUG = True
 
 logger = logging.getLogger("panel.author")
-pn.extension(
-    "jsoneditor", "tabulator", "perspective", "terminal",
-    design="material", sizing_mode="fixed",
-)
+if DEBUG:
+    pn.extension(
+        "jsoneditor", "tabulator", "perspective", "terminal",
+        design="material", sizing_mode="fixed",
+    )
+else:
+    pn.extension(
+        design="material", sizing_mode="fixed",
+    )
+
 
 cols_plus_all  = [f"+:type.{line_type}"
                   for line_type in ['code', 'documentation', 'test', 'other', 'data', 'markup', 'project']]
