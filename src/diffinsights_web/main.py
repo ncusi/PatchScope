@@ -34,6 +34,7 @@ def main(
     # run the application in a development server
     pn.serve(
         {
+            '': contributors_app,
             'contributors': contributors_app,
             'author': author_app,
         },
