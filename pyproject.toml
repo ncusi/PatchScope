@@ -38,7 +38,7 @@ dynamic = ["dependencies", "version"]
 diff-generate = "diffannotator.generate_patches:app"
 diff-annotate = "diffannotator.annotate:app"
 diff-gather-stats = "diffannotator.gather_data:app"
-diffinsights-web = "diffinsights_web.main:main"
+diffinsights-web = "diffinsights_web.main:app"
 
 [project.urls]
 bugs = "https://github.com/ncusi/PatchScope/issues"
