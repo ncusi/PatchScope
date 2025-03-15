@@ -19,6 +19,7 @@ nav:
   - API: reference/
   - schema: schema.md
   - examples: examples.md
+  - experiments: experiments.md
   - notebooks: notebooks.md
   - web: diffinsights_web.md
 theme:
