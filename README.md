@@ -19,6 +19,8 @@ generated and saved to JSON files by PatchScope's command line tools.
  
 You can find early draft of the project documentation at <https://ncusi.github.io/PatchScope/>.
 
+Demo of the web application can be found at <https://patchscope.mat.umk.pl/>.
+
 
 ## Disambiguation
 
@@ -34,10 +36,10 @@ There are a few projects research projects with a similar name:
 
 ## Installation
 
-Use the package manager [pip](https://pip.pypa.io/en/stable/) to install patchscope.
+Use the package manager [pip](https://pip.pypa.io/en/stable/) to install `patchscope`.
 
 To avoid dependency conflicts, it is strongly recommended to create
-a [virtual environment][venv] first, activate it, and install patchscope
+a [virtual environment][venv] first, activate it, and install `patchscope`
 into this environment.
 ```commandline
 python -m venv .venv
@@ -54,7 +56,7 @@ python -m pip install patchscope@git+ssh://git@github.com/ncusi/PatchScope.git#e
 ```
 
 This does not install dependencies required to run the web app;
-for this you need to install `[web]` optional dependency:
+for this you need to install `[web]` optional dependency, for example with:
 ```commandline
 python -m pip install 'patchscope[web] @ git+https://github.com/ncusi/PatchScope#egg=main'
 ```
@@ -127,10 +129,12 @@ as described above.
 
 To run this web app, you can use the `diffinsights-web` command,
 providing the directory with `*.timeline.*.json` files.
-With the previous example, it would be:
+With the previous example, with `diff-gather-stats timeline` output
+saved in `stats/` subdirectory, it would be:
 ```commandline
 diffinsights-web stats/
 ```
+Then open `http://localhost:7860/?repo=tqdm` in a web browser.
 
 Currently, this web dashboard consist of two pages (two web apps),
 namely Contributors Graph and Author Statistics.
@@ -179,7 +183,7 @@ using Docker (with example projects).
 
 ## Examples and demos
 
-This repository also includes some examples demonstrating how this
+The PatchScope repository also includes some examples demonstrating how this
 project works, and what it can be used for.
 
 ### First time setup (for generating examples)
