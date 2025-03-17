@@ -1,28 +1,21 @@
-import datetime
-import hashlib
-import json
-import logging
-import os
-import re
-from collections import namedtuple
+from collections import Counter
 from io import StringIO
 from pathlib import Path
 from textwrap import dedent
 from typing import Optional
-from urllib.parse import urlencode
 
 # data analysis
 import pandas as pd
-
 # dashboard
 import panel as pn
 import param
-
-from panel_mermaid import MermaidDiagram, MermaidConfiguration
+from panel_mermaid import MermaidDiagram
 
 from diffinsights_web.apps.author import get_authors
 from diffinsights_web.datastore import find_dataset_dir
-from diffinsights_web.datastore.timeline import find_timeline_files, get_timeline_data, find_repos, get_timeline_df
+from diffinsights_web.datastore.linesstats import get_lines_stats_data
+from diffinsights_web.datastore.timeline import (find_timeline_files, get_timeline_data,
+                                                 find_repos, get_timeline_df)
 
 pn.extension()
 
@@ -201,11 +194,119 @@ authors_widget = pn.widgets.Select(
     options=authors_rx
 )
 
+
 # function that returns filtered (but not resampled) data
 #@pn.cache
 def tf_timeline_df_author(tf_timeline_df: pd.DataFrame, author: str) -> pd.DataFrame:
     return tf_timeline_df[tf_timeline_df[author_column] == author]
 
+
+# ----------------------------------------------------------------------------
+# widgets from diffinsights_web.datastore.linesstats.LinesStatsDataStore
+lines_stats_data_rx = pn.rx(get_lines_stats_data)(
+    dataset_dir=dataset_dir,  # does not change, no need for rx
+    timeseries_file=select_file_widget,
+)
+
+
+# ............................................................................
+# new functions
+#@pn.cache
+def author_patch_ids(tf_timeline_df: pd.DataFrame, author: str) -> set[str]:
+    return set(tf_timeline_df[tf_timeline_df[author_column] == author]['patch_id'].tolist())
+
+
+def triples_from_counter(data_counter: Counter) -> list[tuple[str, str, int]]:
+    return [(p[0], p[1], v) for p, v in data_counter.items()]
+
+
+# code borrowed from diffinsights_web.datastore.linesstats.count_file_x_line_in_lines_stats
+def line_stats_to_per_author_counter(lines_stats_data: dict,
+                                     change_type: str = "+/-",
+                                     prefix: str = 'type.',
+                                     patch_id_set: Optional[set] = None) -> Optional[Counter]:
+    if lines_stats_data is None:
+        return None
+
+    result = Counter()
+
+    for dataset, dataset_data in lines_stats_data.items():
+        print(f"line_stats...: {dataset=}")  # e.g. "data/examples/annotations/qtile"
+        for bug_or_repo, lines_data in dataset_data.items():
+            print(f"line_stats...: {bug_or_repo=}")  # e.g. "all_authors-no_merges"
+            for patch_file, patch_data in lines_data.items():
+
+                if patch_id_set is not None and patch_file not in patch_id_set:
+                    continue
+
+                for file_name, file_data in patch_data.items():
+                    if change_type not in file_data:
+                        continue
+
+                    for line_info, n_lines in file_data[change_type].items():
+                        if not line_info.startswith(prefix):
+                            continue
+
+                        result[(file_name, line_info)] += n_lines
+
+    return result
+
+
+def counter_get_split_dirs_counter(data_counter: Counter) -> Counter:
+    dir_data = Counter()
+
+    for n_pair, value in data_counter.items():
+        file_name, _ = n_pair  # n_pair is (file_name, line_type)
+        # print(f"{p} => {v}")
+        dir_data[(str(Path(file_name).parent), file_name)] += value
+        for p_f, p_t in zip(Path(file_name).parent.parents, Path(file_name).parents):
+            # print(f"- ({p_f}, {p_t})")
+            dir_data[(str(p_f), str(p_t))] += value
+
+    return dir_data
+
+
+def counter_add_split_dirs_counter(data_counter: Counter) -> Counter:
+    return data_counter | counter_get_split_dirs_counter(data_counter)
+
+
+# instead of displaying full information about changed lines in changed files,
+# can consider changes in aggregate (aggregating into containing directory).
+def counter_file_to_containing_dir(data_counter: Counter,
+                                   prefix: str = 'type.') -> Counter:
+    result = Counter()
+    replace = {}
+
+    # find replacements
+    for n_pair, value in data_counter.items():
+        (n_from, n_to) = n_pair
+
+        # NOTE: a bit fragile, but should work
+        # TODO: replace with a better method
+        if n_to.startswith(prefix):
+            replace[n_from] = f"{Path(n_from).parent}/*"
+
+    # replace in both n_from and n_to
+    for n_pair, value in data_counter.items():
+        (n_from, n_to) = n_pair
+        n_from = replace.get(n_from, n_from)
+        n_to   = replace.get(n_to,   n_to)
+
+        result[(n_from, n_to)] += value
+
+    return result
+
+
+# ............................................................................
+# new widgets
+
+
+# ............................................................................
+# new reactive components
+author_patch_ids_rx = pn.rx(author_patch_ids)(
+    tf_timeline_df=get_timeline_df_rx,
+    author=authors_widget,
+)
 
 
 # ============================================================================
