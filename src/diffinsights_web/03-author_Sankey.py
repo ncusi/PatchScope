@@ -7,6 +7,7 @@ import re
 from collections import namedtuple
 from io import StringIO
 from pathlib import Path
+from textwrap import dedent
 from typing import Optional
 from urllib.parse import urlencode
 
@@ -20,21 +21,30 @@ from panel_mermaid import MermaidDiagram, MermaidConfiguration
 
 pn.extension()
 
-configuration = MermaidConfiguration(look="handDrawn", theme="forest")
 diagram = MermaidDiagram(
-    object=(
+    object=dedent(
         """
-        graph LR
-            A[Hello] --> B[Panel] --> E[World]
-            A-->C(Mermaid) --> E ;
+        sankey-beta
+
+        %% source,target,value
+        Electricity grid,Over generation / exports,104.453
+        Electricity grid,Heating and cooling - homes,113.726
+        Electricity grid,H2 conversion,27.14
         """
     ),
-    configuration=configuration,
+    configuration={
+        'sankey': {
+            'width':  800,
+            'height': 400,
+            'showValues': False,
+        },
+    },
     update_value=True,
+    width=800,
+    height=400,
 )
 
-pn.FlexBox(
-    configuration,
+pn.Column(
     diagram,
     #diagram.param.update_value,
     pn.widgets.FileDownload(
