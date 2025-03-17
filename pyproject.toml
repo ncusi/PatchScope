@@ -31,7 +31,8 @@ classifiers = [
   "Operating System :: OS Independent",
   "Environment :: Console",
 ]
-requires-python = ">= 3.9"  # vermin --eval-annotations --backport typing --backport typing_extensions .
+# panel-mermaid requires Python 3.11
+requires-python = ">= 3.11"  # vermin --eval-annotations --backport typing --backport typing_extensions .
 dynamic = ["dependencies", "version"]
 
 [project.scripts]
