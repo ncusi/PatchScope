@@ -297,6 +297,148 @@ def counter_file_to_containing_dir(data_counter: Counter,
     return result
 
 
+def path_depth(path: str) -> int:
+    """Return number of components in UNIX path stored as string
+
+    Treat '.' as root, with depth 0.  Treat any path without '/' as having
+    depth 1; each subsequent '/' means new component.
+
+    :param path: relative UNIX pathname
+    :return: depth of pathname
+    """
+    if path == ".":
+        return 0
+    else:
+        return path.count('/') + 1
+
+
+def path_depth_adj(path: str) -> int:
+    """Like `path_depth`, but consider depth of 'path' and 'path/*' to be the same
+
+    :param path: relative UNIX pathname
+    :return: adjusted depth of pathname
+    """
+    if path == ".":
+        return 0
+    else:
+        return path.count('/') + 1 - int(path.endswith('/*'))
+
+
+def shorten_path_repl(path: str, max_len: int) -> str:
+    """Shorten path to `max_len` components, suffix with '/**' it if it was shortened
+
+    Examples:
+
+    >>> shorten_path_repl('A/B/C/D/E/F', 2)
+    'A/B/**'
+    >>> shorten_path_repl('A/B', 2)
+    'A/B'
+
+    :param path: relative UNIX pathname
+    :param max_len: maximum number of components
+    :return: pathname with up to `max_len` components
+    """
+    if path.count('/') >= max_len:
+        return '/'.join(path.split(sep='/', maxsplit=max_len)[:max_len] + ['**'])
+    else:
+        return path
+
+
+def path_parent(path: str) -> str:
+    """Same as str(PurePath(path).parent), but without wrapping.
+
+    Assumes `path` is POSIX pathname, with '/' as directory separators.
+    """
+    last_slash = path.rfind('/')
+    if last_slash < 0:
+        return '.'
+    else:
+        return path[:last_slash]
+
+
+def simplify_sankey_forward_depth(data_counter: Counter,
+                                  depth_limit: int,
+                                  prefix: str = 'type.') -> Counter:
+    result = Counter()
+
+    for n_pair, value in data_counter.items():
+        (n_from, n_to) = n_pair
+
+        # print(f"{n_from} ={value}=> {n_to}: ", end="")
+
+        if n_to.startswith(prefix):
+            if path_depth_adj(n_from) <= depth_limit:
+                # print("(kept)")
+                result[n_pair] += value
+            else:
+                # print(f"{shorten_path_repl(n_from, depth_limit)} ===> {n_to}")
+                result[(shorten_path_repl(n_from, depth_limit), n_to)] += value
+
+        elif path_depth_adj(n_to) <= depth_limit:
+            # NOTE: always path_depth_adj(n_from) < path_depth_adj(n_to) if n_to is path
+            result[n_pair] += value
+            # print(f"sum={result[n_pair]}")
+        elif path_depth_adj(n_from) <= depth_limit:
+            # print(f"{n_from} ---> {shorten_path_repl(n_to, depth_limit)}")
+            result[n_from, (shorten_path_repl(n_to, depth_limit))] += value
+        else:
+            # print("(skipped)")
+            pass
+
+    return result
+
+
+def simplify_sankey_forward_width_ast(data_counter: Counter,
+                                      width_limit: int,
+                                      prefix: str = 'type.') -> Counter:
+    result = Counter()
+    to_delete = []
+
+    # sort to operate forward
+    data_list = sorted(
+        triples_from_counter(data_counter),
+        key=lambda triple: path_depth(triple[0])
+    )
+
+    for (n_from, n_to, value) in data_list:
+        if not n_to.startswith(prefix) and value <= width_limit:
+            # TODO: optimize
+            for candidate in to_delete:
+                if n_to.startswith(candidate):
+                    break
+            else:
+                to_delete.append(n_to)
+
+    # print(f"{to_delete=}")
+
+    for (n_from, n_to, value) in data_list:
+        for n_del in to_delete:
+            if n_to.startswith(n_del):
+                # print(f" - {n_from} ===> {n_to} ({value}) deleted due to {n_del}")
+                break
+            elif n_to.startswith('type.'):
+                if n_from.startswith(n_del):
+                    # print(f" * {path_parent(n_del)} ===> {n_del} ===> ... ===> {n_to} ({value})")
+                    n_del_parent = path_parent(n_del)
+                    n_del_ast = f"{n_del_parent}/**"
+                    result[(n_del_parent, n_del_ast)] += value
+                    result[(n_del_ast, n_to)] += value
+                    break
+        else:
+            result[(n_from, n_to)] += value
+
+    return result
+
+
+def triples_to_csv(data_list: list[tuple[str, str, int]]) -> str:
+    result = ['%% source,target,value']
+
+    for f,t,v in data_list:
+        result.append(f"{f},{t},{v}")
+
+    return "\n".join(result) + "\n"
+
+
 # ............................................................................
 # new widgets
 
