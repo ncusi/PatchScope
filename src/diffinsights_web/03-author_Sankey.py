@@ -20,6 +20,10 @@ import param
 
 from panel_mermaid import MermaidDiagram, MermaidConfiguration
 
+from diffinsights_web.apps.author import get_authors
+from diffinsights_web.datastore import find_dataset_dir
+from diffinsights_web.datastore.timeline import find_timeline_files, get_timeline_data, find_repos, get_timeline_df
+
 pn.extension()
 
 # See https://mermaid.js.org/schemas/config.schema.json
@@ -158,11 +162,58 @@ class MermaidSankeyConfiguration(pn.viewable.Viewer, pn.widgets.WidgetBase):
         )
 
 
+# ---------------------------------------------------------------------------
+# widgets from diffinsights_web.app.author
+dataset_dir = find_dataset_dir()
+select_file_widget = pn.widgets.Select(
+    name="input JSON file",
+    options=find_timeline_files(dataset_dir),
+    value=str(dataset_dir.joinpath('qtile.timeline.purpose-to-type.json')),
+)
+
+get_timeline_data_rx = pn.rx(get_timeline_data)(
+    json_path=select_file_widget,
+)
+
+find_repos_rx = pn.rx(find_repos)(
+    timeline_data=get_timeline_data_rx,
+)
+repos_widget = pn.widgets.Select(
+    name="repository",
+    options=find_repos_rx,
+    value="qtile",
+    disabled=find_repos_rx.rx.pipe(len) <= 1,
+)
+
+get_timeline_df_rx = pn.rx(get_timeline_df)(
+    json_path=select_file_widget,
+    timeline_data=get_timeline_data_rx,
+    repo=repos_widget,
+)
+
+author_column = 'author.email'
+authors_rx = pn.rx(get_authors)(
+    tf_timeline_df=get_timeline_df_rx,
+)
+authors_widget = pn.widgets.Select(
+    name="author",
+    value="tycho@tycho.ws",  # author.email
+    options=authors_rx
+)
+
+# function that returns filtered (but not resampled) data
+#@pn.cache
+def tf_timeline_df_author(tf_timeline_df: pd.DataFrame, author: str) -> pd.DataFrame:
+    return tf_timeline_df[tf_timeline_df[author_column] == author]
+
+
+
+# ============================================================================
+# main
+
 configuration = MermaidSankeyConfiguration(
     showValues = False,
 )
-print(repr(configuration))
-print(configuration.value)
 diagram = MermaidDiagram(
     object=dedent(
         """
@@ -180,7 +231,7 @@ diagram = MermaidDiagram(
     height=400,
 )
 
-pn.FlexBox(
+diagram = pn.FlexBox(
     configuration,
     pn.Column(
         diagram,
@@ -189,5 +240,29 @@ pn.FlexBox(
             file=pn.bind(StringIO, diagram.param.value), filename="diagram.svg"
         ),
     ),
-).servable()
+)
+
+# ---------------------------------------------------------------------------
+# main app
+template = pn.template.MaterialTemplate(
+    site="PatchScope",
+    title="Author Sankey Diagram",
+    favicon="favicon-author.svg",
+    sidebar_width=350,
+    collapsed_sidebar=False,
+    sidebar=[
+        select_file_widget,
+        repos_widget,
+        authors_widget,
+    ],
+    main=[
+        diagram,
+    ],
+)
+
+template.servable()
+
+if __name__ == "__main__":
+    # Optionally run the application in a development server
+    pn.serve(template, show=True)
 
