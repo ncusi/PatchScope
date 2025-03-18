@@ -13,7 +13,6 @@ import param
 from panel_mermaid import MermaidDiagram
 
 from diffinsights_web.datastore.linesstats import get_lines_stats_data
-from diffinsights_web.datastore.timeline import TimelineDataStore
 
 
 def author_patch_ids(tf_timeline_df: pd.DataFrame,
@@ -506,10 +505,18 @@ class MermaidSankeyConfiguration(pn.viewable.Viewer, pn.widgets.WidgetBase):
 
 
 class MermaidSankeyPlot(pn.viewable.Viewer):
-    data_store = param.ClassSelector(
-        class_=TimelineDataStore,
-        doc="Timeline data, used to extract patches by author (patch ids)",
-        allow_refs=True, # just in case
+    dataset_dir = param.Foldername(
+        constant=True,
+        doc="Dataset directory with *.timeline.*.json files",
+    )
+    timeseries_file = param.String(
+        allow_refs=True,  # to allow widgets and reactive expressions
+        doc="Selected JSON file with timeline data to find lines-stats companion for",
+    )
+    timeline_df = param.ClassSelector(
+        class_=pd.DataFrame,
+        allow_refs=True,
+        doc="Timeline data as DataFrame, to extract patches by selected author",
     )
     author_column = param.Selector(
         default='author.email',
@@ -518,7 +525,7 @@ class MermaidSankeyPlot(pn.viewable.Viewer):
     )
     author = param.String(
         allow_None=False,
-        allow_refs=True,  # allow to use widget
+        allow_refs=True,  # to allow widgets and reactive expressions
         doc="Value used to select the author",
     )
 
@@ -559,11 +566,11 @@ class MermaidSankeyPlot(pn.viewable.Viewer):
         # reactive expressions
 
         self.lines_stats_data_rx = pn.rx(get_lines_stats_data)(
-            dataset_dir=self.data_store.dataset_dir,  # does not change, no need for rx
-            timeseries_file=self.data_store.select_file_widget,
+            dataset_dir=self.dataset_dir,  # does not change, no need for rx
+            timeseries_file=self.timeseries_file,
         )
         self.author_patch_ids_rx = pn.rx(author_patch_ids)(
-            tf_timeline_df=self.data_store.timeline_df_rx,
+            tf_timeline_df=self.timeline_df,
             author=self.author,
         )
         self.sankey_counter_rx = pn.rx(line_stats_to_per_author_sankey_counter)(
@@ -626,7 +633,7 @@ class MermaidSankeyPlot(pn.viewable.Viewer):
         )
         self.no_diagram = pn.pane.HTML(
             pn.rx("No corresponding *.lines-stats.* file for {json_path!r}").format(
-                json_path=self.data_store.select_file_widget,
+                json_path=self.timeseries_file,
             ),
             width=820,
         )
