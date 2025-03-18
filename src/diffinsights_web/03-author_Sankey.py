@@ -1,6 +1,6 @@
 from collections import Counter
 from io import StringIO
-from pathlib import Path
+from pathlib import PurePosixPath
 from textwrap import dedent
 from typing import Optional
 
@@ -265,8 +265,8 @@ def counter_get_split_dirs_counter(data_counter: Optional[Counter]) -> Optional[
     for n_pair, value in data_counter.items():
         file_name, _ = n_pair  # n_pair is (file_name, line_type)
         # print(f"{p} => {v}")
-        dir_data[(str(Path(file_name).parent), file_name)] += value
-        for p_f, p_t in zip(Path(file_name).parent.parents, Path(file_name).parents):
+        dir_data[(str(PurePosixPath(file_name).parent), file_name)] += value
+        for p_f, p_t in zip(PurePosixPath(file_name).parent.parents, PurePosixPath(file_name).parents):
             # print(f"- ({p_f}, {p_t})")
             dir_data[(str(p_f), str(p_t))] += value
 
@@ -297,7 +297,7 @@ def counter_file_to_containing_dir(data_counter: Optional[Counter],
         # NOTE: a bit fragile, but should work
         # TODO: replace with a better method
         if n_to.startswith(prefix):
-            replace[n_from] = f"{Path(n_from).parent}/*"
+            replace[n_from] = f"{PurePosixPath(n_from).parent}/*"
 
     # replace in both n_from and n_to
     for n_pair, value in data_counter.items():
