@@ -3,7 +3,7 @@ from collections import Counter
 from io import StringIO
 from pathlib import PurePosixPath
 from textwrap import dedent
-from typing import Optional
+from typing import Optional, Any
 
 # data analysis
 import pandas as pd
@@ -598,6 +598,23 @@ class MermaidSankeyPlot(pn.viewable.Viewer):
             root=self.root_node_name_widget,
             drop_root=self.drop_root_widget,
             strip_type_prefix=self.strip_type_prefix_widget,
+        )
+
+
+        # --------------------------------------------------------------------
+        # callbacks
+        def propose_width_limit_cb(_new_val: Any = None):
+            if self.lines_stats_data_rx.rx.value is not None:
+                width_limit = propose_width_limit(self.sankey_counter_rx.rx.value)
+                if width_limit > 0:
+                    self.width_limit_widget.value = width_limit
+
+
+        self.author_patch_ids_rx.rx.watch(propose_width_limit_cb)
+        self.change_type_widget.param.watch(
+            propose_width_limit_cb,
+            ['value'], what='value',
+            onlychanged=True,
         )
 
         # ====================================================================
