@@ -1,3 +1,4 @@
+import math
 from collections import Counter
 from io import StringIO
 from pathlib import PurePosixPath
@@ -552,6 +553,18 @@ def count_lines(data_counter: Optional[Counter],
     return count_types(data_counter=data_counter, prefix=prefix).total()
 
 
+def propose_width_limit(data_counter: Optional[Counter],
+                        prefix: str = 'type.') -> int:
+    n_lines = count_lines(data_counter=data_counter, prefix=prefix)
+    if n_lines > 0:
+        x = 0.10*n_lines  # 10% total width / root width
+
+        mult = 10 ** math.floor(math.log10(x))
+        return int(math.floor(x / mult) * mult)
+    else:
+        return n_lines
+
+
 # ............................................................................
 # new widgets
 change_type_widget = pn.widgets.Select(
@@ -617,11 +630,14 @@ sankey_csv_rx = pn.rx(counter_to_csv_styled)(
 
 count_types_widget = lines_stats_data_rx.rx.is_not(None).rx.where(
     pn.pane.Str(
-        pn.rx("{lines_changed} {change_type!r} lines changed").format(
+        pn.rx("{lines_changed} {change_type!r} lines changed ({proposed})").format(
             lines_changed=pn.rx(count_lines)(
                 data_counter=sankey_counter_rx,
             ),
             change_type=change_type_widget,
+            proposed=pn.rx(propose_width_limit)(
+                data_counter=sankey_counter_rx,
+            ),
         )
     ),
     pn.Spacer(height=0)
