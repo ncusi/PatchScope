@@ -533,6 +533,25 @@ def counter_to_csv_styled(data_counter: Optional[Counter],
     return "\n".join(result) + "\n"
 
 
+def count_types(data_counter: Optional[Counter],
+                prefix: str = 'type.') -> Counter:
+    result = Counter()
+
+    if data_counter is None:
+        return result
+
+    for (_, n_to), val in data_counter.items():
+        if n_to.startswith(prefix):
+            result[n_to] += val
+
+    return result
+
+
+def count_lines(data_counter: Optional[Counter],
+                prefix: str = 'type.') -> int:
+    return count_types(data_counter=data_counter, prefix=prefix).total()
+
+
 # ............................................................................
 # new widgets
 change_type_widget = pn.widgets.Select(
@@ -596,6 +615,17 @@ sankey_csv_rx = pn.rx(counter_to_csv_styled)(
     strip_type_prefix=strip_type_prefix_widget,
 )
 
+count_types_widget = lines_stats_data_rx.rx.is_not(None).rx.where(
+    pn.pane.Str(
+        pn.rx("{lines_changed} {change_type!r} lines changed").format(
+            lines_changed=pn.rx(count_lines)(
+                data_counter=sankey_counter_rx,
+            ),
+            change_type=change_type_widget,
+        )
+    ),
+    pn.Spacer(height=0)
+)
 
 # ============================================================================
 # main
@@ -644,6 +674,7 @@ template = pn.template.MaterialTemplate(
         # sankey-ification process configuration
         change_type_widget,
         depth_limit_widget,
+        count_types_widget,
         width_limit_widget,
         root_node_name_widget,
         drop_root_widget,
