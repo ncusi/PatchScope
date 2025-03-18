@@ -584,8 +584,8 @@ sankey_counter_rx = pn.rx(line_stats_to_per_author_sankey_counter)(
     patch_id_set=author_patch_ids_rx,
     # widgets, defined earlier
     change_type=change_type_widget,
-    depth_limit=depth_limit_widget.value_throttled,
-    width_limit=width_limit_widget.value_throttled,
+    depth_limit=depth_limit_widget,
+    width_limit=width_limit_widget,
 )
 sankey_csv_rx = pn.rx(counter_to_csv_styled)(
     # reactive expressions
