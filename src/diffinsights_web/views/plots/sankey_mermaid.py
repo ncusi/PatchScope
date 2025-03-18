@@ -657,11 +657,15 @@ class MermaidSankeyPlot(pn.viewable.Viewer):
         self.diagram = pn.FlexBox(
             #self.configuration,
             pn.Column(
-                pn.Spacer(height=10),
+                pn.Spacer(height=15),
                 self.diagram,
                 # diagram.param.update_value,
+                pn.Spacer(height=10),
                 pn.widgets.FileDownload(
-                    file=pn.bind(StringIO, self.diagram.param.value), filename="sankey_diagram.svg"
+                    file=pn.bind(StringIO, self.diagram.param.value),
+                    filename="sankey_diagram.svg",
+                    width=400,
+                    align='center',
                 ),
                 # center within its container
                 styles={

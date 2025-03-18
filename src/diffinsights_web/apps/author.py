@@ -22,7 +22,7 @@ from diffinsights_web.widgets.caching import ClearCacheButton
 
 logger = logging.getLogger("panel.author")
 pn.extension(
-    design="material", sizing_mode="fixed",
+    design="material", sizing_mode="stretch_width",
 )
 
 cols_plus_all  = [f"+:type.{line_type}"
@@ -948,10 +948,10 @@ template = pn.template.MaterialTemplate(
                     plot_commits_rx,
                     tight=True,
                     format=plot_format.rx(),
-                    sizing_mode='fixed',
+                    sizing_mode='stretch_width',
                     # start of different values of parameters than mpl_card()
                     fixed_aspect=True,
-                    width =1000,
+                    #width =1000,
                     height= 500,
                     # end of different parameters
                     styles={
@@ -962,23 +962,31 @@ template = pn.template.MaterialTemplate(
                 collapsible=False,
                 header="commit counts",
             ),
-            mpl_card(plot_counts_rx, "line counts"),
-            mpl_card(bihist_pm_df_rx, "histogram of -/+ counts per commit"),
+            pn.layout.FlexBox(
+                # layout plots side by side, if they fit
+                mpl_card(plot_counts_rx, "line counts"),
+                mpl_card(bihist_pm_df_rx, "histogram of -/+ counts per commit"),
+                align_content='space-evenly',
+                justify_content='space-evenly',
+                flex_direction='row',
+                flex_wrap='nowrap',  # NOTE: without this it always wraps into column
+            ),
             pn.Card(
                 pn.pane.Matplotlib(
                     plot_heatmap_rx,
                     tight=True,
                     format=plot_format.rx(),
-                    sizing_mode='fixed',
-                    # start of different values of parameters than mpl_card()
+                    sizing_mode='stretch_width',
+                    #sizing_mode='fixed',
                     fixed_aspect=True,
-                    width =1000,
+                    #width =1000,  # for sizing_mode='fixed'
                     height= 500,
                     # end of different parameters
                     styles={
                         "margin-left":  "auto",
                         "margin-right": "auto",
                     },
+                    margin=10,
                 ),
                 collapsible=False,
                 header="heatmap: line-types",
@@ -998,8 +1006,9 @@ template = pn.template.MaterialTemplate(
                 pn.pane.HoloViews(
                     plot_periodicity_heatmap_rx,
                     # sizes similar to the other heatmap
-                    sizing_mode='fixed',
-                    width =1000,
+                    sizing_mode='stretch_width',
+                    #sizing_mode='fixed',
+                    #width =1000,
                     height= 500,
                     # end of different parameters
                     styles={
