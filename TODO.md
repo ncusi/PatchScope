@@ -1,3 +1,8 @@
+# TO DO List for the whole PatchScope project
+
+- [ ] project cleanup
+    - [ ] make use of new features available in Python 3.11 (now required)
+
 # TO DO List for Diff Annotator package
 
 - [x] cleanup

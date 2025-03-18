@@ -16,6 +16,7 @@ from diffinsights_web.datastore.timeline import \
     get_timeline_data, get_timeline_df, path_to_name
 from diffinsights_web.utils import round_10s
 from diffinsights_web.views.plots.period import add_split_localtime, plot_periodicity_heatmap
+from diffinsights_web.views.plots.sankey_mermaid import MermaidSankeyPlot
 from diffinsights_web.widgets.caching import ClearCacheButton
 
 
@@ -905,6 +906,14 @@ if pn.state.location:
 
 # ---------------------------------------------------------------------------
 # main app
+sankey_mermaid = MermaidSankeyPlot(
+    dataset_dir=dataset_dir,
+    timeseries_file=select_file_widget,
+    timeline_df=get_timeline_df_rx,
+    author_column=author_column,
+    author=authors_widget,
+)
+
 template = pn.template.MaterialTemplate(
     site="PatchScope",
     title="Author Statistics",
@@ -921,6 +930,11 @@ template = pn.template.MaterialTemplate(
         #n_mod_widget,   # composite: switch + descriptions
         #pm_col_widget,  # composite: select + checkbox
         hist_widget,    # composite: two sliders
+        pn.WidgetBox(
+            'Sankey flow diagram',
+            *sankey_mermaid.widgets(),
+            disabled=False
+        ),
         ClearCacheButton(),
         pn.layout.VSpacer(),
         #pn.Spacer(height=100),
@@ -968,6 +982,16 @@ template = pn.template.MaterialTemplate(
                 ),
                 collapsible=False,
                 header="heatmap: line-types",
+            ),
+            pn.Card(
+                sankey_mermaid,
+                styles={
+                    "margin-left":  "auto",
+                    "margin-right": "auto",
+                },
+                sizing_mode="scale_both",
+                collapsible=False,
+                header="Sankey flow diagram: distribution of changes by directory and by line-type",
             ),
             pn.Card(
                 # plot_periodicity_heatmap_rx,

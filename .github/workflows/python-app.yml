@@ -20,11 +20,11 @@ jobs:
     steps:
     - name: Checkout project source code
       uses: actions/checkout@v4
-      
-    - name: Set up Python 3.10
+
+    - name: Set up Python 3.11
       uses: actions/setup-python@v5
       with:
-        python-version: "3.10"
+        python-version: "3.11"
         cache: pip
 
     - name: Restore cached virtualenv
@@ -32,7 +32,7 @@ jobs:
       with:
         key: venv-${{ runner.os }}-${{ steps.setup_python.outputs.python-version }}-${{ hashFiles('requirements.txt') }}
         path: .venv
-        
+
     - name: Install dependencies, using cached venv
       run: |
         # use [cached] virtual environment, see https://adamj.eu/tech/2023/11/02/github-actions-faster-python-virtual-environments/
@@ -48,13 +48,13 @@ jobs:
         echo "$VIRTUAL_ENV/bin" >> $GITHUB_PATH
         # add information about active virtual environment to environment variables
         echo "VIRTUAL_ENV=$VIRTUAL_ENV" >> $GITHUB_ENV
-        
+
     - name: Saved cached virtualenv
       uses: actions/cache/save@v4
       with:
         key: venv-${{ runner.os }}-${{ steps.setup_python.outputs.python-version }}-${{ hashFiles('requirements.txt') }}
         path: .venv
-        
+
     - name: Lint with flake8
       run: |
         # stop the build if there are Python syntax errors or undefined names
@@ -67,7 +67,7 @@ jobs:
         # --target-version should match requires-python in pyproject.toml
         ruff check src/ --target-version=py37 --output-format=github
       continue-on-error: true
-        
+
     - name: Test with pytest
       run: |
         pytest
