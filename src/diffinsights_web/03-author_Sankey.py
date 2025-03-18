@@ -3,7 +3,7 @@ from collections import Counter
 from io import StringIO
 from pathlib import PurePosixPath
 from textwrap import dedent
-from typing import Optional
+from typing import Optional, Any
 
 # data analysis
 import pandas as pd
@@ -630,18 +630,38 @@ sankey_csv_rx = pn.rx(counter_to_csv_styled)(
 
 count_types_widget = lines_stats_data_rx.rx.is_not(None).rx.where(
     pn.pane.Str(
-        pn.rx("{lines_changed} {change_type!r} lines changed ({proposed})").format(
+        pn.rx("{lines_changed} {change_type!r} lines changed").format(
             lines_changed=pn.rx(count_lines)(
                 data_counter=sankey_counter_rx,
             ),
             change_type=change_type_widget,
-            proposed=pn.rx(propose_width_limit)(
-                data_counter=sankey_counter_rx,
-            ),
+            #proposed=pn.rx(propose_width_limit)(
+            #    data_counter=sankey_counter_rx,
+            #),
         )
     ),
     pn.Spacer(height=0)
 )
+
+
+def propose_width_limit_cb(_new_val: Any = None):
+    if lines_stats_data_rx.rx.value is not None:
+        width_limit = propose_width_limit(sankey_counter_rx.rx.value)
+        if width_limit > 0:
+            print(f"changed ({width_limit})")
+        else:
+            print("changed (unknown, got 0)")
+    else:
+        print("changed (unknowable)")
+
+
+author_patch_ids_rx.rx.watch(propose_width_limit_cb)
+change_type_widget.param.watch(
+    propose_width_limit_cb,
+    ['value'], what='value',
+    onlychanged=True,
+)
+
 
 # ============================================================================
 # main
