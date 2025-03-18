@@ -622,6 +622,12 @@ diagram = pn.FlexBox(
         ),
     ),
 )
+no_diagram = pn.pane.HTML(
+    pn.rx("No corresponding *.lines-stats.* file for {json_path!r}").format(
+        json_path=select_file_widget,
+    ),
+    width=820,
+)
 
 # ---------------------------------------------------------------------------
 # main app
@@ -644,7 +650,10 @@ template = pn.template.MaterialTemplate(
         strip_type_prefix_widget,
     ],
     main=[
-        diagram,
+        lines_stats_data_rx.rx.is_not(None).rx.where(
+            diagram,
+            no_diagram,
+        )
     ],
 )
 
