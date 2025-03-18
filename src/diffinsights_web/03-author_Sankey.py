@@ -220,6 +220,10 @@ def triples_from_counter(data_counter: Counter) -> list[tuple[str, str, int]]:
     return [(p[0], p[1], v) for p, v in data_counter.items()]
 
 
+def counter_from_triples(data_list: list[tuple[str, str, int]]) -> Counter:
+    return Counter({(p_f, p_t): v for p_f, p_t, v in data_list})
+
+
 # code borrowed from diffinsights_web.datastore.linesstats.count_file_x_line_in_lines_stats
 def line_stats_to_per_author_counter(lines_stats_data: dict,
                                      change_type: str = "+/-",
@@ -445,6 +449,37 @@ def simplify_sankey_forward_width_ast(data_counter: Optional[Counter],
     return result
 
 
+def line_stats_to_per_author_sankey_counter(lines_stats_data: Optional[dict],
+                                            depth_limit: int,
+                                            width_limit: int,
+                                            change_type: str = "+/-",
+                                            prefix: str = 'type.',
+                                            patch_id_set: Optional[set] = None) -> Optional[Counter]:
+    if lines_stats_data is None:
+        return None
+
+    user_counter = line_stats_to_per_author_counter(
+        lines_stats_data=lines_stats_data,
+        change_type=change_type,
+        prefix=prefix,
+        patch_id_set=patch_id_set
+    )
+    user_counter_split_dir = counter_add_split_dirs_counter(user_counter)
+    user_counter_dirs_only = counter_file_to_containing_dir(user_counter_split_dir,
+                                                            prefix=prefix)
+
+    simplify_depth = simplify_sankey_forward_depth(
+        user_counter_dirs_only,
+        depth_limit=depth_limit,
+        prefix=prefix)
+    simplify_width = simplify_sankey_forward_width_ast(
+        simplify_depth,
+        width_limit=width_limit,
+        prefix=prefix)
+
+    return simplify_width
+
+
 def triples_to_csv(data_list: list[tuple[str, str, int]]) -> str:
     result = ['%% source,target,value']
 
@@ -454,15 +489,100 @@ def triples_to_csv(data_list: list[tuple[str, str, int]]) -> str:
     return "\n".join(result) + "\n"
 
 
+def counter_to_csv_styled(data_counter: Optional[Counter],
+                          prefix: str = 'type.',
+                          root: Optional[str] = 'project',
+                          type_format: Optional[str] = '[{}]',
+                          drop_root: bool = False,
+                          strip_type_prefix: Optional[bool] = None) -> str:
+    if data_counter is None:
+        return ""
+
+    result = ['sankey-beta', '', '%% source,target,value']
+    prefix_len = len(prefix)
+
+    if type_format is not None and strip_type_prefix is None:
+        strip_type_prefix = True
+
+    for (f, t), v in data_counter.items():
+        if f == '.':
+            if drop_root:
+                continue
+            if root is not None:
+                f = root
+
+        if t.startswith(prefix):
+            if strip_type_prefix:
+                t = t[prefix_len:]
+            if type_format is not None:
+                t = type_format.format(t)
+
+        result.append(f"{f},{t},{v}")
+
+    return "\n".join(result) + "\n"
+
+
 # ............................................................................
 # new widgets
-
+change_type_widget = pn.widgets.Select(
+    name="Change type",
+    value="+/-",
+    options=["+", "-", "+/-"],
+    # doc=dedent(
+    #     """
+    #     Which types of changes to consider:
+    #
+    #     - `+` - only added lines (post-image, target)
+    #     - `-` - only removed lines (pre-image, source)
+    #     - `+/-` - all changed lines
+    #     """
+    # )
+)
+depth_limit_widget = pn.widgets.IntInput(
+    name="Maximum depth limit (cutoff)",
+    value=2,
+    start=0,
+)
+width_limit_widget = pn.widgets.IntInput(
+    name="Minimum width limit (cutoff)",
+    value=500,
+    start=1,
+)
+root_node_name_widget = pn.widgets.TextInput(
+    name="Root node name ('.')",
+    value="project",
+)
+drop_root_widget = pn.widgets.Checkbox(
+    name="Drop root node",
+    value=False,
+)
+strip_type_prefix_widget = pn.widgets.Checkbox(
+    name="Strip 'type.' prefix",
+    value=True,
+)
 
 # ............................................................................
 # new reactive components
 author_patch_ids_rx = pn.rx(author_patch_ids)(
     tf_timeline_df=get_timeline_df_rx,
     author=authors_widget,
+)
+sankey_counter_rx = pn.rx(line_stats_to_per_author_sankey_counter)(
+    # reactive expressions
+    lines_stats_data=lines_stats_data_rx,
+    patch_id_set=author_patch_ids_rx,
+    # widgets, defined earlier
+    change_type=change_type_widget,
+    depth_limit=depth_limit_widget.value_throttled,
+    width_limit=width_limit_widget.value_throttled,
+)
+sankey_csv_rx = pn.rx(counter_to_csv_styled)(
+    # reactive expressions
+    data_counter=sankey_counter_rx,
+    # widgets, defined earlier
+    root=root_node_name_widget,
+    drop_root=drop_root_widget,
+    strip_type_prefix=strip_type_prefix_widget,
 )
 
 
@@ -473,19 +593,11 @@ configuration = MermaidSankeyConfiguration(
     showValues = False,
 )
 diagram = MermaidDiagram(
-    object=dedent(
-        """
-        sankey-beta
-
-        %% source,target,value
-        Electricity grid,Over generation / exports,104.453
-        Electricity grid,Heating and cooling - homes,113.726
-        Electricity grid,H2 conversion,27.14
-        """
-    ),
+    object=sankey_csv_rx,
     configuration=configuration,
     update_value=True,
-    width=800,
+    #sizing_mode='stretch_width',
+    width=820,
     height=400,
 )
 
@@ -512,6 +624,13 @@ template = pn.template.MaterialTemplate(
         select_file_widget,
         repos_widget,
         authors_widget,
+        # sankey-ification process configuration
+        change_type_widget,
+        depth_limit_widget,
+        width_limit_widget,
+        root_node_name_widget,
+        drop_root_widget,
+        strip_type_prefix_widget,
     ],
     main=[
         diagram,
