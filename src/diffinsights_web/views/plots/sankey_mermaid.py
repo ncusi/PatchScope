@@ -529,6 +529,15 @@ class MermaidSankeyPlot(pn.viewable.Viewer):
         doc="Value used to select the author",
     )
 
+    width = param.Integer(
+        default=820,
+        doc="diagram width"
+    )
+    height = param.Integer(
+        default=400,
+        doc="diagram height",
+    )
+
     def __init__(self, **params):
         super().__init__(**params)
 
@@ -541,7 +550,7 @@ class MermaidSankeyPlot(pn.viewable.Viewer):
         )
         self.depth_limit_widget = pn.widgets.IntInput(
             name="Maximum depth limit (cutoff)",
-            value=2,
+            value=1,  # for the case with drop_root_node=False
             start=0,
         )
         self.width_limit_widget = pn.widgets.IntInput(
@@ -596,14 +605,21 @@ class MermaidSankeyPlot(pn.viewable.Viewer):
 
         self.configuration = MermaidSankeyConfiguration(
             showValues=False,
+            width=self.width,
+            height=self.height,
         )
         self.diagram = MermaidDiagram(
             object=self.sankey_csv_rx,
             configuration=self.configuration,
             update_value=True,
             # sizing_mode='stretch_width',
-            width=820,
+            width=self.width,
             height=400,
+            # center within its container
+            styles={
+                "margin-left": "auto",
+                "margin-right": "auto",
+            },
         )
 
         self.count_types_pane = self.lines_stats_data_rx.rx.is_not(None).rx.where(
@@ -616,26 +632,34 @@ class MermaidSankeyPlot(pn.viewable.Viewer):
                     #proposed=pn.rx(propose_width_limit)(
                     #    data_counter=self.sankey_counter_rx,
                     #),
-                )
+                ),
             ),
             pn.Spacer(height=0)
         )
 
         self.diagram = pn.FlexBox(
-            self.configuration,
+            #self.configuration,
             pn.Column(
+                pn.Spacer(height=10),
                 self.diagram,
                 # diagram.param.update_value,
                 pn.widgets.FileDownload(
-                    file=pn.bind(StringIO, self.diagram.param.value), filename="diagram.svg"
+                    file=pn.bind(StringIO, self.diagram.param.value), filename="sankey_diagram.svg"
                 ),
+                # center within its container
+                styles={
+                    "margin-left": "auto",
+                    "margin-right": "auto",
+                },
             ),
+            align_content='space-evenly',
         )
         self.no_diagram = pn.pane.HTML(
             pn.rx("No corresponding *.lines-stats.* file for {json_path!r}").format(
                 json_path=self.timeseries_file,
             ),
-            width=820,
+            styles={'font-size': '12pt'},
+            width=self.width,
         )
 
     def __panel__(self) -> pn.viewable.Viewable:
