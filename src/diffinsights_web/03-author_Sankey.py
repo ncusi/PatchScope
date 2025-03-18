@@ -252,7 +252,10 @@ def line_stats_to_per_author_counter(lines_stats_data: dict,
     return result
 
 
-def counter_get_split_dirs_counter(data_counter: Counter) -> Counter:
+def counter_get_split_dirs_counter(data_counter: Optional[Counter]) -> Optional[Counter]:
+    if data_counter is None:
+        return None
+
     dir_data = Counter()
 
     for n_pair, value in data_counter.items():
@@ -266,14 +269,20 @@ def counter_get_split_dirs_counter(data_counter: Counter) -> Counter:
     return dir_data
 
 
-def counter_add_split_dirs_counter(data_counter: Counter) -> Counter:
+def counter_add_split_dirs_counter(data_counter: Optional[Counter]) -> Optional[Counter]:
+    if data_counter is None:
+        return None
+
     return data_counter | counter_get_split_dirs_counter(data_counter)
 
 
 # instead of displaying full information about changed lines in changed files,
 # can consider changes in aggregate (aggregating into containing directory).
-def counter_file_to_containing_dir(data_counter: Counter,
-                                   prefix: str = 'type.') -> Counter:
+def counter_file_to_containing_dir(data_counter: Optional[Counter],
+                                   prefix: str = 'type.') -> Optional[Counter]:
+    if data_counter is None:
+        return None
+
     result = Counter()
     replace = {}
 
@@ -356,9 +365,12 @@ def path_parent(path: str) -> str:
         return path[:last_slash]
 
 
-def simplify_sankey_forward_depth(data_counter: Counter,
+def simplify_sankey_forward_depth(data_counter: Optional[Counter],
                                   depth_limit: int,
-                                  prefix: str = 'type.') -> Counter:
+                                  prefix: str = 'type.') -> Optional[Counter]:
+    if data_counter is None:
+        return None
+
     result = Counter()
 
     for n_pair, value in data_counter.items():
@@ -388,9 +400,12 @@ def simplify_sankey_forward_depth(data_counter: Counter,
     return result
 
 
-def simplify_sankey_forward_width_ast(data_counter: Counter,
+def simplify_sankey_forward_width_ast(data_counter: Optional[Counter],
                                       width_limit: int,
-                                      prefix: str = 'type.') -> Counter:
+                                      prefix: str = 'type.') -> Optional[Counter]:
+    if data_counter is None:
+        return None
+
     result = Counter()
     to_delete = []
 
