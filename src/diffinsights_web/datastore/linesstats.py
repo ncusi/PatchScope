@@ -11,7 +11,8 @@ import param
 
 def get_lines_stats_data(dataset_dir: str, timeseries_file: str) -> Optional[dict]:
     timeseries_file_path = Path(timeseries_file)
-    if not timeseries_file_path.is_absolute():
+    if not timeseries_file_path.is_file():
+        # check if maybe `timeseries_file` is path relative to `dataset_dir`
         timeseries_file_path = Path(dataset_dir).joinpath(timeseries_file)
 
     dataset_dir = timeseries_file_path.parent
