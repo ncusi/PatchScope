@@ -13,7 +13,7 @@ from matplotlib.figure import Figure
 from diffinsights_web.datastore import find_dataset_dir
 from diffinsights_web.datastore.timeline import \
     find_timeline_files, find_repos, \
-    get_timeline_data, get_timeline_df, path_to_name
+    get_timeline_data, get_timeline_df, path_to_name, frequency_names
 from diffinsights_web.utils import round_10s
 from diffinsights_web.views.plots.period import add_split_localtime, plot_periodicity_heatmap
 from diffinsights_web.views.plots.sankey_mermaid import MermaidSankeyPlot
@@ -285,6 +285,7 @@ def get_diff_x_cols(tf_timeline_df: pd.DataFrame) -> list[str]:
 def plot_commits(
     resampled_df: pd.DataFrame,
     repo_desc: str, author_desc: str,
+    frequency_names_map: dict[str, str],
     resample_rate: str = 'ME',
     figsize: tuple[float, float] = (5, 5),
 ) -> Figure:
@@ -300,11 +301,15 @@ def plot_commits(
     ax.fill_between(resampled_df.index, resampled_df['n_commits'],
                     alpha=0.2, color='blue', step='post')
     # ax.set_ylim(0, 120)
-    ax.set_ylabel(f"commits")
+    ax.set_ylabel("commits")
     # ax.set_xlim(datetime.date(2017, 3, 31), datetime.date(2024, 9, 30))
-    ax.set_title(f"author={author_desc}", fontsize=9)
+    ax.set_xlabel("author date")
 
-    fig.suptitle(f'repo={repo_desc}, count of commits, resample="{resample_rate}"', fontsize=10)
+    #fig.suptitle(f'repo={repo_desc}, count of commits, resample="{resample_rate}"', fontsize=10)
+    fig.suptitle(f'Commits over time in {repo_desc} repository'
+                 f', {frequency_names_map.get(resample_rate, "unknown")}ly contributions',
+                 fontsize=10)
+    ax.set_title(f"authored by {author_desc}", fontsize=9)
 
     return fig
 
@@ -315,6 +320,7 @@ def plot_commits(
 def plot_counts(
     resampled_df: pd.DataFrame,
     repo_desc: str, author_desc: str,
+    frequency_names_map: dict[str, str],
     resample_rate: str = 'ME',
     agg_func: str = 'sum',
     figsize: tuple[float, float] = (5, 5),
@@ -341,11 +347,15 @@ def plot_counts(
 
         if invert:
             ax.invert_yaxis()
+            ax.set_xlabel('author date')
         else:
             # ax.set_title(f"author={author_desc}", fontsize=9)
-            ax.axhline(0, color="k")
+            ax.axhline(0, linewidth=1, color="k")
 
-    fig.suptitle(f'repo={repo_desc}, author={author_desc}, lines per resample="{resample_rate}"', fontsize=10)
+    #fig.suptitle(f'repo={repo_desc}, author={author_desc}, lines per resample="{resample_rate}"', fontsize=10)
+    fig.suptitle(f'Changed lines in {repo_desc} repository by {author_desc}, '
+                 f'{frequency_names_map.get(resample_rate, "unknown")}ly {agg_func}',
+                 fontsize=10)
     fig.subplots_adjust(hspace=0)
 
     # plt.show()
@@ -652,8 +662,9 @@ def bihist_pm_df(
 def plot_heatmap(
     resampled_df: pd.DataFrame,
     repo_desc: str, author_desc: str,
+    frequency_names_map: dict[str, str],
     resample_rate: str = 'ME', agg_func: str = 'sum',
-    figsize: tuple[float, float] = (16, 3.3),
+    figsize: tuple[float, float] = (16, 4),
 ) -> Figure:
     for c in cols_plus_all:
         if c not in resampled_df.columns:
@@ -671,17 +682,24 @@ def plot_heatmap(
     axes = fig.subplots(nrows=2, ncols=1, sharex='col')
 
     sns.heatmap(resampled_df[cols_plus_all].transpose(),
-                square=True, cmap='Greens', vmin=0, vmax=15000,
+                #square=True,
+                cmap='Greens', vmin=0, vmax=15000,
                 xticklabels=5, norm=LogNorm(),
                 ax=axes[1])
-    axes[0].get_xaxis().set_visible(False)
+    axes[1].set_xlabel('\nauthor date')
 
     sns.heatmap(resampled_df[reversed(cols_minus_all)].transpose(),
-                square=True, cmap='Reds', vmin=0, vmax=15000,
+                #square=True,
+                cmap='Reds', vmin=0, vmax=15000,
                 xticklabels=5, norm=LogNorm(),
                 ax=axes[0])
+    axes[0].get_xaxis().set_visible(False)
 
-    fig.suptitle(f'repo={repo_desc}, author={author_desc}, resample="{resample_rate}", agg_func={agg_func!r}',
+    #fig.suptitle(f'repo={repo_desc}, author={author_desc}, resample="{resample_rate}", agg_func={agg_func!r}',
+    #             fontsize=10)
+    fig.suptitle(f'Number of added (\'+\') and removed (\'−\') lines in {repo_desc} repository, '
+                 f'in commits authored by {author_desc}, '
+                 f'{frequency_names_map.get(resample_rate, "unknown")}ly {agg_func} per line type',
                  fontsize=10)
     # fig.subplots_adjust(hspace=-0.2)
 
@@ -742,6 +760,7 @@ plot_counts_rx = pn.rx(plot_counts)(
     resampled_df=resample_timeline_rx,
     repo_desc=repos_widget,
     author_desc=authors_widget,
+    frequency_names_map=frequency_names,
     resample_rate=resample_rule_widget,
     agg_func=agg_func_widget,
     figsize=(5, 5),
@@ -752,6 +771,7 @@ plot_commits_rx = pn.rx(plot_commits)(
     resampled_df=resample_timeline_rx,
     repo_desc=repos_widget,
     author_desc=authors_widget,
+    frequency_names_map=frequency_names,
     resample_rate=resample_rule_widget, # 'n_commits' is excluded from selecting `agg_func`
     figsize=(12, 5),
 )
@@ -761,6 +781,7 @@ plot_heatmap_rx = pn.rx(plot_heatmap)(
     resampled_df=resample_timeline_ME_rx,
     repo_desc=repos_widget,
     author_desc=authors_widget,
+    frequency_names_map=frequency_names,
     resample_rate='ME',
     agg_func=agg_func_widget,
     # figsize left at its default values
@@ -768,9 +789,9 @@ plot_heatmap_rx = pn.rx(plot_heatmap)(
 
 plot_periodicity_heatmap_rx = pn.rx(plot_periodicity_heatmap)(
     timeline_df_author=timeline_df_author_localtime_rx,
-    width  = 600,
-    height = 250,
-    off_size = 125,
+    width  = 800,  # 600
+    height = 380,  # 250
+    off_size = 150,  # 125
 )
 
 # plot that depends on the reactive data, part 2, defined earlier, i.e. `tf_timeline_df_author_rx`
@@ -780,8 +801,9 @@ bihist_pm_df_rx = pn.rx(bihist_pm_df)(
     # agg_func: Optional[str] = None,  # not for this plot
     bin_width=bin_width_widget.param.value_throttled,
     max_value=max_value_widget.param.value_throttled,
+    figsize=(5, 5),
     # figsize: Optional[tuple[float, float]] = None, # left at default values
-    title=pn.rx('{repo}, per commit, author={author}').format(
+    title=pn.rx('Histogram of changed lines per commit by {author} in {repo} repository').format(
         repo=repos_widget, author=authors_widget
     ),
 )
@@ -1009,7 +1031,7 @@ template = pn.template.MaterialTemplate(
                     sizing_mode='stretch_width',
                     #sizing_mode='fixed',
                     #width =1000,
-                    height= 500,
+                    height= 600,
                     # end of different parameters
                     styles={
                         "margin-left":  "auto",
