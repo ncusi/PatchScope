@@ -648,11 +648,7 @@ def propose_width_limit_cb(_new_val: Any = None):
     if lines_stats_data_rx.rx.value is not None:
         width_limit = propose_width_limit(sankey_counter_rx.rx.value)
         if width_limit > 0:
-            print(f"changed ({width_limit})")
-        else:
-            print("changed (unknown, got 0)")
-    else:
-        print("changed (unknowable)")
+            width_limit_widget.value = width_limit
 
 
 author_patch_ids_rx.rx.watch(propose_width_limit_cb)
