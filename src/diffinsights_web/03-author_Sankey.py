@@ -235,13 +235,10 @@ def line_stats_to_per_author_counter(lines_stats_data: dict,
 
     result = Counter()
 
-    if patch_id_set is not None:
-        print(f"line_stats...: {len(patch_id_set)=}")
-
     for dataset, dataset_data in lines_stats_data.items():
-        print(f"line_stats...: {dataset=}")  # e.g. "data/examples/annotations/qtile"
+        # `dataset` can be e.g. "data/examples/annotations/qtile"
         for bug_or_repo, lines_data in dataset_data.items():
-            print(f"line_stats...:    {bug_or_repo=}")  # e.g. "all_authors-no_merges"
+            # `bug_or_repo` can be e.g. "all_authors-no_merges"
             for patch_file, patch_data in lines_data.items():
 
                 if patch_id_set is not None and patch_file not in patch_id_set:
@@ -382,14 +379,15 @@ def simplify_sankey_forward_depth(data_counter: Optional[Counter],
     result = Counter()
 
     ## DEBUG
-    max_depth = 0
+    # max_depth = 0
 
     for n_pair, value in data_counter.items():
         (n_from, n_to) = n_pair
 
         # print(f"{n_from} ={value}=> {n_to}: ", end="")
+
         ## DEBUG
-        max_depth = max(max_depth, path_depth_adj(n_to))
+        # max_depth = max(max_depth, path_depth_adj(n_to))
 
         if n_to.startswith(prefix):
             if path_depth_adj(n_from) <= depth_limit:
@@ -411,7 +409,7 @@ def simplify_sankey_forward_depth(data_counter: Optional[Counter],
             pass
 
     ## DEBUG
-    print(f"simplify depth: {depth_limit=}, {max_depth=}")
+    # print(f"simplify depth: {depth_limit=}, {max_depth=}")
 
     return result
 
@@ -440,7 +438,7 @@ def simplify_sankey_forward_width_ast(data_counter: Optional[Counter],
             else:
                 to_delete.append(n_to)
 
-    print(f"simplify width: {width_limit=}, {to_delete=}")
+    # print(f"simplify width: {width_limit=}, {to_delete=}")
 
     for (n_from, n_to, value) in data_list:
         for n_del in to_delete:
