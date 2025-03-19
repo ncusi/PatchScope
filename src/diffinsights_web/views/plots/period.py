@@ -62,11 +62,12 @@ def plot_periodicity_heatmap(
         ],
     ).opts(
         # aspect=1,
-        width=600, height=250,
+        width=width, height=height,
         # interactivity
         default_tools=[],
         invert_yaxis=True,
     )
+    #print(plot_heatmap)
 
     day_name_date_local_s = timeline_df_author['author_date_local'].dt.day_name() \
         .value_counts(sort=False) \
@@ -92,6 +93,7 @@ def plot_periodicity_heatmap(
     plot_author_2b = day_name_date_local_df.hvplot.barh(
         x='dayofweek', y='n_commits', color='color',
         title=f"histogram of commits by day of week local",
+        #invert_yaxis=True,
     )
 
     hour_date_local_s = timeline_df_author['author_date_local'].dt.hour \
@@ -103,12 +105,15 @@ def plot_periodicity_heatmap(
         title=f"histogram of commits by hour local",
     )
 
+    # NOTE: plot_author_2b.redim(dayofweek='author date: day of week') changes order of rows (???)
     plot = plot_heatmap \
-    << plot_author_2b.redim(dayofweek='author_date_local.dayofweek').opts(
+    << plot_author_2b.redim(dayofweek='author_date_local.dayofweek', n_commits='commits').opts(
         width=off_size, height=height, show_grid=True,
+        title=f"histogram of commits by day of week local",
     ) \
-    << hour_hist_2b.redim(author_date_local='author_date_local.hour').opts(
+    << hour_hist_2b.redim(author_date_local='author date: local hour').opts(
         height=off_size, width=width,  show_grid=True,
+        title=f"histogram of commits by hour local",
     )
 
     return plot
