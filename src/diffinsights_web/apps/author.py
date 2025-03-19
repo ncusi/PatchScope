@@ -281,6 +281,19 @@ def get_diff_x_cols(tf_timeline_df: pd.DataFrame) -> list[str]:
 
 
 # ...........................................................................
+# information summary functions
+@pn.cache
+def page_info_html(repo_name: str,
+                   author_desc: str,
+                   resample_freq: str,
+                   frequency_names_map: dict[str, str]) -> str:
+    return f"""
+    <h1>Contributions to {repo_name} repository by {author_desc}</h1>
+    <p>per {frequency_names_map.get(resample_freq, 'unknown frequency')} sampling is used</p>
+    """
+
+
+# ...........................................................................
 # plotting functions
 def plot_commits(
     resampled_df: pd.DataFrame,
@@ -928,6 +941,16 @@ if pn.state.location:
 
 # ---------------------------------------------------------------------------
 # main app
+head_styles = {
+    'font-size': 'larger',
+}
+head_text_rx = pn.rx(page_info_html)(
+    repo_name=repos_widget,
+    author_desc=authors_widget,
+    resample_freq=resample_rule_widget,
+    frequency_names_map=frequency_names,
+)
+
 sankey_mermaid = MermaidSankeyPlot(
     dataset_dir=dataset_dir,
     timeseries_file=select_file_widget,
@@ -965,6 +988,7 @@ template = pn.template.MaterialTemplate(
     ],
     main=[
         pn.FlexBox(
+            pn.pane.HTML(head_text_rx, styles=head_styles),
             pn.Card(
                 pn.pane.Matplotlib(
                     plot_commits_rx,
