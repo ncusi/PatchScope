@@ -61,6 +61,16 @@ for this you need to install `[web]` optional dependency, for example with:
 python -m pip install 'patchscope[web] @ git+https://github.com/ncusi/PatchScope#egg=main'
 ```
 
+If you want to reproduce examples available in this repository,
+or those available from [DagsHub](https://dagshub.com/ncusi/PatchScope),
+or if you want to modify PatchScope code to better suit your need,
+you can instead clone it, and install from there.
+```commandline
+git clone https://github.com/ncusi/PatchScope.git
+cd PatchScope
+python -m pip install --editable .[dev,web]
+```
+
 
 ## Usage
 
