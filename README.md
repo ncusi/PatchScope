@@ -6,10 +6,12 @@
 
 # PatchScope – A Modular Tool for Annotating and Analyzing Contributions
 
+![](./favicon.svg)
+
 PatchScope project consists of two parts: a set of command line tools, and a web app. 
-Command line tools annotate files and lines of diffs (patches) with their purpose and type,
+Command line tools annotate changed files and lines of diffs (patches) with their purpose and type,
 and perform statistical analysis on the generated annotation data.
-Web application visualizes project development using analysis
+The web application visualizes project development using analysis
 generated and saved to JSON files by PatchScope's command line tools.
 
 > _Note:_ this project was called 'python-diff-annotator' earlier in its history instead of 'PatchScope',
@@ -40,7 +42,7 @@ There are a few projects research projects with a similar name:
 Use the package manager [pip](https://pip.pypa.io/en/stable/) to install `patchscope`.
 
 To avoid dependency conflicts, it is strongly recommended to create
-a [virtual environment][venv] first, activate it, and install `patchscope`
+a _[virtual environment][venv]_ first, activate it, and install `patchscope`
 into this environment.
 ```commandline
 python -m venv .venv
@@ -56,7 +58,7 @@ or (assuming that you can clone the repository with SSH)
 python -m pip install patchscope@git+ssh://git@github.com/ncusi/PatchScope.git#egg=main
 ```
 
-This does not install dependencies required to run the web app;
+The command above does not install dependencies required to run the web app;
 for this you need to install `[web]` optional dependency, for example with:
 ```commandline
 python -m pip install 'patchscope[web] @ git+https://github.com/ncusi/PatchScope#egg=main'
@@ -65,12 +67,13 @@ python -m pip install 'patchscope[web] @ git+https://github.com/ncusi/PatchScope
 If you want to reproduce examples available in this repository,
 or those available from [DagsHub](https://dagshub.com/ncusi/PatchScope),
 or if you want to modify PatchScope code to better suit your need,
-you can instead clone it, and install from there.
+you can instead clone PatchScope repository, and install it from there.
 ```commandline
 git clone https://github.com/ncusi/PatchScope.git
 cd PatchScope
 python -m pip install --editable .[dev,web]
 ```
+See also the ["Development"](#development) section below.
 
 
 ## Usage
@@ -88,6 +91,13 @@ This tool integrates four key components
    with various subcommands of `diff-gather-stats`; each summary is saved as a single JSON file
 4. advanced visualization with a web application (dashboard)<br>
    which you can run it with `panel serve`, see the description below
+
+You can use PatchScope to
+analyze individual patch files,
+enhance patch-based datasets,
+and monitor contributions to repositories.
+The process for those use cases differs in details;
+here is quick start tutorial for the case of repository contribution analysis.
 
 ### Quick start: analyzing repository
 
@@ -128,6 +138,25 @@ diff-gather-stats --annotations-dir='' \
    stats/tqdm.timeline.purpose-to-type.json \
    annotations/tqdm/
 ```
+
+If you want to see Sankey flow diagram in the visualization,
+you need also to generate summary of changed lines statistics.
+```commandline
+diff-gather-stats --annotations-dir='' \
+   lines-stats \
+   --purpose-to-annotation=data \
+   --purpose-to-annotation=documentation \
+   --purpose-to-annotation=markup \
+   --purpose-to-annotation=other \
+   --purpose-to-annotation=project \
+   --purpose-to-annotation=test \
+   stats/tqdm.lines-stats.purpose-to-type.json \
+   annotations/tqdm/
+```
+
+> Note that the web application assumes that generated timeline
+> and lines-stats files follow the `*.timeline.*.json` and
+> `*.lines-stats.*.json` naming convention.
 
 You can find more information about the annotation process in
 _"[Annotation process](docs/annotation_process.md)"_ documentation.
