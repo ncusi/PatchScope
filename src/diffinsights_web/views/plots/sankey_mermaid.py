@@ -571,6 +571,11 @@ class MermaidSankeyPlot(pn.viewable.Viewer):
             value=True,
         )
 
+        self.show_mermaid_widget = pn.widgets.Toggle(
+            name="Show full configuration widget",
+            value=False,
+        )
+
         # ---------------------------------------------------------------------
         # reactive expressions
 
@@ -710,7 +715,40 @@ class MermaidSankeyPlot(pn.viewable.Viewer):
             self.count_types_pane,
             self.width_limit_widget,
             self.drop_root_widget,
+            # selected self.configuration params
             self.configuration.param.showValues,
             self.configuration.param.prefix,
             self.configuration.param.suffix,
         ]
+
+    def widget(self) -> pn.viewable.Viewable:
+        common_widgets = [
+            self.change_type_widget,
+            self.depth_limit_widget,
+            self.count_types_pane,
+            self.width_limit_widget,
+            self.drop_root_widget,
+            # toggle the rest
+            self.show_mermaid_widget,
+        ]
+
+        # NOTE: there are a minor problem on each toggle with this solution:
+        # Dropping a patch because it contains a previously known reference
+        # TODO: consider using pn.pane.Placeholder
+        return self.show_mermaid_widget.rx().rx.where(
+            pn.WidgetBox(
+                'Sankey flow diagram',
+                *common_widgets,
+                *self.widgets_mermaid(),
+                disabled=False,
+            ),
+            pn.WidgetBox(
+                'Sankey flow diagram',
+                *common_widgets,
+                # selected self.configuration params
+                self.configuration.param.showValues,
+                self.configuration.param.prefix,
+                self.configuration.param.suffix,
+                disabled=False,
+            )
+        )
