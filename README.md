@@ -7,9 +7,9 @@
 # PatchScope – A Modular Tool for Annotating and Analyzing Contributions
 
 PatchScope project consists of two parts: a set of command line tools, and a web app. 
-Command line tools annotate files and lines of diffs (patches) with their purpose and type,
+Command line tools annotate changed files and lines of diffs (patches) with their purpose and type,
 and perform statistical analysis on the generated annotation data.
-Web application visualizes project development using analysis
+The web application visualizes project development using analysis
 generated and saved to JSON files by PatchScope's command line tools.
 
 > _Note:_ this project was called 'python-diff-annotator' earlier in its history instead of 'PatchScope',
@@ -40,7 +40,7 @@ There are a few projects research projects with a similar name:
 Use the package manager [pip](https://pip.pypa.io/en/stable/) to install `patchscope`.
 
 To avoid dependency conflicts, it is strongly recommended to create
-a [virtual environment][venv] first, activate it, and install `patchscope`
+a _[virtual environment][venv]_ first, activate it, and install `patchscope`
 into this environment.
 ```commandline
 python -m venv .venv
@@ -71,6 +71,7 @@ git clone https://github.com/ncusi/PatchScope.git
 cd PatchScope
 python -m pip install --editable .[dev,web]
 ```
+See also the ["Development"](#development) section below.
 
 
 ## Usage
@@ -88,6 +89,13 @@ This tool integrates four key components
    with various subcommands of `diff-gather-stats`; each summary is saved as a single JSON file
 4. advanced visualization with a web application (dashboard)<br>
    which you can run it with `panel serve`, see the description below
+
+You can use PatchScope to
+analyze individual patch files,
+enhance patch-based datasets,
+and monitor contributions to repositories.
+The process for those use cases differs in details;
+here is quick start tutorial for the case of repository contribution analysis.
 
 ### Quick start: analyzing repository
 
