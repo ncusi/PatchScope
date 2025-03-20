@@ -75,7 +75,7 @@ python -m pip install --editable .[dev,web]
 
 ## Usage
 
-![Overview of tool components](./docs/assets/PatchScope%20diagram%20freehand%20-%20white%20background.png)
+[![Overview of tool components](./docs/assets/diagram/diagram.png)](./docs/assets/diagram/diagram.svg)
 
 This tool integrates four key components
 
