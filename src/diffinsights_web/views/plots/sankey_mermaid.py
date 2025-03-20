@@ -13,6 +13,7 @@ import param
 from panel_mermaid import MermaidDiagram
 
 from diffinsights_web.datastore.linesstats import get_lines_stats_data
+from diffinsights_web.datastore.timeline import path_to_name
 
 
 def author_patch_ids(tf_timeline_df: pd.DataFrame,
@@ -663,7 +664,15 @@ class MermaidSankeyPlot(pn.viewable.Viewer):
                 pn.Spacer(height=10),
                 pn.widgets.FileDownload(
                     file=pn.bind(StringIO, self.diagram.param.value),
-                    filename="sankey_diagram.svg",
+                    label="Download Sankey diagram",
+                    filename=pn.rx(
+                        "sankey_diagram-repo={repo}-user={user}-drop_root={root}-values={values}.svg"
+                    ).format(
+                        repo=pn.rx(path_to_name)(self.timeseries_file),
+                        user=self.author,
+                        root=self.drop_root_widget,
+                        values=self.configuration.showValues,
+                    ),
                     width=400,
                     align='center',
                 ),
