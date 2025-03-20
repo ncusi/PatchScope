@@ -56,7 +56,7 @@ or (assuming that you can clone the repository with SSH)
 python -m pip install patchscope@git+ssh://git@github.com/ncusi/PatchScope.git#egg=main
 ```
 
-This does not install dependencies required to run the web app;
+The command above does not install dependencies required to run the web app;
 for this you need to install `[web]` optional dependency, for example with:
 ```commandline
 python -m pip install 'patchscope[web] @ git+https://github.com/ncusi/PatchScope#egg=main'
@@ -65,7 +65,7 @@ python -m pip install 'patchscope[web] @ git+https://github.com/ncusi/PatchScope
 If you want to reproduce examples available in this repository,
 or those available from [DagsHub](https://dagshub.com/ncusi/PatchScope),
 or if you want to modify PatchScope code to better suit your need,
-you can instead clone it, and install from there.
+you can instead clone PatchScope repository, and install it from there.
 ```commandline
 git clone https://github.com/ncusi/PatchScope.git
 cd PatchScope
@@ -128,6 +128,25 @@ diff-gather-stats --annotations-dir='' \
    stats/tqdm.timeline.purpose-to-type.json \
    annotations/tqdm/
 ```
+
+If you want to see Sankey flow diagram in the visualization,
+you need also to generate summary of changed lines statistics.
+```commandline
+diff-gather-stats --annotations-dir='' \
+   lines-stats \
+   --purpose-to-annotation=data \
+   --purpose-to-annotation=documentation \
+   --purpose-to-annotation=markup \
+   --purpose-to-annotation=other \
+   --purpose-to-annotation=project \
+   --purpose-to-annotation=test \
+   stats/tqdm.lines-stats.purpose-to-type.json \
+   annotations/tqdm/
+```
+
+> Note that the web application assumes that generated timeline
+> and lines-stats files follow the `*.timeline.*.json` and
+> `*.lines-stats.*.json` naming convention.
 
 You can find more information about the annotation process in
 _"[Annotation process](docs/annotation_process.md)"_ documentation.
