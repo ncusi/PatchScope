@@ -6,7 +6,7 @@
 
 # PatchScope – A Modular Tool for Annotating and Analyzing Contributions
 
-This project consists of two parts: set of command line tools, and a web app. 
+PatchScope project consists of two parts: a set of command line tools, and a web app. 
 Command line tools annotate files and lines of diffs (patches) with their purpose and type,
 and perform statistical analysis on the generated annotation data.
 Web application visualizes project development using analysis
@@ -21,6 +21,7 @@ You can find early draft of the project documentation at <https://ncusi.github.i
 
 Demo of the web application can be found at <https://patchscope.mat.umk.pl/>.
 
+Check out our [video demonstration](https://youtu.be/8fj8Mgv-72s) on YouTube.
 
 ## Disambiguation
 
@@ -74,7 +75,7 @@ python -m pip install --editable .[dev,web]
 
 ## Usage
 
-![Overview of tool components](./docs/assets/PatchScope%20diagram%20freehand%20-%20white%20background.png)
+[![Overview of tool components](./docs/assets/diagram/diagram.png)](./docs/assets/diagram/diagram.svg)
 
 This tool integrates four key components
 
