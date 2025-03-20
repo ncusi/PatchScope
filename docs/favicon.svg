@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="7.9810853mm"
+   height="7.8685069mm"
+   viewBox="0 0 7.9810853 7.8685068"
+   version="1.1"
+   id="svg5"
+   inkscape:version="1.4 (86a8ad7, 2024-10-11)"
+   sodipodi:docname="favicon.svg"
+   inkscape:export-filename="favicon.png"
+   inkscape:export-xdpi="128"
+   inkscape:export-ydpi="128"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <title
+     id="title26532">DiffAnnotator / PatchScope favicon</title>
+  <sodipodi:namedview
+     id="namedview7"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:document-units="mm"
+     showgrid="true"
+     inkscape:zoom="23.92378"
+     inkscape:cx="16.552568"
+     inkscape:cy="13.772907"
+     inkscape:window-width="1920"
+     inkscape:window-height="1001"
+     inkscape:window-x="-9"
+     inkscape:window-y="-9"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer3"
+     inkscape:showpageshadow="2"
+     inkscape:deskcolor="#d1d1d1">
+    <inkscape:grid
+       id="grid1"
+       units="mm"
+       originx="-1.0595303"
+       originy="-38.226257"
+       spacingx="0.26458333"
+       spacingy="0.26458334"
+       empcolor="#0099e5"
+       empopacity="0.30196078"
+       color="#0099e5"
+       opacity="0.14901961"
+       empspacing="5"
+       enabled="true"
+       visible="true" />
+    <inkscape:page
+       x="0"
+       y="0"
+       width="7.9810853"
+       height="7.8685069"
+       id="page12"
+       margin="0"
+       bleed="0" />
+  </sodipodi:namedview>
+  <defs
+     id="defs2" />
+  <g
+     inkscape:label="Text layer"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(-1.0595303,-38.226257)">
+    <title
+       id="title10">---/+++</title>
+    <text
+       xml:space="preserve"
+       style="font-size:4.23333px;line-height:1.25;font-family:'Source Code Pro';-inkscape-font-specification:'Source Code Pro, Heavy';stroke-width:0.264583;font-weight:900;font-style:normal;font-stretch:normal;font-variant:normal;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal"
+       x="0.96970445"
+       y="41.181156"
+       id="text_mmm"
+       inkscape:label="#text_mmm"><desc
+         id="desc9">Three minus signs ('−'), U+2212, red</desc><title
+         id="title9">---</title><tspan
+         sodipodi:role="line"
+         id="tspan20388"
+         style="fill:#ff0000;fill-opacity:1;stroke-width:0.264583;-inkscape-font-specification:'Source Code Pro, Heavy';font-family:'Source Code Pro';font-weight:900;font-style:normal;font-stretch:normal;font-variant:normal;font-size:4.2333298px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal"
+         x="0.96970445"
+         y="41.181156">−−−</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:4.23333px;line-height:1.25;font-family:'Source Code Pro';-inkscape-font-specification:'Source Code Pro, Heavy';fill:#009400;fill-opacity:1;stroke-width:0.264583;font-weight:900;font-style:normal;font-stretch:normal;font-variant:normal;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal"
+       x="0.95406407"
+       y="43.370811"
+       id="text_ppp"
+       inkscape:label="#text_ppp"><desc
+         id="desc8">Three plus signs ('+'), green</desc><title
+         id="title8">+++</title><tspan
+         sodipodi:role="line"
+         id="tspan23998"
+         style="fill:#009400;fill-opacity:1;stroke-width:0.264583;-inkscape-font-specification:'Source Code Pro, Heavy';font-family:'Source Code Pro';font-weight:900;font-style:normal;font-stretch:normal;font-variant:normal;font-size:4.2333298px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal"
+         x="0.95406407"
+         y="43.370811">+++</tspan></text>
+  </g>
+  <g
+     inkscape:groupmode="layer"
+     id="layer2"
+     inkscape:label="Symbol layer"
+     transform="translate(-1.0152926,-38.104603)">
+    <ellipse
+       style="fill:#ffffff;fill-opacity:1;stroke:#000000;stroke-width:0.327752;stroke-opacity:1"
+       id="circle"
+       cx="6.0136333"
+       cy="42.987621"
+       rx="1.54"
+       ry="1.5402751"
+       inkscape:label="#circle" />
+    <path
+       style="fill:none;stroke:#000000;stroke-width:0.264583px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m 7.3509851,43.77746 1.3607142,1.376358 -0.5004927,0.51613 -1.2825121,-1.391994 z"
+       id="handle"
+       inkscape:label="#handle" />
+  </g>
+  <g
+     inkscape:groupmode="layer"
+     id="layer3"
+     inkscape:label="Inset layer"
+     transform="translate(-1.2364812,-38.082484)">
+    <path
+       style="fill:none;stroke:#8f5100;stroke-width:0.165;stroke-linecap:round;stroke-linejoin:miter;stroke-dasharray:none;stroke-opacity:1;paint-order:normal"
+       d="m 5.004926,43.120564 c 0.79766,-0.797661 0.8289409,-0.813301 0.8289409,-0.813301 l 0.7820195,1.423276 0.7820199,-1.032264 v 0"
+       id="line_plot"
+       inkscape:label="#line_plot"
+       sodipodi:nodetypes="ccccc" />
+    <circle
+       style="fill:#905200;fill-opacity:1;stroke:none;stroke-width:0.265;stroke-dasharray:none;stroke-opacity:1"
+       id="point2"
+       cx="5.8279352"
+       cy="42.30003"
+       r="0.2"
+       inkscape:label="#point" />
+    <circle
+       style="fill:#905200;fill-opacity:1;stroke:none;stroke-width:0.265;stroke-dasharray:none;stroke-opacity:1"
+       id="point3"
+       cx="6.6255951"
+       cy="43.723305"
+       r="0.2"
+       inkscape:label="#point" />
+    <circle
+       style="fill:#905200;fill-opacity:1;stroke:none;stroke-width:0.265;stroke-dasharray:none;stroke-opacity:1"
+       id="point4"
+       cx="7.3906713"
+       cy="42.70668"
+       r="0.2"
+       inkscape:label="#point" />
+    <circle
+       style="fill:#905200;fill-opacity:1;stroke:none;stroke-width:0.265;stroke-dasharray:none;stroke-opacity:1"
+       id="point1"
+       cx="5.0127459"
+       cy="43.120564"
+       r="0.2"
+       inkscape:label="#point" />
+  </g>
+  <metadata
+     id="metadata26530">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:title>DiffAnnotator / PatchScope favicon</dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+</svg>

@@ -6,6 +6,8 @@
 
 # PatchScope – A Modular Tool for Annotating and Analyzing Contributions
 
+![](./favicon.svg)
+
 PatchScope project consists of two parts: a set of command line tools, and a web app. 
 Command line tools annotate changed files and lines of diffs (patches) with their purpose and type,
 and perform statistical analysis on the generated annotation data.
