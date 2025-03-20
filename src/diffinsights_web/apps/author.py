@@ -975,7 +975,11 @@ template = pn.template.MaterialTemplate(
         #n_mod_widget,   # composite: switch + descriptions
         #pm_col_widget,  # composite: select + checkbox
         hist_widget,    # composite: two sliders
-        sankey_mermaid.widget(),
+        pn.WidgetBox(
+            'Sankey flow diagram',
+            *sankey_mermaid.widgets(),
+            disabled=False
+        ),
         ClearCacheButton(),
         pn.layout.VSpacer(),
         #pn.Spacer(height=100),
