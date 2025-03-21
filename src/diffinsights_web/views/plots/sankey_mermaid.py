@@ -612,11 +612,11 @@ class MermaidSankeyPlot(pn.viewable.Viewer):
 
         self.lines_stats_data_rx = pn.rx(get_lines_stats_data)(
             dataset_dir=self.dataset_dir,  # does not change, no need for rx
-            timeseries_file=self.timeseries_file,
+            timeseries_file=self.param.timeseries_file.rx(),
         )
         self.author_patch_ids_rx = pn.rx(author_patch_ids)(
-            tf_timeline_df=self.timeline_df,
-            author=self.author,
+            tf_timeline_df=self.param.timeline_df.rx(),
+            author=self.param.author.rx(),
         )
         self.sankey_counter_rx = pn.rx(line_stats_to_per_author_sankey_counter)(
             # reactive expressions
