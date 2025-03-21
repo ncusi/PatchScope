@@ -704,10 +704,12 @@ class MermaidSankeyPlot(pn.viewable.Viewer):
                     filename=pn.rx(
                         "sankey_diagram-repo={repo}-user={user}-drop_root={root}-values={values}.svg"
                     ).format(
-                        repo=pn.rx(path_to_name)(self.timeseries_file),
-                        user=self.author,
+                        repo=pn.rx(path_to_name)(
+                            file_path=self.param.timeseries_file.rx()
+                        ),
+                        user=self.param.author.rx(),
                         root=self.drop_root_widget,
-                        values=self.configuration.showValues,
+                        values=self.configuration.showValues,  # probably (?) no need for .rx()
                     ),
                     width=400,
                     align='center',
