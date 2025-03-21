@@ -72,7 +72,7 @@ class SankeyPlot(pn.viewable.Viewer):
 
         self.plot_sankey_rx = pn.rx(plot_sankey)(
             sankey_df=self.data_store.sankey_df_rx,
-            data_store=self.data_store,
+            data_store=self.data_store,  # data_store does not change, but its data does
             #timeseries_file=self.data_store.param.timeseries_file.rx(),
         )
 
