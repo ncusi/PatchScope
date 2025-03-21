@@ -316,8 +316,8 @@ class ContributionsPercHeader(TimelineView):
         self.contributions_perc_info_rx = pn.rx(contributions_perc_info)(
             timeline_df=self.data_store.timeline_df_rx,
             from_date_str=self.param.from_date_str.rx(),
-            author_id=self.author_id,
-            show_descr=self.show_descr,
+            author_id=self.param.author_id.rx(),
+            show_descr=self.param.show_descr.rx(),
         )
 
     def __panel__(self) -> pn.viewable.Viewable:
