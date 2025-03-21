@@ -13,6 +13,7 @@ import param
 from panel_mermaid import MermaidDiagram
 
 from diffinsights_web.datastore.linesstats import get_lines_stats_data
+from diffinsights_web.datastore.timeline import path_to_name
 
 
 def author_patch_ids(tf_timeline_df: pd.DataFrame,
@@ -174,6 +175,32 @@ def path_parent(path: str) -> str:
         return path[:last_slash]
 
 
+def basename_adj(path: str) -> str:
+    if path.endswith('/**'):
+        last_slash = path[:-3].rfind('/')
+    elif path.endswith('/*'):
+        last_slash = path[:-2].rfind('/')
+    else:
+        last_slash = path.rfind('/')
+
+    if last_slash < 0:
+        return path
+    else:
+        depth = path_depth_adj(path)
+        # NOTE: using zero-width-space (​) lead to parse error in Mermaid.js
+        # Error: Parse error on line 10:
+        #   ...ile/*,5315
+        #   libqtile,​​widget,4901
+        #   docs,d
+        # ----------------------^
+        # Expecting 'NEWLINE', 'EOF', 'COMMA', got 'NON_ESCAPED_TEXT'
+        #prefix = '​' * depth  # or other zero-width non-visible character
+        prefix = '.' * depth
+        return f"{prefix}{path[last_slash+1:]}"
+        #return f'"{prefix}{path[last_slash + 1:]}"'
+
+
+
 def simplify_sankey_forward_depth(data_counter: Optional[Counter],
                                   depth_limit: int,
                                   prefix: str = 'type.') -> Optional[Counter]:
@@ -308,6 +335,7 @@ def counter_to_csv_styled(data_counter: Optional[Counter],
                           root: Optional[str] = 'project',
                           type_format: Optional[str] = '[{}]',
                           drop_root: bool = False,
+                          only_basename: bool = False,
                           strip_type_prefix: Optional[bool] = None) -> str:
     if data_counter is None:
         return ""
@@ -324,12 +352,16 @@ def counter_to_csv_styled(data_counter: Optional[Counter],
                 continue
             if root is not None:
                 f = root
+        elif only_basename:
+            f = basename_adj(f)
 
         if t.startswith(prefix):
             if strip_type_prefix:
                 t = t[prefix_len:]
             if type_format is not None:
                 t = type_format.format(t)
+        elif only_basename:
+            t = basename_adj(t)
 
         result.append(f"{f},{t},{v}")
 
@@ -566,6 +598,10 @@ class MermaidSankeyPlot(pn.viewable.Viewer):
             name="Drop root node",
             value=False,
         )
+        self.only_basename_widget = pn.widgets.Checkbox(
+            name="Use path basename for node",
+            value=False,
+        )
         self.strip_type_prefix_widget = pn.widgets.Checkbox(
             name="Strip 'type.' prefix",
             value=True,
@@ -596,6 +632,7 @@ class MermaidSankeyPlot(pn.viewable.Viewer):
             data_counter=self.sankey_counter_rx,
             # widgets, defined earlier
             root=self.root_node_name_widget,
+            only_basename=self.only_basename_widget,
             drop_root=self.drop_root_widget,
             strip_type_prefix=self.strip_type_prefix_widget,
         )
@@ -663,7 +700,15 @@ class MermaidSankeyPlot(pn.viewable.Viewer):
                 pn.Spacer(height=10),
                 pn.widgets.FileDownload(
                     file=pn.bind(StringIO, self.diagram.param.value),
-                    filename="sankey_diagram.svg",
+                    label="Download Sankey diagram",
+                    filename=pn.rx(
+                        "sankey_diagram-repo={repo}-user={user}-drop_root={root}-values={values}.svg"
+                    ).format(
+                        repo=pn.rx(path_to_name)(self.timeseries_file),
+                        user=self.author,
+                        root=self.drop_root_widget,
+                        values=self.configuration.showValues,
+                    ),
                     width=400,
                     align='center',
                 ),
@@ -696,6 +741,7 @@ class MermaidSankeyPlot(pn.viewable.Viewer):
             self.count_types_pane,
             self.width_limit_widget,
             self.drop_root_widget,
+            self.only_basename_widget,
             self.root_node_name_widget,
             self.strip_type_prefix_widget,
         ]
@@ -710,6 +756,7 @@ class MermaidSankeyPlot(pn.viewable.Viewer):
             self.count_types_pane,
             self.width_limit_widget,
             self.drop_root_widget,
+            self.only_basename_widget,
             self.configuration.param.showValues,
             self.configuration.param.prefix,
             self.configuration.param.suffix,
