@@ -7,24 +7,22 @@ import numpy as np
 import panel as pn
 import pandas as pd
 import seaborn as sns
-from bokeh.models import PrintfTickFormatter
 from matplotlib.colors import LogNorm
 from matplotlib.figure import Figure
 
 from diffinsights_web.datastore import find_dataset_dir
 from diffinsights_web.datastore.timeline import \
     find_timeline_files, find_repos, \
-    get_timeline_data, get_timeline_df
+    get_timeline_data, get_timeline_df, path_to_name, frequency_names
 from diffinsights_web.utils import round_10s
 from diffinsights_web.views.plots.period import add_split_localtime, plot_periodicity_heatmap
+from diffinsights_web.views.plots.sankey_mermaid import MermaidSankeyPlot
 from diffinsights_web.widgets.caching import ClearCacheButton
 
-DEBUG = True
 
 logger = logging.getLogger("panel.author")
 pn.extension(
-    "jsoneditor", "tabulator", "perspective", "terminal",
-    design="material", sizing_mode="fixed",
+    design="material", sizing_mode="stretch_width",
 )
 
 cols_plus_all  = [f"+:type.{line_type}"
@@ -40,12 +38,13 @@ all_possible_pm_col_perc_basenames = [f"{col} [%]" for col in all_possible_pm_co
 
 # ---------------------------------------------------------------------------
 # functions to get data, required to construct other widgets
-author_column = 'author.name'
+author_column = 'author.email'
 
 
 @pn.cache
 def get_authors(tf_timeline_df: pd.DataFrame) -> list[str]:
-    return tf_timeline_df[author_column].unique().tolist()
+    #return tf_timeline_df[author_column].unique().tolist()
+    return tf_timeline_df[author_column].value_counts(sort=True).index.tolist()
 
 
 @pn.cache
@@ -65,7 +64,8 @@ def get_authors_options(tf_timeline_df: pd.DataFrame) -> dict[str, str]:
 # widgets
 dataset_dir = find_dataset_dir()
 select_file_widget = pn.widgets.Select(
-    name="input JSON file",
+    #name="input JSON file",
+    name="repository data",  # NOTE: this name is easier to understand, even if less correct
     options=find_timeline_files(dataset_dir)
 )
 
@@ -76,11 +76,13 @@ find_repos_rx = pn.rx(find_repos)(
     timeline_data=get_timeline_data_rx,
 )
 repos_widget = pn.widgets.Select(
-    name="repository",
+    #name="repository",
+    name="name of data subset",  # NOTE: in all examples there is only one subset
     options=find_repos_rx,
     disabled=find_repos_rx.rx.pipe(len) <= 1,
 )
 get_timeline_df_rx = pn.rx(get_timeline_df)(
+    json_path=select_file_widget,
     timeline_data=get_timeline_data_rx,
     repo=repos_widget,
 )
@@ -172,42 +174,6 @@ hist_widget = pn.WidgetBox(
     disabled=False
 )
 
-# Scaling of 'n_mod' in patch size plots
-rescale_n_mod_widget = pn.widgets.Switch(
-    name="rescale_n_mod",
-    value=True
-)
-n_mod_widget = pn.Row(
-    pn.pane.Str("  mod"),
-    rescale_n_mod_widget,
-    pn.pane.Str("2*mod")
-)
-
-# Figure formatting: Matplotlib figsize parameter
-figsize_params = dict(
-    start=1, fixed_start=1,
-    end=8, fixed_end=10,
-    step=0.05,
-    value=5,
-    format=PrintfTickFormatter(format='%.2f in'),
-    margin=(-5, 10)
-)
-
-figsize_x_slider = pn.widgets.EditableFloatSlider(name='size.x', **figsize_params)
-figsize_y_slider = pn.widgets.EditableFloatSlider(name='size.y', **figsize_params)  # orientation='vertical' does not work (???)
-figsize_widget = pn.WidgetBox(
-    'figsize',
-    figsize_x_slider,
-    figsize_y_slider,
-    disabled=True
-)
-
-# Matplotlib pane formatting
-plot_width = pn.widgets.IntSlider(
-    name='width',
-    start=100, end=1200, step=50,
-    value=500
-)
 plot_sizing_mode = pn.widgets.Select(
     name='sizing_mode',
     options=['fixed', 'stretch_width'],
@@ -317,10 +283,24 @@ def get_diff_x_cols(tf_timeline_df: pd.DataFrame) -> list[str]:
 
 
 # ...........................................................................
+# information summary functions
+@pn.cache
+def page_info_html(repo_name: str,
+                   author_desc: str,
+                   resample_freq: str,
+                   frequency_names_map: dict[str, str]) -> str:
+    return f"""
+    <h1>Contributions to {repo_name} repository by {author_desc}</h1>
+    <p>per {frequency_names_map.get(resample_freq, 'unknown frequency')} sampling is used</p>
+    """
+
+
+# ...........................................................................
 # plotting functions
 def plot_commits(
     resampled_df: pd.DataFrame,
     repo_desc: str, author_desc: str,
+    frequency_names_map: dict[str, str],
     resample_rate: str = 'ME',
     figsize: tuple[float, float] = (5, 5),
 ) -> Figure:
@@ -336,11 +316,15 @@ def plot_commits(
     ax.fill_between(resampled_df.index, resampled_df['n_commits'],
                     alpha=0.2, color='blue', step='post')
     # ax.set_ylim(0, 120)
-    ax.set_ylabel(f"commits")
+    ax.set_ylabel("commits")
     # ax.set_xlim(datetime.date(2017, 3, 31), datetime.date(2024, 9, 30))
-    ax.set_title(f"author={author_desc}", fontsize=9)
+    ax.set_xlabel("author date")
 
-    fig.suptitle(f'repo={repo_desc}, count of commits, resample="{resample_rate}"', fontsize=10)
+    #fig.suptitle(f'repo={repo_desc}, count of commits, resample="{resample_rate}"', fontsize=10)
+    fig.suptitle(f'Commits over time in {repo_desc} repository'
+                 f', {frequency_names_map.get(resample_rate, "unknown")}ly contributions',
+                 fontsize=10)
+    ax.set_title(f"authored by {author_desc}", fontsize=9)
 
     return fig
 
@@ -351,6 +335,7 @@ def plot_commits(
 def plot_counts(
     resampled_df: pd.DataFrame,
     repo_desc: str, author_desc: str,
+    frequency_names_map: dict[str, str],
     resample_rate: str = 'ME',
     agg_func: str = 'sum',
     figsize: tuple[float, float] = (5, 5),
@@ -377,11 +362,15 @@ def plot_counts(
 
         if invert:
             ax.invert_yaxis()
+            ax.set_xlabel('author date')
         else:
             # ax.set_title(f"author={author_desc}", fontsize=9)
-            ax.axhline(0, color="k")
+            ax.axhline(0, linewidth=1, color="k")
 
-    fig.suptitle(f'repo={repo_desc}, author={author_desc}, lines per resample="{resample_rate}"', fontsize=10)
+    #fig.suptitle(f'repo={repo_desc}, author={author_desc}, lines per resample="{resample_rate}"', fontsize=10)
+    fig.suptitle(f'Changed lines in {repo_desc} repository by {author_desc}, '
+                 f'{frequency_names_map.get(resample_rate, "unknown")}ly {agg_func}',
+                 fontsize=10)
     fig.subplots_adjust(hspace=0)
 
     # plt.show()
@@ -688,8 +677,9 @@ def bihist_pm_df(
 def plot_heatmap(
     resampled_df: pd.DataFrame,
     repo_desc: str, author_desc: str,
+    frequency_names_map: dict[str, str],
     resample_rate: str = 'ME', agg_func: str = 'sum',
-    figsize: tuple[float, float] = (16, 3.3),
+    figsize: tuple[float, float] = (16, 4),
 ) -> Figure:
     for c in cols_plus_all:
         if c not in resampled_df.columns:
@@ -707,17 +697,24 @@ def plot_heatmap(
     axes = fig.subplots(nrows=2, ncols=1, sharex='col')
 
     sns.heatmap(resampled_df[cols_plus_all].transpose(),
-                square=True, cmap='Greens', vmin=0, vmax=15000,
+                #square=True,
+                cmap='Greens', vmin=0, vmax=15000,
                 xticklabels=5, norm=LogNorm(),
                 ax=axes[1])
-    axes[0].get_xaxis().set_visible(False)
+    axes[1].set_xlabel('\nauthor date')
 
     sns.heatmap(resampled_df[reversed(cols_minus_all)].transpose(),
-                square=True, cmap='Reds', vmin=0, vmax=15000,
+                #square=True,
+                cmap='Reds', vmin=0, vmax=15000,
                 xticklabels=5, norm=LogNorm(),
                 ax=axes[0])
+    axes[0].get_xaxis().set_visible(False)
 
-    fig.suptitle(f'repo={repo_desc}, author={author_desc}, resample="{resample_rate}", agg_func={agg_func!r}',
+    #fig.suptitle(f'repo={repo_desc}, author={author_desc}, resample="{resample_rate}", agg_func={agg_func!r}',
+    #             fontsize=10)
+    fig.suptitle(f'Number of added (\'+\') and removed (\'−\') lines in {repo_desc} repository, '
+                 f'in commits authored by {author_desc}, '
+                 f'{frequency_names_map.get(resample_rate, "unknown")}ly {agg_func} per line type',
                  fontsize=10)
     # fig.subplots_adjust(hspace=-0.2)
 
@@ -778,9 +775,10 @@ plot_counts_rx = pn.rx(plot_counts)(
     resampled_df=resample_timeline_rx,
     repo_desc=repos_widget,
     author_desc=authors_widget,
+    frequency_names_map=frequency_names,
     resample_rate=resample_rule_widget,
     agg_func=agg_func_widget,
-    figsize=(figsize_x_slider.value, figsize_y_slider.value),
+    figsize=(5, 5),
 )
 
 # plot that depends on the reactive data, part 1, defined earlier, i.e. `resample_timeline_rx`
@@ -788,8 +786,9 @@ plot_commits_rx = pn.rx(plot_commits)(
     resampled_df=resample_timeline_rx,
     repo_desc=repos_widget,
     author_desc=authors_widget,
+    frequency_names_map=frequency_names,
     resample_rate=resample_rule_widget, # 'n_commits' is excluded from selecting `agg_func`
-    figsize=(figsize_x_slider.value, figsize_y_slider.value),  # NOTE: does not seem to work for some reason
+    figsize=(12, 5),
 )
 
 # plot that depends on the special case of reactive data, part 1, defined earlier, i.e. `resample_timeline_ME_rx`
@@ -797,6 +796,7 @@ plot_heatmap_rx = pn.rx(plot_heatmap)(
     resampled_df=resample_timeline_ME_rx,
     repo_desc=repos_widget,
     author_desc=authors_widget,
+    frequency_names_map=frequency_names,
     resample_rate='ME',
     agg_func=agg_func_widget,
     # figsize left at its default values
@@ -804,9 +804,9 @@ plot_heatmap_rx = pn.rx(plot_heatmap)(
 
 plot_periodicity_heatmap_rx = pn.rx(plot_periodicity_heatmap)(
     timeline_df_author=timeline_df_author_localtime_rx,
-    width  = 600,
-    height = 250,
-    off_size = 125,
+    width  = 800,  # 600
+    height = 380,  # 250
+    off_size = 150,  # 125
 )
 
 # plot that depends on the reactive data, part 2, defined earlier, i.e. `tf_timeline_df_author_rx`
@@ -816,8 +816,9 @@ bihist_pm_df_rx = pn.rx(bihist_pm_df)(
     # agg_func: Optional[str] = None,  # not for this plot
     bin_width=bin_width_widget.param.value_throttled,
     max_value=max_value_widget.param.value_throttled,
+    figsize=(5, 5),
     # figsize: Optional[tuple[float, float]] = None, # left at default values
-    title=pn.rx('{repo}, per commit, author={author}').format(
+    title=pn.rx('Histogram of changed lines per commit by {author} in {repo} repository').format(
         repo=repos_widget, author=authors_widget
     ),
 )
@@ -875,22 +876,59 @@ def mpl_card(fig: Figure, header: str) -> pn.Card:
             format=plot_format.rx(),
             fixed_aspect=False,
             sizing_mode='fixed',
-            width= plot_width.rx(),
-            height=plot_width.rx(),
+            width= 500,
+            height=500,
             styles={
                 "margin-left":  "auto",
                 "margin-right": "auto",
             },
         ),
+        collapsible=False,
         header=header,
     )
 
 
 # ---------------------------------------------------------------------------
 # page URL
+
+# TODO: reduce code duplication with 'apps/contributors.py'
+# handle URL params
+def onload_update_query_args():
+    #onload_callback()
+    pn.state.location.update_query(
+        repo=path_to_name(repos_widget.value),
+        author=authors_widget.value,
+    )
+
+
+def select_file_widget_watcher(*events):
+    for event in events:
+        if event.name == 'value':
+            pn.state.location.update_query(
+                repo=path_to_name(event.new),
+            )
+
+
 if pn.state.location:
-    # pn.state.location.sync(repos_widget, {'value': 'repo'})
-    # pn.state.location.sync(authors_widget, {'value': 'author'})
+    # NOTE: we cannot use the following commented out line, as it would use whole path
+    #pn.state.location.sync(repos_widget, {'value': 'repo'})
+    # TODO: reduce code duplication with 'app/contributors.py' (currently different widget reference)
+    pn.state.onload(
+        onload_update_query_args
+    )
+    select_file_widget.param.watch(
+        select_file_widget_watcher,
+        ['value'],
+        onlychanged=True,
+    )
+    repo_arg = pn.state.session_args.get("repo", [b""])[0].decode()
+    if repo_arg in select_file_widget.options:
+        # TODO: add logging
+        select_file_widget.param.update(
+            value=select_file_widget.options[repo_arg],
+        )
+
+    pn.state.location.sync(authors_widget, {'value': 'author'})
     pn.state.location.sync(resample_rule_widget, {'value': 'freq'})
     pn.state.location.sync(agg_func_widget, {'value': 'agg_func'})
     pn.state.location.sync(column_base_widget, {'value': 'column'})
@@ -898,13 +936,30 @@ if pn.state.location:
 
 # ---------------------------------------------------------------------------
 # main app
+head_styles = {
+    'font-size': 'larger',
+}
+head_text_rx = pn.rx(page_info_html)(
+    repo_name=repos_widget,
+    author_desc=authors_widget,
+    resample_freq=resample_rule_widget,
+    frequency_names_map=frequency_names,
+)
+
+sankey_mermaid = MermaidSankeyPlot(
+    dataset_dir=dataset_dir,
+    timeseries_file=select_file_widget,
+    timeline_df=get_timeline_df_rx,
+    author_column=author_column,
+    author=authors_widget,
+)
+
 template = pn.template.MaterialTemplate(
     site="PatchScope",
     title="Author Statistics",
     favicon="favicon-author.svg",
-    #sidebar_width=sidebar_width.rx(),  # does not work!
-    #sidebar_width=sidebar_width.value, # TODO: to be tested
     sidebar_width=350,
+    collapsed_sidebar=True,
     sidebar=[
         select_file_widget,
         repos_widget,  # disabled, and UNBOUND!
@@ -913,131 +968,101 @@ template = pn.template.MaterialTemplate(
         resample_rule_widget,
         agg_func_widget,
         #n_mod_widget,   # composite: switch + descriptions
-        pm_col_widget,  # composite: select + checkbox
+        #pm_col_widget,  # composite: select + checkbox
         hist_widget,    # composite: two sliders
+        pn.WidgetBox(
+            'Sankey flow diagram',
+            *sankey_mermaid.widgets(),
+            disabled=False
+        ),
         ClearCacheButton(),
         pn.layout.VSpacer(),
         #pn.Spacer(height=100),
-        figsize_widget,
         plot_sizing_mode,
-        plot_width,
         plot_format,
     ],
     main=[
         pn.FlexBox(
-            mpl_card(plot_counts_rx, "line counts"),
-            mpl_card(plot_pm_col_rx, "line-type / file-purpose counts"),  # TODO: should it be here, in this order?
-            mpl_card(plot_diff_3sizes_rx, "patch sizes"),
-            mpl_card(plot_commits_rx, "commit counts"),
-            mpl_card(bihist_pm_df_rx, "histogram of -/+ counts per commit"),
-            mpl_card(bihist_pm_df_resampled_rx, "histogram of -/+ counts per resample period"),
+            pn.pane.HTML(head_text_rx, styles=head_styles),
             pn.Card(
                 pn.pane.Matplotlib(
-                    plot_heatmap_rx,
+                    plot_commits_rx,
                     tight=True,
                     format=plot_format.rx(),
-                    sizing_mode='fixed',
+                    sizing_mode='stretch_width',
                     # start of different values of parameters than mpl_card()
                     fixed_aspect=True,
-                    width =plot_width.rx()*2,
-                    height=plot_width.rx()*1,
+                    #width =1000,
+                    height= 500,
                     # end of different parameters
                     styles={
                         "margin-left":  "auto",
                         "margin-right": "auto",
                     },
                 ),
+                collapsible=False,
+                header="commit counts",
+            ),
+            pn.layout.FlexBox(
+                # layout plots side by side, if they fit
+                mpl_card(plot_counts_rx, "line counts"),
+                mpl_card(bihist_pm_df_rx, "histogram of -/+ counts per commit"),
+                align_content='space-evenly',
+                justify_content='space-evenly',
+                flex_direction='row',
+                flex_wrap='nowrap',  # NOTE: without this it always wraps into column
+            ),
+            pn.Card(
+                pn.pane.Matplotlib(
+                    plot_heatmap_rx,
+                    tight=True,
+                    format=plot_format.rx(),
+                    sizing_mode='stretch_width',
+                    #sizing_mode='fixed',
+                    fixed_aspect=True,
+                    #width =1000,  # for sizing_mode='fixed'
+                    height= 500,
+                    # end of different parameters
+                    styles={
+                        "margin-left":  "auto",
+                        "margin-right": "auto",
+                    },
+                    margin=10,
+                ),
+                collapsible=False,
                 header="heatmap: line-types",
+            ),
+            pn.Card(
+                sankey_mermaid,
+                styles={
+                    "margin-left":  "auto",
+                    "margin-right": "auto",
+                },
+                sizing_mode="scale_both",
+                collapsible=False,
+                header="Sankey flow diagram: distribution of changes by directory and by line-type",
             ),
             pn.Card(
                 # plot_periodicity_heatmap_rx,
                 pn.pane.HoloViews(
                     plot_periodicity_heatmap_rx,
                     # sizes similar to the other heatmap
-                    sizing_mode='fixed',
-                    width =plot_width.rx()*2,
-                    height=plot_width.rx()*1,
+                    sizing_mode='stretch_width',
+                    #sizing_mode='fixed',
+                    #width =1000,
+                    height= 600,
                     # end of different parameters
                     styles={
                         "margin-left":  "auto",
                         "margin-right": "auto",
                     },
                 ),
+                collapsible=False,
                 header="periodic behavior, local time",
             )
         ),
     ],
 )
-
-if DEBUG:
-    template.main.extend([
-        pn.layout.Divider(),
-        pn.Card(
-            pn.widgets.Debugger(
-                name='Debugger (level=DEBUG)',
-                only_last=False,
-                # at logging.DEBUG level there are many messages from Panel,
-                # so to avoid flooding the Debugger widget, limit it to application logger
-                level=logging.DEBUG, logger_names=['panel.timeline']),
-            header="Debugger: terminal with 01-timeline.ipynb logger output",
-        ),
-        pn.Card(
-            pn.widgets.JSONEditor(
-                value=get_timeline_data_rx,  # or get_timeline_data(), which is @pn.cache'd
-                mode='view',
-                menu=True, search=True,
-                width_policy='max',
-                height=400,
-            ),
-            # NOTE: change when there is widget to select or upload the JSON file
-            header="JSONEditor (view): input JSON file '{filename}'".format(filename=select_file_widget),
-            width_policy='max',
-        ),
-        pn.Card(
-            pn.widgets.Tabulator(
-                get_timeline_df_rx,  # TODO: use reactive component, instead of a global variable
-                show_index=False,
-                frozen_columns=['bug_id', 'patch_id'],
-                #editable=False,
-                editors={
-                    col: None
-                    for col in get_timeline_df_rx.rx.value.columns
-                },
-                header_filters=True,
-                configuration={
-                    'columnDefaults': {
-                        'headerSort': True,
-                        #'headerVertical': True,
-                    },
-                    'rowHeight': 12,
-                    'layout': 'fitColumns',
-                },
-                stylesheets=[
-                    """
-                    .tabulator-cell {
-                        font-size: 12px;
-                    }
-                    .tabulator-col-title {
-                        font-size: 14px;
-                    }
-                    """
-                ],
-                width=1100,
-                #width="100%",        # does not work
-                #width_policy='min',  # no horizontal scrollbar (?)
-                height=500,
-            ),
-            header=pn.rx("Tabulator: DataFrame with all data for '{repo}' repository").format(repo=repos_widget),
-        ),
-        pn.pane.Perspective(
-            resample_timeline_rx,  # or use reactive component, maybe
-            title=pn.rx("Perspective: resampled DataFrame, repo={repo}, author={author}, resample={resample!s}, agg={agg_func!s}")\
-                    .format(repo=repos_widget, author=authors_widget, resample=resample_rule_widget, agg_func=agg_func_widget),
-            editable=False,
-            width_policy='max',
-            height=500,
-        ),
-    ])
 
 template.servable()
 

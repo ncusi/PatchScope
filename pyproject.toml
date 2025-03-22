@@ -31,13 +31,14 @@ classifiers = [
   "Operating System :: OS Independent",
   "Environment :: Console",
 ]
-requires-python = ">= 3.9"  # vermin --eval-annotations --backport typing --backport typing_extensions .
+# panel-mermaid requires Python 3.11
+requires-python = ">= 3.11"  # vermin --eval-annotations --backport typing --backport typing_extensions .
 dynamic = ["version"]
 dependencies = [
-  "typer-slim==0.15.1",
+  "typer-slim==0.15.2",
   "click>=8.0.0",
   "joblib==1.4.2",
-  "pygments==2.18.0",
+  "pygments==2.19.1",
   "pyyaml==6.0.2",
   "unidiff==0.7.5",
   "tqdm==4.67.1",
@@ -48,6 +49,7 @@ dependencies = [
 diff-generate = "diffannotator.generate_patches:app"
 diff-annotate = "diffannotator.annotate:app"
 diff-gather-stats = "diffannotator.gather_data:app"
+diffinsights-web = "diffinsights_web.main:app"
 
 [project.urls]
 bugs = "https://github.com/ncusi/PatchScope/issues"
@@ -65,20 +67,46 @@ version = {attr = "diffannotator.config.__version__"}
 #
 # see: https://setuptools.pypa.io/en/latest/userguide/pyproject_config.html#dynamic-metadata
 [project.optional-dependencies]
-dev = ["pytest==8.3.3"]
-pylinguist = ["linguist@git+https://github.com/retanoj/linguist#egg=master"]
-examples = ["dvc==3.56.0"]
+dev = [
+  "pytest==8.3.5",
+  "pytest-benchmark==5.1.0",
+]
+doc = [
+  "mkdocs~=1.6.1",
+  "mkdocs-include-markdown-plugin~=7.1.2",
+  #"mkdocs-autorefs~=1.2.0",
+  "mkdocstrings[python]~=0.29.0",
+  "mkdocs-gen-files~=0.5.0",
+  "mkdocs-literate-nav~=0.6.1",
+  "mkdocs-section-index~=0.3.9",
+  "mkdocs-typer~=0.0.3",
+  "mkdocs-material~=9.6.7",
+  #"mike~=1.1.2",
+  #"setuptools~=68.0",
+  #"pkginfo~=1.9",
+  #"virtualenv~=20.0",
+  "black~=25.1.0",
+]
+pylinguist = [
+  "linguist@git+https://github.com/retanoj/linguist#egg=master",
+]
+examples = [
+  "dvc[s3]==3.59.1",
+]  # dvc-s3 is needed to access 'dagshub' dvc remote
 web = [
-  "panel==1.5.4",
-  "param==2.1.1",
+  "panel==1.6.1",
+  "param==2.2.0",
   # data processing
   "pandas==2.2.3",
   "python-dateutil==2.9.0.post0",
+  # data serialization
+  "pyarrow==19.0.1",
   # plots
   "holoviews==1.20.0",
-  "hvplot==0.11.1",
-  "matplotlib==3.9.3",
+  "hvplot==0.11.2",
+  "matplotlib==3.10.1",
   "seaborn==0.13.2",
+  "panel-mermaid==0.2.1",
 ]
 
 [tool.setuptools]

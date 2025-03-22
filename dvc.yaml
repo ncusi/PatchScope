@@ -67,6 +67,54 @@ vars:
           --filename-to-language=config.mak.in:Makefile
           --filename-to-language="git.spec.in:RPM Spec"
         args: --max-parents=1 --author=jnareb
+      - repo: linux
+        nick: all_authors-2021_2023
+        annotate_args: >-
+          --ext-to-language=.rs:Rust
+          --filename-to-language=Makefile.lib:Makefile
+          --filename-to-language=Makefile.config:Makefile
+          --filename-to-language=Makefile.deps:Makefile
+          --filename-to-language=Makefile.perf:Makefile
+          --filename-to-language=Makefile.ubsan:Makefile
+          --pattern-to-purpose=Makefile.*:project
+          --filename-to-language=Kconfig:Kconfig
+          --filename-to-language=Kconfig.debug:Kconfig
+          --pattern-to-purpose=Kconfig*:project
+          --ext-to-language=".S:Unix Assembly"
+          --ext-to-language=".rules:Udev Rules File"
+          --filename-to-language=README:Text
+          --filename-to-language=CONTRIBUTORS:Text
+          --filename-to-language=MAINTAINERS:Text
+          --ext-to-language=".dts:Device Tree Source"
+          --ext-to-language=".dtsi:Device Tree Source include"
+          --ext-to-language=".dtso:Device Tree Source overlay"
+          --pattern-to-purpose=*.dts:data
+          --pattern-to-purpose=*.dts?:data
+        args: --max-parents=1 --after=2021.01.01 --before=2023.12.31
+      - repo: linux
+        nick: all_authors-2021_2023-no_repo
+        annotate_args: >-
+          --ext-to-language=.rs:Rust
+          --filename-to-language=Makefile.lib:Makefile
+          --filename-to-language=Makefile.config:Makefile
+          --filename-to-language=Makefile.deps:Makefile
+          --filename-to-language=Makefile.perf:Makefile
+          --filename-to-language=Makefile.ubsan:Makefile
+          --pattern-to-purpose=Makefile.*:project
+          --filename-to-language=Kconfig:Kconfig
+          --filename-to-language=Kconfig.debug:Kconfig
+          --pattern-to-purpose=Kconfig*:project
+          --ext-to-language=".S:Unix Assembly"
+          --ext-to-language=".rules:Udev Rules File"
+          --filename-to-language=README:Text
+          --filename-to-language=CONTRIBUTORS:Text
+          --filename-to-language=MAINTAINERS:Text
+          --ext-to-language=".dts:Device Tree Source"
+          --ext-to-language=".dtsi:Device Tree Source include"
+          --ext-to-language=".dtso:Device Tree Source overlay"
+          --pattern-to-purpose=*.dts:data
+          --pattern-to-purpose=*.dts?:data
+        args: --no-use-repo --max-parents=1 --after=2021.01.01 --before=2023.12.31
 
 stages:
   clone:

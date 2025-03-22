@@ -10,7 +10,27 @@ import param
 from diffinsights_web.utils.notifications import warning_notification
 
 
-@pn.cache
+# global variables:
+read_cached_df: bool = True  #: whether to use cached DataFrames if available
+save_cached_df: bool = True  #: whether to save DataFrames as *.feather files
+
+
+def path_to_name(file_path: Union[Path, str]) -> str:
+    # handle the case where file_path is str, e.g. is widget value
+    if not isinstance(file_path, Path):
+        file_path = Path(file_path)
+
+    basename = str(file_path.stem)
+    try:
+        # everything up to first '.', if present
+        # this should be the typical case
+        return basename[0:basename.index('.')]
+    except ValueError:
+        # otherwise return whole basename
+        return basename
+
+
+#@pn.cache
 def find_timeline_files(dataset_dir: Union[Path, str, param.Path, None]) -> dict[str, str]:
     if dataset_dir is None:
         warning_notification("No directory with data files to read")
@@ -32,28 +52,70 @@ def find_timeline_files(dataset_dir: Union[Path, str, param.Path, None]) -> dict
 
         # assuming naming convention *.timeline.*.json for appropriate data files
         return {
-            str(path.stem): str(path)
+            path_to_name(path): str(path)
             for path in dataset_dir.glob('*.timeline.*.json')
         }
 
 
-@pn.cache
+#@pn.cache
 def get_timeline_data(json_path: Optional[Path]) -> dict:
     if json_path is None:
         return {}
+
+    # NOTE: json_path can be 'str', not 'Path'
+    if not isinstance(json_path, Path):
+        json_path = Path(json_path)
+    if read_cached_df and json_path.with_suffix('.feather').is_file():
+        # assume only one repo, with name given by first part of JSON file pathname
+        # TODO: implement better handling than this special case
+        #print(f"get_timeline_data({json_path=}) -> found .feather cache")
+        return { json_path.stem.split(sep='.', maxsplit=1)[0]: None }
 
     with open(json_path, mode='r') as json_fp:
         return json.load(json_fp)
 
 
-@pn.cache
+#@pn.cache
 def find_repos(timeline_data: dict) -> list[str]:
     return list(timeline_data.keys())
 
 
-@pn.cache
-def get_timeline_df(timeline_data: dict, repo: str) -> pd.DataFrame:
-    init_df = pd.DataFrame.from_records(timeline_data[repo])
+#@pn.cache
+def get_timeline_df(json_path: Optional[Path], timeline_data: dict, repo: str) -> pd.DataFrame:
+    """Create timeline DataFrame from timeline data in JSON file
+
+    If global variable `read_cached_df` is True, and *.feather file with cached
+    data exists, read DataFrame from that file.  If global variable `save_cached_df`
+    is True, and *.feather file with cached data does not exist, save DataFrame
+    to that file.
+
+    :param json_path: used to find cached data, if present, and possibly
+        for error and debug messages (when logging)
+    :param timeline_data: per-repo data to convert to pd.DataFrame and process;
+        usually there is only a single repo (single key) in `timeline_data` dict
+    :param repo: data from which repo to extract from `timeline_data`
+    :return: augmented dataframe, for example with 'n_commits' column added
+    """
+    if json_path is not None:
+        # NOTE: json_path can be 'str', not 'Path'
+        cache_file = Path(json_path).with_suffix('.feather')
+        if read_cached_df and cache_file.is_file():
+            # read cached data
+            try:
+                #print(f"get_timeline_df({json_path=}, {timeline_data=}, {repo=}) -> read .feather cache")
+                return pd.read_feather(cache_file)
+            except ModuleNotFoundError:
+                # No module named 'pyarrow'
+                # TODO: log warning for this problem
+                print("get_timeline_df -> ModuleNotFoundError")
+                pass
+
+    # TODO: remove after test_app_contributors_performance.py gets fixed
+    try:
+        init_df = pd.DataFrame.from_records(timeline_data[repo])
+    except KeyError:
+        # workaround: use first (and oftentimes only) repo
+        init_df = pd.DataFrame.from_records(timeline_data[next(iter(timeline_data))])
 
     # no merges, no roots; add 'n_commits' column; drop rows with N/A for timestamps
     df = init_df[init_df['n_parents'] == 1]\
@@ -63,6 +125,13 @@ def get_timeline_df(timeline_data: dict, repo: str) -> pd.DataFrame:
             author_date    = lambda x: pd.to_datetime(x['author.timestamp'],    unit='s', utc=True),
             committer_date = lambda x: pd.to_datetime(x['committer.timestamp'], unit='s', utc=True),
         )
+
+    if save_cached_df and json_path is not None:
+        # TODO: add logging
+        cache_file = Path(json_path).with_suffix('.feather')
+        # TODO: check if json_path is newer
+        if not cache_file.is_file():
+            df.to_feather(cache_file)
 
     return df
 
@@ -83,7 +152,7 @@ def agg_func_mapping(pm_count_cols: Optional[list[str]] = None) -> dict[str, str
     return agg_func_sum | agg_func_any
 
 
-@pn.cache
+#@pn.cache
 def get_pm_count_cols(timeline_df: pd.DataFrame) -> list[str]:
     ## DEBUG
     # TODO: replace with logging
@@ -154,7 +223,7 @@ def add_pm_count_perc(resampled_df: pd.DataFrame,
     return resampled_df
 
 
-@pn.cache
+#@pn.cache
 def resample_timeline(timeline_df: pd.DataFrame,
                       resample_rate: str,
                       group_by: Optional[str] = None,
@@ -216,12 +285,12 @@ def author_timeline_df_freq(resample_by_author_df: pd.DataFrame,
     return resample_by_author_df.loc[author_id].asfreq(resample_rate).fillna(0)
 
 
-@pn.cache
+#@pn.cache
 def get_max_date(timeline_df: pd.DataFrame) -> datetime.datetime:
     return timeline_df['author_date'].max().to_pydatetime()
 
 
-@pn.cache
+#@pn.cache
 def get_date_range(timeline_df: pd.DataFrame, from_date_str: str):
     # TODO: create reactive component or bound function to compute from_date to avoid recalculations
     # TODO: use parsed `from_date` instead of using raw `from_date_str`
@@ -241,7 +310,7 @@ def get_date_range(timeline_df: pd.DataFrame, from_date_str: str):
     )
 
 
-@pn.cache
+#@pn.cache
 def get_value_range(timeline_df: pd.DataFrame, column: str = 'n_commits'):
     # problems importing SpecialColumnsEnum - circular dependency
     # therefore use more generic solution: protect against all key errors
@@ -358,7 +427,8 @@ class TimelineDataStore(pn.viewable.Viewer):
 
         # select JSON data file, and extract data from it
         self.select_file_widget = pn.widgets.Select(
-            name="input JSON file",
+            #name="input JSON file",
+            name="repository data",  # NOTE: this name is easier to understand, even if less correct
             options=find_timeline_files(self.param.dataset_dir)
         )
         self.timeline_data_rx = pn.rx(get_timeline_data)(
@@ -369,12 +439,15 @@ class TimelineDataStore(pn.viewable.Viewer):
             timeline_data=self.timeline_data_rx,
         )
         self.select_repo_widget = pn.widgets.Select(
-            name="repository",
+            #name="repository",
+            name="name of data subset",  # NOTE: in all examples there is only one subset
             options=self.find_repos_rx,
-            disabled=len(self.find_repos_rx.rx.value) <= 1,
+            value=self.find_repos_rx[0],
+            disabled=self.find_repos_rx.rx.pipe(len) <= 1,
         )
         # convert extracted data to pd.DataFrame
         self.timeline_df_rx = pn.rx(get_timeline_df)(
+            json_path=self.select_file_widget,
             timeline_data=self.timeline_data_rx,
             repo=self.select_repo_widget,
         )
@@ -404,7 +477,7 @@ class TimelineDataStore(pn.viewable.Viewer):
         self.resampled_timeline_by_author_rx = pn.rx(resample_timeline)(
             timeline_df=self.timeline_df_rx,
             resample_rate=self.resample_frequency_widget,
-            group_by=self.group_by,
+            group_by=self.param.group_by.rx(),
             pm_count_cols=self.pm_count_cols,
         )
 

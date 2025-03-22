@@ -5,11 +5,11 @@ import pandas as pd
 
 
 def html_date_humane(date: pd.Timestamp) -> str:
-    date_format = '%d %a %Y'
+    date_format = '%d %b %Y'
     if os.name == 'nt':
-        date_format = '%#d %a %Y'
+        date_format = '%#d %b %Y'
     elif os.name == 'posix':
-        date_format = '%-d %a %Y'
+        date_format = '%-d %b %Y'
 
     return f'<time datetime="{date.isoformat()}">{date.strftime(date_format)}</time>'
 

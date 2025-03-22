@@ -1,27 +1,53 @@
 [![MIT License](https://img.shields.io/badge/License-MIT-green.svg)](https://choosealicense.com/licenses/mit/)
 ![Python](https://img.shields.io/badge/Python-3776AB?logo=python&logoColor=white)
-![Python 3.9](https://img.shields.io/badge/python-3.9-blue.svg)
+![Python 3.11](https://img.shields.io/badge/python-3.11-blue.svg)
 [![EditorConfig](https://img.shields.io/badge/Editor%20Config-E0EFEF?logo=editorconfig&logoColor=000)](https://editorconfig.org/)
 [![Maturity badge - level 1](https://img.shields.io/badge/Maturity-Level%201%20--%20New%20Project-yellow.svg)](https://github.com/tophat/getting-started/blob/master/scorecard.md)
 
 # PatchScope – A Modular Tool for Annotating and Analyzing Contributions
 
-Annotates files and lines of diffs (patches) with their purpose and type,
-and performs statistical analysis on the generated annotation data.
+![](./favicon.svg)
+
+PatchScope project consists of two parts: a set of command line tools, and a web app. 
+Command line tools annotate changed files and lines of diffs (patches) with their purpose and type,
+and perform statistical analysis on the generated annotation data.
+The web application visualizes project development using analysis
+generated and saved to JSON files by PatchScope's command line tools.
 
 > _Note:_ this project was called 'python-diff-annotator' earlier in its history instead of 'PatchScope',
 > and the python package was called 'diffannotator' instead of being called 'patchscope',
 > so there are some references to that older name, for example in directory names
 > in some Jupyter Notebooks.
+ 
+You can find early draft of the project documentation at <https://ncusi.github.io/PatchScope/>.
+
+Demo of the web application can be found at <https://patchscope.mat.umk.pl/>.
+
+Check out our [video demonstration](https://youtu.be/8fj8Mgv-72s) on YouTube.
+
+## Disambiguation
+
+There are a few projects research projects with a similar name:
+
+- Asma Ghandeharioun, Avi Caciularu, Adam Pearce, Lucas Dixon, Mor Geva:
+  _"Patchscopes: A Unifying Framework for Inspecting Hidden Representations of Language Models"_ (2024)
+  [arXiv:2401.06102](https://arxiv.org/abs/2401.06102)
+- Lei Zhao, Yuncong Zhu, Jiang Ming, Yichen Zhang, Haotian Zhang, Heng Yin:
+  _"PatchScope: Memory Object Centric Patch Diffing"_ (2020)
+  [DOI:10.1145/3372297.3423342](https://doi.org/10.1145/3372297.3423342)
+
 
 ## Installation
 
-Use the package manager [pip](https://pip.pypa.io/en/stable/) to install patchscope.
+Use the package manager [pip](https://pip.pypa.io/en/stable/) to install `patchscope`.
 
 To avoid dependency conflicts, it is strongly recommended to create
-a [virtual environment][venv] first, activate it, and install patchscope
-into this environment.  See also "_[Virtual environment](#virtual-environment)_"
-subsection below.
+a _[virtual environment][venv]_ first, activate it, and install `patchscope`
+into this environment.
+```commandline
+python -m venv .venv
+source .venv/bin/activate
+```
 
 To install the most recent version, use
 ```commandline
@@ -32,13 +58,33 @@ or (assuming that you can clone the repository with SSH)
 python -m pip install patchscope@git+ssh://git@github.com/ncusi/PatchScope.git#egg=main
 ```
 
+The command above does not install dependencies required to run the web app;
+for this you need to install `[web]` optional dependency, for example with:
+```commandline
+python -m pip install 'patchscope[web] @ git+https://github.com/ncusi/PatchScope#egg=main'
+```
+
+If you want to reproduce examples available in this repository,
+or those available from [DagsHub](https://dagshub.com/ncusi/PatchScope),
+or if you want to modify PatchScope code to better suit your need,
+you can instead clone PatchScope repository, and install it from there.
+```commandline
+git clone https://github.com/ncusi/PatchScope.git
+cd PatchScope
+python -m pip install --editable .[dev,web]
+```
+See also the ["Development"](#development) section below.
+
+
 ## Usage
 
-![Overview of tool components](./images/PatchScope%20diagram%20freehand%20-%20white%20background.png)
+[![Overview of tool components](./docs/assets/diagram/diagram.png)](./docs/assets/diagram/diagram.svg)
 
 This tool integrates four key components
+
 1. extracting patches from version control system or user-provided folders<br>
-   as separate step with `diff-generate`, or integrated into annotation step: `diff-annotate`
+   either as separate step with `diff-generate`,
+   or integrated into annotation step (`diff-annotate`)
 2. applying specified annotation rules for selected patches<br>
    using `diff-annotate`, which generates one JSON data file per patch
 3. generating configurable reports or summaries<br>
@@ -46,79 +92,138 @@ This tool integrates four key components
 4. advanced visualization with a web application (dashboard)<br>
    which you can run it with `panel serve`, see the description below
 
-### Running scripts
+You can use PatchScope to
+analyze individual patch files,
+enhance patch-based datasets,
+and monitor contributions to repositories.
+The process for those use cases differs in details;
+here is quick start tutorial for the case of repository contribution analysis.
 
-This package installs scripts (currently three) that you can run
-to generate patches, annotate them, and extract their statistics.
-Every script name starts with the `diff-*` prefix.
+### Quick start: analyzing repository
 
-Each script and subcommand supports the `--help` option.
+First step is to clone the repository you want to analyze,
+if not already present.  Let's assume that you want to
+get insights about [tqdm][] project development.
+```commandline
+git clone https://github.com/tqdm/tqdm.git repos/tqdm
+```
+The clone might be bare.
 
-- `diff-generate`: used to generate patches (*.patch and *.diff files)
-  from a given repository, in the format suitable for later analysis;
-  not strictly necessary;
+[tqdm]: https://tqdm.github.io/ "A Fast, Extensible Progress Bar for Python and CLI"
 
-  <u>Usage:</u> `diff-generate [OPTIONS] REPO_PATH [REVISION_RANGE...]`<br>
-  (where `REVISION_RANGE...` is passed as arguments to the `git log` command)
+Second step is to generate annotations with `diff-annotate from-repo`.
+This might take a while for a larger repository, like the Linux kernel.
+You can use [Git revision selection](https://git-scm.com/docs/gitrevisions)
+arguments to select changes to annotate; for example you can use
+`--max-parents=1` to drop merges,
+and `--after=2020.01.01` to limit date range.
+```commandline
+diff-annotate from-repo \
+   --output-dir=annotations/tqdm/since-2020 \
+   repos/tqdm --max-parents=1 --after=2020.01.01
+```
 
-- `diff-annotate`: annotates existing dataset (patch files in subdirectories),
-  or annotates selected subset of commits (of changes in commits)
-  in the given repository;
+Third step is to generate summary of annotations with `diff-gather-stats`,
+gathering statistics into a single JSON file.
+For repository visualization you will need at least the timeline.
+```commandline
+diff-gather-stats --annotations-dir='' \
+   timeline \
+   --purpose-to-annotation=data \
+   --purpose-to-annotation=documentation \
+   --purpose-to-annotation=markup \
+   --purpose-to-annotation=other \
+   --purpose-to-annotation=project \
+   --purpose-to-annotation=test \
+   stats/tqdm.timeline.purpose-to-type.json \
+   annotations/tqdm/
+```
 
-  <u>Usage:</u> `diff-annotate [OPTIONS] COMMAND [ARGS]...`
+If you want to see Sankey flow diagram in the visualization,
+you need also to generate summary of changed lines statistics.
+```commandline
+diff-gather-stats --annotations-dir='' \
+   lines-stats \
+   --purpose-to-annotation=data \
+   --purpose-to-annotation=documentation \
+   --purpose-to-annotation=markup \
+   --purpose-to-annotation=other \
+   --purpose-to-annotation=project \
+   --purpose-to-annotation=test \
+   stats/tqdm.lines-stats.purpose-to-type.json \
+   annotations/tqdm/
+```
 
-    - `diff-annotate patch [OPTIONS] PATCH_FILE RESULT_JSON`:
-      annotate a single PATCH_FILE, writing results to RESULT_JSON,
-    - `diff-annotate dataset [OPTIONS] DATASETS...`:
-      annotate all bugs in provided DATASETS,
-    - `diff-anotate from-repo [OPTIONS] REPO_PATH [REVISION_RANGE...]`:
-      create annotation data for commits from local Git repository
-      (with `REVISION_RANGE...` passed as arguments to the `git log` command);
+> Note that the web application assumes that generated timeline
+> and lines-stats files follow the `*.timeline.*.json` and
+> `*.lines-stats.*.json` naming convention.
 
-- `diff-gather-stats`: compute various statistics and metrics
-  from patch annotation data generated by the `diff-annotate` script;
-
-  <u>Usage:</u> `diff-gather-stats [OPTIONS] COMMAND [ARGS]...`
-
-    - `diff-gather-stats purpose-counter [--output JSON_FILE] DATASETS...`:
-      calculate count of purposes from all bugs in provided datasets,
-    - `diff-gather-stats purpose-per-file [OPTIONS] RESULT_JSON DATASETS...`:
-      calculate per-file count of purposes from all bugs in provided datasets,
-    - `diff-gather-stats lines-stats [OPTIONS] OUTPUT_FILE DATASETS...`:
-      calculate per-bug and per-file count of line types in provided datasets,
-    - `diff-gather-stats timeline [OPTIONS] OUTPUT_FILE DATASETS...`:
-      calculate timeline of bugs with per-bug count of different types of lines;
-
-- ...
+You can find more information about the annotation process in
+_"[Annotation process](docs/annotation_process.md)"_ documentation.
 
 ### Running web app (dashboard)
 
 This package also includes web dashboard, created using the [Panel][]
-framework.  You would need to install additional dependencies, for
-example with `pip install --editable .[web]` (if you are running this
-project in editable mode).
+framework.  You would need to install additional dependencies, denoted `[web]`,
+as described above.
 
-Currently, it includes two web apps, namely Contributors Graph and Author Statistics.
-You can run each app with [`panel serve`](https://panel.holoviz.org/how_to/server/commandline.html):
-- `panel serve src/diffinsights_web/apps/contributors.py`
-- `panel serve src/diffinsights_web/apps/author.py`
+To run this web app, you can use the `diffinsights-web` command,
+providing the directory with `*.timeline.*.json` files.
+With the previous example, with `diff-gather-stats timeline` output
+saved in `stats/` subdirectory, it would be:
+```commandline
+diffinsights-web stats/
+```
+Then open `http://localhost:7860/?repo=tqdm` in a web browser.
 
-By default, it would make those apps available
-at <http://localhost:5006/contributors> and <http://localhost:5006/author>, respectively.
+Currently, this web dashboard consist of two pages (two web apps),
+namely Contributors Graph and Author Statistics.
 
-You can also run both of them at once with
-- `panel serve src/diffinsights_web/apps/*.py`
+You can find description of those two pages/apps, with screenshots,
+in [PatchScope documentation](https://ncusi.github.io/PatchScope/contributors_graph/):
+- [`docs/author_statistics.md`](docs/author_statistics.md)
+- [`docs/contributors_graph.md`](docs/contributors_graph.md)
 
-See the basic [demo on Heroku](https://patchscope-9d05e7f15fec.herokuapp.com/):
-- <img height="20" src="favicon.png" width="20" />&nbsp;[Contributors Graph app](https://patchscope-9d05e7f15fec.herokuapp.com/contributors)
-- <img height="20" src="favicon-author.png" width="20" />&nbsp;[Author Statistics app](https://patchscope-9d05e7f15fec.herokuapp.com/author)
+### Web app demo with example projects
+
+The PatchScope repository includes annotations and gathered statistics
+for a few example repositories in [`data/examples/`](./data/examples)
+directory.
+
+You can download data for more repos from <https://dagshub.com/ncusi/PatchScope>
+with [DVC][], see the ["Examples and demos"](#examples-and-demos) section below.
+
+There is web app demo available for those repos at <http://patchscope.mat.umk.pl/>,
+and also basic [demo on Heroku](https://patchscope-9d05e7f15fec.herokuapp.com/).
+
+The simplest solution to run those demos locally is to clone
+the PatchScopes repository, and enter it:
+```commandline
+git clone https://github.com/ncusi/PatchScope.git
+cd PatchScope
+```
+Then, assuming that required `[web]` dependencies are installed
+(in a current virtual environment),
+you can run web dashboard with `panel serve`:
+```commandline
+panel serve \
+   src/diffinsights_web/apps/contributors.py \
+   src/diffinsights_web/apps/author.py \
+   --index=contributors \
+   --reuse-sessions --global-loading-spinner
+```
+
+By default, it would make this web dashboard available at <http://localhost:5006/>.
+
+There is also [`Dockerfile`](./Dockerfile) if you want to run web dashboard
+using Docker (with example projects).
 
 [Panel]: https://panel.holoviz.org/
 
 
 ## Examples and demos
 
-This repository also includes some examples demonstrating how this
+The PatchScope repository also includes some examples demonstrating how this
 project works, and what it can be used for.
 
 ### First time setup (for generating examples)
@@ -134,6 +239,7 @@ the steps described in this document manually.
 
 This script includes the configuration section at the beginning of it;
 you can change parameters to better fit your environment:
+
 - `DVCSTORE_DIR` - directory with local dvc remote
 - `PYTHON` - Python 3.x executable (before activating virtual environment)
 
@@ -166,17 +272,50 @@ configures DVC remote with storage on the local filesystem).
 
 <!-- TODO: add figure about how DVC works -->
 
-> In the future the example data for demos will be available also as DVC remote,
-> perhaps on [DAGsHub][], to be downloaded and used without the need to recompute it.
+### Downloading data from DAGsHub
+
+[DAGsHub][] is a platform for AI and ML developers that lets you manage and collaborate
+on your data, models, experiments, alongside your code.  Among other things, it can
+be used as [DVC][] remote.
+
+Here is fragment from `.dvc/config` that defines "dagshub" DVC remote to store data:
+
+```ini
+['remote "dagshub"']
+    url = s3://dvc
+    endpointurl = https://dagshub.com/ncusi/PatchScope.s3
+```
+
+Note that you need to install support for S3 for DVC to use this remote, see
+[Example: installing DVC with support for Amazon S3 storage][dvc-s3-install].
+
+You can then download all data with `dvc pull -r dagshub`.
+
+Alternatively, you can download data via DagsHub web interface,
+from <https://dagshub.com/ncusi/PatchScope>:
+
+- [`data/examples/`](https://dagshub.com/ncusi/PatchScope/src/main/data/examples)
+  includes annotations and statistics for a few example repositories:
+    - [hellogitworld](https://github.com/githubtraining/hellogitworld) (only statistics, repository archived 2020),
+    - [qtile](https://github.com/qtile/qtile),
+    - [tensorflow](https://github.com/tensorflow/tensorflow) (limited to top-2 non-bot authors),
+    - [linux](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git) (years 2021-2023)
+- [`data/experiments/`](https://dagshub.com/ncusi/PatchScope/src/main/data/experiments)
+  includes various pieces of data computed when comparing
+  automatic annotations generated by PatchScope with manual annotations
+  from BugsInPy subset of HaPy-Bugs dataset, and with manual annotations
+  from Herbold et al. _"A fine-grained data set and analysis of tangling in bug fixing commits"_
+  available in SmartSHARK.
 
 [DVC]: https://dvc.org/ "Data Version Control · DVC"
 [DAGsHub]: https://dagshub.com/ "DagsHub: A Single Source of Truth for your AI Projects"
+[dvc-s3-install]: https://dvc.org/doc/install/linux#example-pip-with-support-for-amazon-s3-storage "pip install 'dvc[s3]'"
 
 ### Jupyter Notebooks
 
 The `notebooks/` directory contains Jupyter Notebooks with data exploration,
 data analysis, etc.  See [`notebooks/README.md`](./notebooks/README.md)
-for details.
+in [PatchScope repository](https://github.com/ncusi/PatchScope) for details.
 
 ## Development
 
@@ -232,7 +371,13 @@ python -m pytest
 
 ### Roadmap
 
-See [`TODO.md`](./TODO.md).
+See [`TODO.md`](./TODO.md) in [PatchScope repository](https://github.com/ncusi/PatchScope).
+
+## Publications
+
+- Piotr Przymus, Jakub Narębski, Mikołaj Fejzer, and Krzysztof Stencel:
+  _"PatchScope – A Modular Tool for Annotating and Analyzing Contributions"_ (2024),
+  preprint: <https://ncusi.github.io/PatchScope/articles/patchscope_2024.pdf>
 
 ## Related projects
 
@@ -272,8 +417,8 @@ Command line and terminal interface tools:
 - [`git-of-theseus`](https://github.com/erikbern/git-of-theseus)
   ![Python](https://img.shields.io/badge/Python-3670A0?logo=Python&logoColor=ffdd54)
   is a set of scripts to analyze how a Git repo grows over time.
-  - See [The half-life of code & the ship of Theseus](https://erikbern.com/2016/12/05/the-half-life-of-code.html)
-    by Erik Bernhardsson (2016).
+    - See [The half-life of code & the ship of Theseus](https://erikbern.com/2016/12/05/the-half-life-of-code.html)
+      by Erik Bernhardsson (2016).
 - GitHub [Linguist](https://github.com/github-linguist/linguist)
   ![Ruby](https://img.shields.io/badge/Ruby-%23CC342D.svg?logo=Ruby&logoColor=white)
   can also be used from the command line, using the `github-linguist` executable
@@ -295,8 +440,8 @@ Tools to generate HTML dashboard, or providing an interactive web application:
   is Git repository analyser and HTML-report generator
   with [NVD3](https://nvd3.org/)-driven interactive metrics visualisations;<br>
   **note** that demo site <https://repostat.imfast.io/> no longer works
-  - [NVD3.js](https://nvd3.org/) is an attempt to build re-usable charts
-    and chart components for [d3.js](http://d3js.org/)
+    - [NVD3.js](https://nvd3.org/) is an attempt to build re-usable charts
+      and chart components for [d3.js](http://d3js.org/)
 - [Repositorch](https://github.com/kirnosenko/Repositorch)
   is a Git repository analysis engine written in C#;
   it recommends using Docker Compose to install

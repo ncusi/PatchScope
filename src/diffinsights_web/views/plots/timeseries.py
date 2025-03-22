@@ -405,7 +405,7 @@ class TimeseriesPlotForAuthor(TimelineView):
 
         self.resampled_df_rx = pn.rx(author_timeline_df_freq)(
             resample_by_author_df=self.main_plot.data_store.resampled_timeline_by_author_rx,
-            author_id=self.author_email,
+            author_id=self.param.author_email.rx(),
             resample_rate=self.data_store.resample_frequency_widget,
         )
 

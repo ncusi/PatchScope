@@ -4,13 +4,15 @@ from collections.abc import Container, Iterable
 from pathlib import Path, PurePosixPath
 from typing import Union, Optional
 
+import pandas as pd
 import panel as pn
 import param
 
 
 def get_lines_stats_data(dataset_dir: str, timeseries_file: str) -> Optional[dict]:
     timeseries_file_path = Path(timeseries_file)
-    if not timeseries_file_path.is_absolute():
+    if not timeseries_file_path.is_file():
+        # check if maybe `timeseries_file` is path relative to `dataset_dir`
         timeseries_file_path = Path(dataset_dir).joinpath(timeseries_file)
 
     dataset_dir = timeseries_file_path.parent
@@ -200,7 +202,7 @@ def reduce_sankey_thin_out(data_counter: Counter,
     #print("reduce_sankey_thin_out():")
     # TODO: use threshold on max value, not on sum of values
 
-    total_lines = 0
+    total_lines = 0  #: total changed lines in whole project
     for (p_f, p_t), v in data_counter.items():
         if p_f != '.':
             continue
@@ -275,9 +277,20 @@ def reduce_sankey_thin_out(data_counter: Counter,
     return res
 
 
+def sankey_df_from_triples(data_list: list[tuple[str, str, int]]) -> pd.DataFrame:
+    df = pd.DataFrame.from_records(data_list, columns=['source', 'target', 'count'])
+
+    df['from'] = df['source'] \
+        .str.replace(r'^\.$', '{qtile}', regex=True)
+    df['to'] = df['target'] \
+        .str.replace(r'^type\.(.*)$', lambda m: f"[{m.group(1)}]", regex=True)
+
+    return df
+
+
 def process_sankey(lines_stats_counter: Optional[Counter],
                    max_files: Optional[int] = None,
-                   threshold: float = 0.0):
+                   threshold: float = 0.0) -> Optional[pd.DataFrame]:
     if lines_stats_counter is None:
         return None
 
@@ -294,8 +307,9 @@ def process_sankey(lines_stats_counter: Optional[Counter],
         sankey_counter = reduce_sankey_thin_out(sankey_counter, threshold_ratio=threshold)
 
     sankey_triples = sankey_triples_from_counter(sankey_counter)
+    sankey_df = sankey_df_from_triples(sankey_triples)
 
-    return sankey_triples
+    return sankey_df
 
 
 class LinesStatsDataStore(pn.viewable.Viewer):
@@ -311,6 +325,11 @@ class LinesStatsDataStore(pn.viewable.Viewer):
     repo_name = param.String(
         allow_refs=True,  # allow for reactive expressions, and widgets
         doc="Name of the repository, for selecting data",
+    )
+    disable_widgets = param.Boolean(
+        default=False,
+        allow_refs=True,  # allow for reactive expressions, and widgets
+        doc="Whether to disable widgets controlling construction of Sankey diagram"
     )
 
     def __init__(self, **params):
@@ -330,7 +349,18 @@ class LinesStatsDataStore(pn.viewable.Viewer):
             options=[10,100,None],
             value=100,
         )
-        self.sankey_data_rx = pn.rx(process_sankey)(
+        self.sankey_df_rx = pn.rx(process_sankey)(
             lines_stats_counter=self.lines_stats_counter_rx,
             max_files=self.num_files_widget,
+        )
+
+        self._widgets = [
+            self.num_files_widget,
+        ]
+
+    def __panel__(self) -> pn.viewable.Viewable:
+        return pn.WidgetBox(  # column
+            'Sankey diagram',
+            *self._widgets,
+            disabled=self.disable_widgets,
         )
