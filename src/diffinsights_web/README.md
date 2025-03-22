@@ -19,6 +19,8 @@ You can run this app with `panel serve src/diffinsights_web/apps/contributors.py
 from the top directory of PatchScope sources.
 
 The demo of this app is also available at
+<https://patchscope.mat.umk.pl/contributors>
+and
 <https://patchscope-9d05e7f15fec.herokuapp.com/contributors>.
 
 This dashboard is meant to be
@@ -36,6 +38,8 @@ You can run this app with `panel serve src/diffinsights_web/apps/author.py`
 from the top directory of PatchScope sources.
 
 The demo of this app is also available at
+<https://patchscope.mat.umk.pl/author>
+and
 <https://patchscope-9d05e7f15fec.herokuapp.com/author>.
 
 This dashboard currently is a cross between plots from GitHub Insights,
