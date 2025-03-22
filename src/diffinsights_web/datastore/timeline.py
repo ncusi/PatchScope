@@ -442,7 +442,8 @@ class TimelineDataStore(pn.viewable.Viewer):
             #name="repository",
             name="name of data subset",  # NOTE: in all examples there is only one subset
             options=self.find_repos_rx,
-            disabled=len(self.find_repos_rx.rx.value) <= 1,
+            value=self.find_repos_rx[0],
+            disabled=self.find_repos_rx.rx.pipe(len) <= 1,
         )
         # convert extracted data to pd.DataFrame
         self.timeline_df_rx = pn.rx(get_timeline_df)(
@@ -476,7 +477,7 @@ class TimelineDataStore(pn.viewable.Viewer):
         self.resampled_timeline_by_author_rx = pn.rx(resample_timeline)(
             timeline_df=self.timeline_df_rx,
             resample_rate=self.resample_frequency_widget,
-            group_by=self.group_by,
+            group_by=self.param.group_by.rx(),
             pm_count_cols=self.pm_count_cols,
         )
 

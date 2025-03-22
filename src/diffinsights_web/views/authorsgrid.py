@@ -40,7 +40,7 @@ class AuthorInfo(TimelineView):
         )
 
         self.authors_list_rx = pn.rx(authors_list)(
-            authors_df=self.authors_info_df,
+            authors_df=self.authors_info_df,  # watched on, doesn't need (?) .rx()
             top_n=self.top_n_widget,
         )
         self.select_author_widget = pn.widgets.Select(
