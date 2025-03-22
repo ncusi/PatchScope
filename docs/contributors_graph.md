@@ -11,10 +11,14 @@ All examples are taken from **0.4.1** version of PatchScope.
 ## Running the app
 
 You can run this app with `panel serve src/diffinsights_web/apps/contributors.py`
-from the top directory of PatchScope sources.
+from the top directory of PatchScope sources, or with `diffinsights-web <directory>`
+after installing PatchScope using `pip`.
 
 The demo of this app is also available at
-<https://patchscope-9d05e7f15fec.herokuapp.com/contributors>.
+<https://patchscope.mat.umk.pl/>
+and
+<https://patchscope-9d05e7f15fec.herokuapp.com/contributors>,
+but it might not run the most up-to-date version of the PatchScope.
 
 
 ## Available plots
