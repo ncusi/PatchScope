@@ -74,7 +74,7 @@ You can annotate more than one dataset (directory) at once, though they
 need to have the same internal structure.  By default, each dataset is
 expected to be an existing directory with the following path structure:
 
-> <dataset_directory>/<bug_directory>/patches/<patch_file>.diff
+> &lt;dataset_directory&gt;/&lt;bug_directory&gt;/patches/&lt;patch_file&gt;.diff
 
 This directory structure follows the structure used by the
 BugsInPy[^BugsInPy-paper] dataset.  You can change the `/patches/`
@@ -82,7 +82,7 @@ part with the `--patches-dir` option, or eliminate it all together.
 For example, with `--patches-dir=''`, the `diff-annotate` script
 would expect data to have the following structure:
 
-> <dataset_directory>/<bug_directory>/<patch_file>.diff
+> &lt;dataset_directory&gt;/&lt;bug_directory&gt;/&lt;patch_file&gt;.diff
 
 Each dataset can consist with one or more bugs, each bug should include
 at least one `*.diff` file to annotate.
@@ -90,7 +90,7 @@ at least one `*.diff` file to annotate.
 By default, annotation data is saved beside patches, in the same
 directory structures, as JSON files - one file per patch / diff:
 
-> <dataset_directory>/<bug_directory>/annotation/<patch_file>.json
+> &lt;dataset_directory&gt;/&lt;bug_directory&gt;/annotation/&lt;patch_file&gt;.json
 
 You can change the `/annotation/` part with the `--annotations-dir` option.
 You can also make `diff-annotate` save annotation data in a separate
@@ -113,7 +113,7 @@ There is one required option: `--output-dir`, which you need to provide
 for `diff-annotate from-repo` to know where to store the annotation data.
 By default, the output JSON files are stored as:
 
-> <output_dir>/<commit_id>.json
+> &lt;output_dir&gt;/&lt;commit_id&gt;.json
  
 You can, if you want, create layout like the one in BugsInPy[^BugsInPy-paper]
 (for example, when reproducing whole diffs instead of using simplified diffs
@@ -256,7 +256,7 @@ file types in `languages.yml`.
 > Note that as of PatchScope version **0.4.1**, pattern matching
 > (which uses shell wildcards) is done using [`PurePath.match`][PurePath.match]
 > method from the Python [pathlib][] standard library, with its limitations.
-> Currently the recursive wildcard “**” acts like non-recursive “*”.
+> Currently the recursive wildcard “`**`” acts like non-recursive “`*`”.
 > This may change in the future.
  
 [PurePath.match]: https://docs.python.org/3/library/pathlib.html#pathlib.PurePath.match
@@ -301,7 +301,7 @@ etc.
 The lexing process uses the [`.get_tokens_unprocessed(text)`](https://pygments.org/docs/api/#pygments.lexer.Lexer.get_tokens_unprocessed)
 method from `Lexer` class because it provides, as one of values, the starting
 position of the token within the input text (index); it returns an iterable of 
-`(<index>, <tokentype>, <value>)` tuples.  This is required to be able to
+`(&lt;index&gt;, &lt;tokentype&gt;, &lt;value&gt;)` tuples.  This is required to be able to
 split multiline tokens in such way that we have correct tokenization
 of each changed line.  Per-line tokenization is in turn needed to determine
 the type (kind) of the line.
@@ -440,7 +440,7 @@ in the `HaPy-Bug/` subdirectory, as [`hapybug_line_callback_func.py`](../data/ex
 
 {%
     include-markdown "../data/experiments/HaPy-Bug/hapybug_line_callback_func.py"
-    start="```python"
+    start="```python\n"
     end="```\n"
     recursive=false
 %}
