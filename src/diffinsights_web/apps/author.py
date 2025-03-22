@@ -925,13 +925,6 @@ if pn.state.location:
         select_file_widget.param.update(
             value=select_file_widget.options[repo_arg],
         )
-        # NOTE: this is workaround for widget being empty on reload
-        # assumes that there is only one repo in data, with name that can be derived
-        repos_widget.param.update(
-            options=[repo_arg],
-            value=repo_arg,
-            disabled=True,
-        )
 
     pn.state.location.sync(authors_widget, {'value': 'author'})
     pn.state.location.sync(resample_rule_widget, {'value': 'freq'})
