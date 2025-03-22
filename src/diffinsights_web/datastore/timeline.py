@@ -59,7 +59,6 @@ def find_timeline_files(dataset_dir: Union[Path, str, param.Path, None]) -> dict
 
 #@pn.cache
 def get_timeline_data(json_path: Optional[Path]) -> dict:
-    print(f"START get_timeline_data({json_path=})")
     if json_path is None:
         return {}
 
@@ -78,7 +77,6 @@ def get_timeline_data(json_path: Optional[Path]) -> dict:
 
 #@pn.cache
 def find_repos(timeline_data: dict) -> list[str]:
-    print(f"START find_repos(...) {type(timeline_data)=}, {len(timeline_data)=}, {timeline_data.keys()=}")
     return list(timeline_data.keys())
 
 
@@ -436,17 +434,9 @@ class TimelineDataStore(pn.viewable.Viewer):
         self.timeline_data_rx = pn.rx(get_timeline_data)(
             json_path=self.select_file_widget,
         )
-        ## DEBUG
-        self.timeline_data_rx.rx.watch(
-            lambda v: print(f"WATCH TimelineDataStore.timeline_data_rx: {v.keys()=}")
-        )
         # select repo from selected JSON file
         self.find_repos_rx = pn.rx(find_repos)(
             timeline_data=self.timeline_data_rx,
-        )
-        ## DEBUG
-        self.find_repos_rx.rx.watch(
-            lambda v: print(f"WATCH TimelineDataStore.find_repos_rx: new value={v}")
         )
         self.select_repo_widget = pn.widgets.Select(
             #name="repository",
@@ -455,17 +445,6 @@ class TimelineDataStore(pn.viewable.Viewer):
             value=self.find_repos_rx[0],
             disabled=self.find_repos_rx.rx.pipe(len) <= 1,
         )
-        ## DEBUG
-        #print(f"TimelineDataStore.__init__(...): {self.select_repo_widget=} -> disabled={self.select_repo_widget.disabled}")
-        watcher = self.select_repo_widget.param.watch(
-            fn=lambda *events: print(
-                f"PARAM WATCH TimelineDataStore.select_repo-widget: {len(events)=}\n"
-                f"            {[(e.name, e.type, e.new) for e in events]}"
-            ),
-            parameter_names=['options', 'value', 'disabled'],
-            onlychanged=False,
-        )
-        #print(f"TimelineDataStore.__init__(...): {watcher=}")
         # convert extracted data to pd.DataFrame
         self.timeline_df_rx = pn.rx(get_timeline_df)(
             json_path=self.select_file_widget,
