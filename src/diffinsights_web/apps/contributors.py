@@ -86,6 +86,7 @@ if pn.state.location:
     repo_arg = pn.state.session_args.get("repo", [b""])[0].decode()
     if repo_arg in timeline_data_store.select_file_widget.options:
         # TODO: add logging
+        print(f"UPDATE contributors.py: select_file_widget update to {repo_arg!r} repo")
         timeline_data_store.select_file_widget.param.update(
             value=timeline_data_store.select_file_widget.options[repo_arg],
         )
