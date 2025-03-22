@@ -15,8 +15,15 @@ You can run this app with `panel serve src/diffinsights_web/apps/author.py`
 from the top directory of PatchScope sources.  You can get source code
 from GitHub: <https://github.com/ncusi/PatchScope>.
 
+Alternatively, you can start this app with `diffinsights-web <directory>`
+after installing PatchScope using `pip`, and go to specific author
+from the authors grid, after clicking on the author name or e-mail.
+
 The demo of this app is also available at
-<https://patchscope-9d05e7f15fec.herokuapp.com/author>.
+<https://patchscope.mat.umk.pl/author>
+and
+<https://patchscope-9d05e7f15fec.herokuapp.com/author>,
+but it might not run the most up-to-date version of the PatchScope.
 
 ## Available plots
 
