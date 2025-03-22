@@ -64,7 +64,8 @@ def get_authors_options(tf_timeline_df: pd.DataFrame) -> dict[str, str]:
 # widgets
 dataset_dir = find_dataset_dir()
 select_file_widget = pn.widgets.Select(
-    name="input JSON file",
+    #name="input JSON file",
+    name="repository data",  # NOTE: this name is easier to understand, even if less correct
     options=find_timeline_files(dataset_dir)
 )
 
@@ -75,7 +76,8 @@ find_repos_rx = pn.rx(find_repos)(
     timeline_data=get_timeline_data_rx,
 )
 repos_widget = pn.widgets.Select(
-    name="repository",
+    #name="repository",
+    name="name of data subset",  # NOTE: in all examples there is only one subset
     options=find_repos_rx,
     disabled=find_repos_rx.rx.pipe(len) <= 1,
 )
