@@ -452,7 +452,8 @@ class TimelineDataStore(pn.viewable.Viewer):
             #name="repository",
             name="name of data subset",  # NOTE: in all examples there is only one subset
             options=self.find_repos_rx,
-            disabled=len(self.find_repos_rx.rx.value) <= 1,
+            value=self.find_repos_rx[0],
+            disabled=self.find_repos_rx.rx.pipe(len) <= 1,
         )
         ## DEBUG
         #print(f"TimelineDataStore.__init__(...): {self.select_repo_widget=} -> disabled={self.select_repo_widget.disabled}")
