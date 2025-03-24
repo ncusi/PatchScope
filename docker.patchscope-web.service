@@ -1,0 +1,23 @@
+# based on https://jugmac00.github.io/blog/how-to-run-a-dockerized-service-via-systemd/
+# and https://blog-container--solutions-com.cdn.ampproject.org/v/s/blog.container-solutions.com/running-docker-containers-with-systemd
+
+[Unit]
+Description=PatchScope Web Dashboard
+Documentation=https://ncusi.github.io/PatchScope
+Documentation=https://github.com/ncusi/PatchScope
+After=docker.service
+Requires=docker.service
+
+[Service]
+TimeoutStartSec=0
+Restart=always
+#ExecStartPre=-/usr/bin/docker exec %n stop
+#ExecStartPre=-/usr/bin/docker rm %n
+#ExecStartPre=/usr/bin/docker pull ncusi/patchscope:latest
+ExecStart=/usr/bin/docker run --rm --name %n \
+    -p 22222:7860 \
+    ncusi/patchscope:latest
+
+[Install]
+#WantedBy=default.target
+WantedBy=multi-user.target
