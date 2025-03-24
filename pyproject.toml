@@ -13,14 +13,14 @@ keywords = [
   "code-analysis",
 ]
 authors = [
-  {name = "Mikołaj Fejzer", email = "mfejzer@mat.umk.pl"},
   {name = "Jakub Narębski", email = "jnareb@mat.umk.pl"},
+  {name = "Mikołaj Fejzer", email = "mfejzer@mat.umk.pl"},
   {name = "Piotr Przymus", email = "piotr.przymus@mat.umk.pl"},
   {name = "Krzysztof Stencel", email = "stencel@mimuw.edu.pl"}
 ]
 maintainers = [
-  {name = "Mikołaj Fejzer", email = "mfejzer@mat.umk.pl"},
   {name = "Jakub Narębski", email = "jnareb@mat.umk.pl"},
+  {name = "Mikołaj Fejzer", email = "mfejzer@mat.umk.pl"},
   {name = "Piotr Przymus", email = "piotr.przymus@mat.umk.pl"},
   {name = "Krzysztof Stencel", email = "stencel@mimuw.edu.pl"}
 ]
@@ -30,6 +30,10 @@ classifiers = [
   "License :: OSI Approved :: MIT License",
   "Operating System :: OS Independent",
   "Environment :: Console",
+  "Intended Audience :: Developers",
+  "Intended Audience :: Science/Research",
+  "Intended Audience :: Information Technology",
+  "Topic :: Software Development",
 ]
 # panel-mermaid requires Python 3.11
 requires-python = ">= 3.11"  # vermin --eval-annotations --backport typing --backport typing_extensions .
@@ -42,8 +46,9 @@ diff-gather-stats = "diffannotator.gather_data:app"
 diffinsights-web = "diffinsights_web.main:app"
 
 [project.urls]
-bugs = "https://github.com/ncusi/PatchScope/issues"
-homepage = "https://github.com/ncusi/PatchScope"
+repository = "https://github.com/ncusi/PatchScope"
+issues = "https://github.com/ncusi/PatchScope/issues"
+documentation = "https://ncusi.github.io/PatchScope/"
 
 [tool.setuptools.dynamic]
 dependencies = {file = ["requirements.txt"]}
