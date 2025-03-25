@@ -84,10 +84,7 @@ doc = [
   "black~=25.1.0",
 ]
 pylinguist = [
-  "linguist>=0.1.1",
-  # There is more up-to-date version on GitHub (as fork), which does install correctly
-  # but PyPI doesn't allow direct dependencies
-  #"linguist@git+https://github.com/retanoj/linguist#egg=master",
+  "linguist@git+https://github.com/retanoj/linguist#egg=master",
 ]
 examples = [
   "dvc[s3]==3.59.1",
