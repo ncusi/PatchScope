@@ -7,6 +7,7 @@ import panel as pn
 import pandas as pd
 import param
 
+from diffinsights_web.datastore import default_repo
 from diffinsights_web.utils.notifications import warning_notification
 
 
@@ -55,6 +56,12 @@ def find_timeline_files(dataset_dir: Union[Path, str, param.Path, None]) -> dict
             path_to_name(path): str(path)
             for path in dataset_dir.glob('*.timeline.*.json')
         }
+
+
+def preferred_file(file_options: dict[str, str]) -> str:
+    return file_options[default_repo] \
+        if default_repo in file_options \
+        else next(iter(file_options.values()))
 
 
 #@pn.cache
@@ -426,10 +433,12 @@ class TimelineDataStore(pn.viewable.Viewer):
         super().__init__(**params)
 
         # select JSON data file, and extract data from it
+        timeline_files = find_timeline_files(self.param.dataset_dir)
         self.select_file_widget = pn.widgets.Select(
             #name="input JSON file",
             name="repository data",  # NOTE: this name is easier to understand, even if less correct
-            options=find_timeline_files(self.param.dataset_dir)
+            options=timeline_files,
+            value=preferred_file(timeline_files),
         )
         self.timeline_data_rx = pn.rx(get_timeline_data)(
             json_path=self.select_file_widget,
