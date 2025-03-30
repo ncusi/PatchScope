@@ -12,7 +12,7 @@ from matplotlib.figure import Figure
 
 from diffinsights_web.datastore import find_dataset_dir
 from diffinsights_web.datastore.timeline import \
-    find_timeline_files, find_repos, \
+    find_timeline_files, preferred_file, find_repos, \
     get_timeline_data, get_timeline_df, path_to_name, frequency_names
 from diffinsights_web.utils import round_10s
 from diffinsights_web.views.plots.period import add_split_localtime, plot_periodicity_heatmap
@@ -63,10 +63,12 @@ def get_authors_options(tf_timeline_df: pd.DataFrame) -> dict[str, str]:
 # ---------------------------------------------------------------------------
 # widgets
 dataset_dir = find_dataset_dir()
+timeline_files = find_timeline_files(dataset_dir)
 select_file_widget = pn.widgets.Select(
     #name="input JSON file",
     name="repository data",  # NOTE: this name is easier to understand, even if less correct
-    options=find_timeline_files(dataset_dir)
+    options=timeline_files,
+    value=preferred_file(timeline_files),
 )
 
 get_timeline_data_rx = pn.rx(get_timeline_data)(
