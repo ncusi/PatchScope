@@ -247,6 +247,12 @@ def contributions_perc_info(timeline_df: pd.DataFrame,
         filtered_df = filtered_df[filtered_df['author.email'] == author_id]
 
     pm_count_cols = get_pm_count_cols(timeline_df)
+    # ensure that each column exists, as there might be only '+' or '-'
+    # column of specific type in timeline_df, and we want to have both
+    # TODO?: extract into separate helper function
+    for col in pm_count_cols:
+        if col not in filtered_df.columns:
+            filtered_df[col] = 0
     pm_count_sum = filtered_df[pm_count_cols].sum().to_dict()
 
     line_kind_sum = Counter()
