@@ -4,6 +4,7 @@ from typing import Optional
 import panel as pn
 
 DATASET_DIR = 'data/examples/stats'
+default_repo = 'qtile'  # NOTE: used if available
 
 
 @pn.cache

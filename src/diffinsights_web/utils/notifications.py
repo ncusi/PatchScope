@@ -18,11 +18,11 @@ def warning_notification(msg: str) -> None:
 
 
 def onload_callback() -> None:
-    global loaded, warnings_list
+    global loaded
 
     if pn.state.notifications is not None:
         for warning in warnings_list:
             pn.state.notifications.warning(warning)
 
     warnings_list.clear()
-    loaded = True
+    loaded = True  # NOTE: without global would create local variable

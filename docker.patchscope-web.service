@@ -1,0 +1,43 @@
+# based on https://jugmac00.github.io/blog/how-to-run-a-dockerized-service-via-systemd/
+# and https://blog-container--solutions-com.cdn.ampproject.org/v/s/blog.container-solutions.com/running-docker-containers-with-systemd
+
+[Unit]
+Description=PatchScope Web Dashboard
+Documentation=https://ncusi.github.io/PatchScope
+Documentation=https://github.com/ncusi/PatchScope
+After=docker.service
+Requires=docker.service
+
+[Service]
+TimeoutStartSec=0
+Restart=always
+
+# We cannot have more than one container with the same name so force a cleanup
+# prior to starting a new container.  We do cleanup using a ExecStartPre so
+# that if the service is shutdown, fails, etc, the last container will still
+# exist for examination if needed.  The leading dash ("-") tells systemd to
+# ignore failures.
+ExecStartPre=-/usr/bin/docker stop %n
+ExecStartPre=-/usr/bin/docker rm %n
+
+# Update Docker image if non-existent or needs updating
+#ExecStartPre=/usr/bin/docker pull ncusi/patchscope:latest
+
+# Run the container.  The -d (detach) or -t (pty) options must NOT be used here.
+# Even better would be to use here 'systemd-docker' instead of 'docker' to have
+# systemd supervise the Docker container instead of the Docker client.
+ExecStart=/usr/bin/docker run --rm --name %n \
+    -p 22222:7860 \
+    ncusi/patchscope:latest
+
+# Use the Docker stop command to single to a container to stop.
+# Failure is OK here if the container has already crashed.
+ExecStop=-/usr/bin/docker stop %n
+
+# The Docker run command runs for the life of the container
+# and pipes back STDOUT/STDERR to Journald.  No forking.
+Type=simple
+
+[Install]
+#WantedBy=default.target
+WantedBy=multi-user.target
