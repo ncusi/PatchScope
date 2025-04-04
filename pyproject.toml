@@ -77,6 +77,7 @@ doc = [
   "mkdocs-section-index~=0.3.9",
   "mkdocs-typer~=0.0.3",
   "mkdocs-material~=9.6.7",
+  "mkdocs-jupyter~=0.25.1",
   #"mike~=1.1.2",
   #"setuptools~=68.0",
   #"pkginfo~=1.9",
