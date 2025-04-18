@@ -3,19 +3,16 @@
 This page provides documentation for PatchScope command line tools.
 
 
-[//]: # (see https://github.com/bruce-szalwinski/mkdocs-typer/issues/18)
+[//]: # (see https://github.com/syn54x/mkdocs-typer2)
 
-::: mkdocs-typer
+::: mkdocs-typer2
     :module: diffannotator.generate_patches
-    :command: app
-    :prog_name: diff-generate
+    :name: diff-generate
 
-::: mkdocs-typer
+::: mkdocs-typer2
     :module: diffannotator.annotate
-    :command: app
-    :prog_name: diff-annotate
+    :name: diff-annotate
 
-::: mkdocs-typer
+::: mkdocs-typer2
     :module: diffannotator.gather_data
-    :command: app
-    :prog_name: diff-gather-stats
+    :name: diff-gather-stats

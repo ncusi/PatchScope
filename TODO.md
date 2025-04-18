@@ -32,9 +32,8 @@
           - [ ] switch from Sphinx/reST format to better supported Numpydoc format
                 with [docconvert](https://github.com/cbillingham/docconvert)
                 or [pyment](https://github.com/dadadel/pyment)
-      - [x] generate documentation for scripts using [mkdocs-typer][]
+      - [x] generate documentation for scripts using [mkdocs-typer2][]
             ([typer][] is used for parsing CLI arguments)
-          - [ ] replace it with a better solution, e.g. from the next point
       - [ ] _maybe_ generate manpages from MkDocs with [mkdocs-manpage][] (at least for scripts)
       - [ ] _maybe_ include gallery of examples with [mkdocs-gallery](https://smarie.github.io/mkdocs-gallery/)
       - [ ] _maybe_ CLI demos with [Asciinema][], or one of the alternatives, like
@@ -356,7 +355,7 @@ data.
 [mkdocs-material]: https://squidfunk.github.io/mkdocs-material/ "Material for MkDocs: Documentation framework on top of MkDocs"
 [mkdocstrings]: https://mkdocstrings.github.io/ "mkdocstrings: Automatic documentation from sources, for MkDocs"
 [mkdocs-manpage]: https://pawamoy.github.io/mkdocs-manpage/ "MkDocs Manpage: MkDocs plugin to generate a manpage from the documentation site"
-[mkdocs-typer]: https://github.com/bruce-szalwinski/mkdocs-typer "mkdocs-typer: An MkDocs extension to generate documentation for Typer command line applications"
+[mkdocs-typer2]: https://github.com/syn54x/mkdocs-typer2 "mkdocs-typer2: MkDocs plugin for Typer CLI docs"
 [Asciinema]: https://asciinema.org/ "Asciinema - Record and share your terminal sessions, the simple way"
 [Terminalizer]: https://www.terminalizer.com/ "Terminalizer: Record your terminal and generate animated gif images or share a web player"
 [ttyrec]: http://0xcc.net/ttyrec/ "ttyrec: a tty recorder"
