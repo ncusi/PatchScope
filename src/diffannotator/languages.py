@@ -162,9 +162,17 @@ PATTERN_TO_PURPOSE = {
 def languages_exceptions(path: str, lang: list[str]) -> list[str]:
     """Handle exceptions in determining language of a file
 
-    :param path: file path in the repository
-    :param lang: file language determined so far
-    :return: single element list of languages
+    Parameters
+    ----------
+    path
+        file path in the repository
+    lang
+        file language determined so far
+
+    Returns
+    -------
+    [str]
+        single element list of languages
     """
     if "spark" in path.lower() and "Roff" in lang:
         return ["Text"]
@@ -313,8 +321,15 @@ class Languages(object):
     def annotate(self, path: str) -> dict:
         """Annotate file with its primary language metadata
 
-        :param path: file path in the repository
-        :return: metadata about language, file type, and purpose of file
+        Parameters
+        ----------
+        path
+            file path in the repository
+
+        Returns
+        -------
+        dict
+            metadata about language, file type, and purpose of file
         """
         language = self._path2lang(path)
 

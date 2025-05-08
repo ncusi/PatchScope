@@ -116,8 +116,8 @@ plugins:
           paths: [ "src" ]
           options:
             show_bases: true
-            docstring_style: sphinx
-            #docstring_section_style: spacy
+            docstring_style: numpy
+            docstring_section_style: spacy
             show_signature: true
             separate_signature: true
             show_signature_annotations: true

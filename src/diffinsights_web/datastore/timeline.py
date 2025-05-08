@@ -96,12 +96,21 @@ def get_timeline_df(json_path: Optional[Path], timeline_data: dict, repo: str) -
     is True, and *.feather file with cached data does not exist, save DataFrame
     to that file.
 
-    :param json_path: used to find cached data, if present, and possibly
-        for error and debug messages (when logging)
-    :param timeline_data: per-repo data to convert to pd.DataFrame and process;
-        usually there is only a single repo (single key) in `timeline_data` dict
-    :param repo: data from which repo to extract from `timeline_data`
-    :return: augmented dataframe, for example with 'n_commits' column added
+    Parameters
+    ----------
+    json_path
+        used to find cached data, if present, and possibly for error and
+        debug messages (when logging)
+    timeline_data
+        per-repo data to convert to pd.DataFrame and process; usually
+        there is only a single repo (single key) in `timeline_data` dict
+    repo
+        data from which repo to extract from `timeline_data`
+
+    Returns
+    -------
+    pd.DataFrame
+        augmented dataframe, for example with 'n_commits' column added
     """
     if json_path is not None:
         # NOTE: json_path can be 'str', not 'Path'

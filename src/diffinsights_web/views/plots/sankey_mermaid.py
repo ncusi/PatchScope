@@ -122,8 +122,15 @@ def path_depth(path: str) -> int:
     Treat '.' as root, with depth 0.  Treat any path without '/' as having
     depth 1; each subsequent '/' means new component.
 
-    :param path: relative UNIX pathname
-    :return: depth of pathname
+    Parameters
+    ----------
+    path
+        relative UNIX pathname
+
+    Returns
+    -------
+    int
+        depth of pathname
     """
     if path == ".":
         return 0
@@ -134,8 +141,15 @@ def path_depth(path: str) -> int:
 def path_depth_adj(path: str) -> int:
     """Like `path_depth`, but consider depth of 'path' and 'path/*' to be the same
 
-    :param path: relative UNIX pathname
-    :return: adjusted depth of pathname
+    Parameters
+    ----------
+    path
+        relative UNIX pathname
+
+    Returns
+    -------
+    int
+        adjusted depth of pathname
     """
     if path == ".":
         return 0
@@ -153,9 +167,17 @@ def shorten_path_repl(path: str, max_len: int) -> str:
     >>> shorten_path_repl('A/B', 2)
     'A/B'
 
-    :param path: relative UNIX pathname
-    :param max_len: maximum number of components
-    :return: pathname with up to `max_len` components
+    Parameters
+    ----------
+    path
+        relative UNIX pathname
+    max_len
+        maximum number of components
+
+    Returns
+    -------
+    str
+        pathname with up to `max_len` components
     """
     if path.count('/') >= max_len:
         return '/'.join(path.split(sep='/', maxsplit=max_len)[:max_len] + ['**'])

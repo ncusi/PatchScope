@@ -83,20 +83,31 @@ class ChangeSet(PatchSet):
                  *args, **kwargs):
         """ChangeSet class constructor
 
-        :param patch_source: patch source to be parsed by PatchSet (parent class)
-        :param commit_id: oid of the "after" commit (tree-ish) for the change
-        :param prev: previous state, when ChangeSet is generated with .unidiff(),
-            or `None` it the change corresponds to a commit (assumed first-parent)
-        :param newline: determines how to parse newline characters from the stream,
-            and how the stream was opened (one of None i.e. universal newline,
-            '', '\n', '\r', and '\r\n' - same as `open`)
-        :param args: passed to PatchSet constructor
-        :param kwargs: passed to PatchSet constructor (recommended);
-            PatchSet uses `encoding` (str) and `metadata_only` (bool): :raw-html:`<br />`
-            if `encoding` is `None`, assume we are reading Unicode data,
-            when `metadata_only` is `True`, only perform a minimal metadata parsing
-            (i.e. hunks without content) which is around 2.5-6 times faster;
-            it will still validate the diff metadata consistency and get counts
+        Parameters
+        ----------
+        patch_source
+            patch source to be parsed by PatchSet (parent class)
+        commit_id
+            oid of the "after" commit (tree-ish) for the change
+        prev
+            previous state, when ChangeSet is generated with .unidiff(),
+            or `None` it the change corresponds to a commit (assumed
+            first-parent)
+        newline
+            determines how to parse newline characters from the stream,
+            and how the stream was opened (one of None i.e. universal
+            newline, '', '\\n', '\\r', and '\\r\\n' - same as `open`)
+        *args
+            passed to PatchSet constructor
+        **kwargs
+            passed to PatchSet constructor (recommended); PatchSet uses
+            `encoding` (str) and `metadata_only` (bool)
+
+            if `encoding` is `None`, assume we are reading Unicode
+            data, when `metadata_only` is `True`, only perform a minimal
+            metadata parsing (i.e. hunks without content) which is
+            around 2.5-6 times faster; it will still validate the diff
+            metadata consistency and get counts
         """
         # with universal newline you don't need to do translation, because it is already done
         # with '\n' as newline you don't need to do translation, because it has correct EOLs
@@ -139,15 +150,25 @@ class ChangeSet(PatchSet):
                       errors: Optional[str] = ENCODING_ERRORS, newline: Optional[str] = '\n') -> 'ChangeSet':
         """Return a ChangeSet instance given a diff filename.
 
-        :param filename: path to a diff file with the patch to parse
-        :param encoding: the name of the encoding used to decode or encode
-            the diff file
-        :param errors: specifies how encoding and decoding errors are to be
-            handled (one of None, 'strict', 'ignore', 'replace', 'backslashreplace',
-            or 'surrogateescape' - same as `open`)
-        :param newline: determines how to parse newline characters from the stream
-            (one of None, '', '\n', '\r', and '\r\n' - same as `open`)
-        :return: instance of ChangeSet class
+        Parameters
+        ----------
+        filename
+            path to a diff file with the patch to parse
+        encoding
+            the name of the encoding used to decode or encode the diff
+            file
+        errors
+            specifies how encoding and decoding errors are to be handled
+            (one of None, 'strict', 'ignore', 'replace',
+            'backslashreplace', or 'surrogateescape' - same as `open`)
+        newline
+            determines how to parse newline characters from the stream
+            (one of None, '', '\\n', '\\r', and '\\r\\n' - same as `open`)
+
+        Returns
+        -------
+        ChangeSet
+            instance of ChangeSet class
         """
         # NOTE: unconditional `file_path = Path(filename)` would also work
         if isinstance(filename, Path):
@@ -186,12 +207,19 @@ def _parse_authorship_info(authorship_line: str,
     Requires raw format; it does not parse any other datetime format
     than UNIX timestamp.
 
-    :param str authorship_line: string with authorship info to parse
-    :param str field_name: name of field to store 'name'+'email'
-        (for example "Jakub Narębski <jnareb@mat.umk.pl>"), should be
-        either 'author' or 'committer'.
-    :return: dict with parsed authorship information
-    :rtype: dict[str, str | int]
+    Parameters
+    ----------
+    authorship_line : str
+        string with authorship info to parse
+    field_name : str
+        name of field to store 'name'+'email' (for example "Jakub
+        Narębski <jnareb@mat.umk.pl>"), should be either 'author' or
+        'committer'.
+
+    Returns
+    -------
+    dict[str, str | int]
+        dict with parsed authorship information
     """
     # trick from https://stackoverflow.com/a/279597/
     if not hasattr(_parse_authorship_info, 'regexp'):
@@ -218,13 +246,21 @@ def _parse_commit_text(commit_text: str, with_parents_line: bool = True,
     are selected for parsing output of 'git rev-list --parents --header'
     (that is used by GitRepo.get_commit_metadata()).
 
-    :param str commit_text: text to parse
-    :param bool with_parents_line: whether first line of `commit_text`
-        is '<commit id> [<parent id>...]' line
-    :param bool indented_body: whether commit message text is prefixed
-        (indented) with 4 spaces: '    '
-    :return: commit metadata extracted from parsed `commit_text`
-    :rtype: dict[str, str | list[str] | dict] or None
+    Parameters
+    ----------
+    commit_text : str
+        text to parse
+    with_parents_line : bool
+        whether first line of `commit_text` is '<commit id> [<parent
+        id>...]' line
+    indented_body : bool
+        whether commit message text is prefixed (indented) with 4
+        spaces: '    '
+
+    Returns
+    -------
+    dict[str, str | list[str] | dict] or None
+        commit metadata extracted from parsed `commit_text`
     """
     # based on `parse_commit_text` from gitweb/gitweb.perl in git project
     # NOTE: cannot use .splitlines() here
@@ -307,10 +343,17 @@ def _parse_blame_porcelain(blame_text: str) -> tuple[dict, list]:
     Note that without '--line-porcelain' information about specific commit
     is provided only once.
 
-    :param str blame_text: standard output from running the
-        'git blame --porcelain [--reverse]' command
-    :return: information about commits (dict) and information about lines (list)
-    :rtype: (dict, list)
+    Parameters
+    ----------
+    blame_text : str
+        standard output from running the 'git blame --porcelain
+        [--reverse]' command
+
+    Returns
+    -------
+    (dict, list)
+        information about commits (dict) and information about lines
+        (list)
     """
     # trick from https://stackoverflow.com/a/279597/
     if not hasattr(_parse_blame_porcelain, 'regexp'):
@@ -370,10 +413,15 @@ def _parse_blame_porcelain(blame_text: str) -> tuple[dict, list]:
 def parse_shortlog_count(shortlog_lines: list[Union[str, bytes]]) -> list[AuthorStat]:
     """Parse the result of GitRepo.list_authors_shortlog() method
 
-    :param shortlog_lines: result of list_authors_shortlog()
-    :type shortlog_lines: str or bytes
-    :return: list of parsed statistics, number of commits per author
-    :rtype: list[AuthorStat]
+    Parameters
+    ----------
+    shortlog_lines : str or bytes
+        result of list_authors_shortlog()
+
+    Returns
+    -------
+    list[AuthorStat]
+        list of parsed statistics, number of commits per author
     """
     result = []
     for line in shortlog_lines:
@@ -393,9 +441,15 @@ def decode_c_quoted_str(text: str) -> str:
     This is subset of escape sequences supported by C and C++
     https://learn.microsoft.com/en-us/cpp/c-language/escape-sequences
 
-    :param str text: string which may be c-quoted
-    :return: decoded string
-    :rtype: str
+    Parameters
+    ----------
+    text : str
+        string which may be c-quoted
+
+    Returns
+    -------
+    str
+        decoded string
     """
     # TODO?: Make it a global variable
     escape_dict = {
@@ -465,7 +519,10 @@ class GitRepo:
     def __init__(self, repo_dir: PathLike):
         """Constructor for `GitRepo` class
 
-        :param repo_dir: path to the Git repository
+        Parameters
+        ----------
+        repo_dir
+            path to the Git repository
         """
         # TODO: check that `git_directory` is a path to git repository
         # TODO: remember absolute path (it is safer)
@@ -492,21 +549,33 @@ class GitRepo:
         the method assumes that it is because the repository was already cloned;
         in this case it returns that directory as `GitRepo`.
 
-        :param repository: The (possibly remote) repository to clone from,
-            usually a URL (ssh, git, http, or https) or a local path.
-        :param directory: The name of a new directory to clone into, optional.
-            The "human-ish" part of the source repository is used if `directory`
-            is not provided (if it is `None`).
-        :param working_dir: The directory where to run the
-            `git-clone https://git-scm.com/docs/git-clone` operation;
-            otherwise current working directory is used.  The value
-            of this parameter does not matter if `directory` is provided,
-        :param reference_local_repository: Use `reference_local_repository`
-            to avoid network transfer, and to reduce local storage costs
-        :param dissociate: whether to dissociate with `reference_local_repository`,
+        Parameters
+        ----------
+        repository
+            The (possibly remote) repository to clone from, usually a
+            URL (ssh, git, http, or https) or a local path.
+        directory
+            The name of a new directory to clone into, optional. The
+            "human-ish" part of the source repository is used if
+            `directory` is not provided (if it is `None`).
+        working_dir
+            The directory where to run the `git-clone https://git-
+            scm.com/docs/git-clone` operation; otherwise current working
+            directory is used.  The value of this parameter does not
+            matter if `directory` is provided,
+        reference_local_repository
+            Use `reference_local_repository` to avoid network transfer,
+            and to reduce local storage costs
+        dissociate
+            whether to dissociate with `reference_local_repository`,
             used only if `reference_local_repository` is not None
-        :param make_path_absolute: Ensure that returned `GitRepo` uses absolute path
-        :return: Cloned repository as `GitRepo` if operation was successful,
+        make_path_absolute
+            Ensure that returned `GitRepo` uses absolute path
+
+        Returns
+        -------
+        Optional[GitRepo]
+            Cloned repository as `GitRepo` if operation was successful,
             otherwise `None`.
         """
         # TODO: make it @classmethod (to be able to use in constructor)
@@ -583,12 +652,20 @@ class GitRepo:
                      revision_range: Union[str, Iterable[str]] = ('-1', 'HEAD')) -> str:
         """Generate patches out of specified revisions, saving them as individual files
 
-        :param output_dir: output directory for patches; if not set (the default),
-            save patches in the current working directory
-        :param revision_range: arguments to pass to `git format-patch`, see
-            https://git-scm.com/docs/git-format-patch; by default generates single patch
-            from the HEAD
-        :return: output from the `git format-patch` process
+        Parameters
+        ----------
+        output_dir
+            output directory for patches; if not set (the default), save
+            patches in the current working directory
+        revision_range
+            arguments to pass to `git format-patch`,
+            see https://git-scm.com/docs/git-format-patch;
+            by default generates single patch from the HEAD
+
+        Returns
+        -------
+        str
+            output from the `git format-patch` process
         """
         # NOTE: it should be ':param \*args' or ':param \\*args', but for the bug in PyCharm
         cmd = [
@@ -618,11 +695,16 @@ class GitRepo:
     def list_files(self, commit: str = 'HEAD') -> list[str]:
         """Retrieve list of files at given revision in a repository
 
-        :param str commit:
+        Parameters
+        ----------
+        commit : str
             The commit for which to list all files.  Defaults to 'HEAD',
             that is the current commit
-        :return: List of full path names of all files in the repository.
-        :rtype: list[str]
+
+        Returns
+        -------
+        list[str]
+            List of full path names of all files in the repository.
         """
         args = [
             'git', '-C', str(self.repo), 'ls-tree',
@@ -646,19 +728,22 @@ class GitRepo:
         NOTE: not tested for merge commits, especially "evil merges"
         with respect to file names.
 
-        :param str commit:
+        Parameters
+        ----------
+        commit : str
             The commit for which to list changes.  Defaults to 'HEAD',
             that is the current commit.  The changes are relative to
             commit^, that is the previous commit (first parent of the
             given commit).
-
-        :param DiffSide side:
+        side : DiffSide
             Whether to use names of files in post-image (after changes)
             with side=DiffSide.POST, or pre-image names (before changes)
             with side=DiffSide.PRE.  Renames are detected by Git.
 
-        :return: full path names of files changed in `commit`.
-        :rtype: list[str]
+        Returns
+        -------
+        list[str]
+            full path names of files changed in `commit`.
         """
         if side == DiffSide.PRE:
             changes_status = self.diff_file_status(commit)
@@ -701,17 +786,23 @@ class GitRepo:
                 ('to_be_renamed', 'renamed'): 'R'
             }
 
-        :param commit: The commit for which to list changes for.
-            Defaults to 'HEAD', that is the current commit.
-        :type: str
-        :param prev: The commit for which to list changes from.
-            If not set, then changes are relative to the parent of
-            the `commit` parameter, which means 'commit^'.
-        :type: str or None
-        :return: Information about the status of each change.
-            Returns a mapping (a dictionary), where the key is the pair (tuple)
-            of pre-image and post-image pathname, and the value is a
-            single letter denoting the status / type of the change.
+        Parameters
+        ----------
+        commit
+            The commit for which to list changes for. Defaults to
+            'HEAD', that is the current commit.
+        prev
+            The commit for which to list changes from. If not set, then
+            changes are relative to the parent of the `commit`
+            parameter, which means 'commit^'.
+
+        Returns
+        -------
+        dict[tuple[str,str],str]
+            Information about the status of each change. Returns a
+            mapping (a dictionary), where the key is the pair (tuple) of
+            pre-image and post-image pathname, and the value is a single
+            letter denoting the status / type of the change.
 
             For new (added) files the pre-image path is `None`, and for deleted
             files the post-image path is `None`.
@@ -724,7 +815,6 @@ class GitRepo:
              - 'R': renaming of a file,
              - 'T': change in the type of the file (untested).
 
-        :rtype: dict[tuple[str,str],str]
         """
         if prev is None:
             # NOTE: this means first-parent changes for merge commits
@@ -781,19 +871,27 @@ class GitRepo:
 
         Used by :func:`GitRepo.changes_survival`.
 
-        :param str commit: later (second) of two commits to compare,
-            defaults to 'HEAD', that is the current commit
-        :param str or None prev: earlier (first) of two commits to compare,
+        Parameters
+        ----------
+        commit : str
+            later (second) of two commits to compare, defaults to
+            'HEAD', that is the current commit
+        prev : str, optional
+            earlier (first) of two commits to compare,
             defaults to None, which means comparing to parent of `commit`
-        :param DiffSide side: Whether to use names of files in post-image (after changes)
+        side : DiffSide
+            Whether to use names of files in post-image (after changes)
             with side=DiffSide.POST, or pre-image names (before changes)
             with side=DiffSide.PRE.  Renames are detected by Git.
             Defaults to DiffSide.POST, which is currently the only value
             supported.
-        :return: two dicts, with changed files names as keys,
-            first with information about change lines extents,
-            second with parsed change lines (only for added lines)
-        :rtype: (dict[str, list[tuple[int, int]]], dict[str, list[PatchLine]])
+
+        Returns
+        -------
+        (dict[str, list[tuple[int, int]]], dict[str, list[PatchLine]])
+            two dicts, with changed files names as keys, first with
+            information about change lines extents, second with parsed
+            change lines (only for added lines)
         """
         # TODO: implement also for DiffSide.PRE
         if side != DiffSide.POST:
@@ -855,15 +953,22 @@ class GitRepo:
         unidiff.PatchSet to make it easier to extract information from
         the diff.  Otherwise, return diff as plain text.
 
-        :param str commit: later (second) of two commits to compare,
-            defaults to 'HEAD', that is the current commit
-        :param prev: earlier (first) of two commits to compare,
-            defaults to None, which means comparing to parent of `commit`
-        :type prev: str or None
-        :param bool wrap: whether to wrap the result in PatchSet
-        :return: the changes between two arbitrary commits,
-            `prev` and `commit`
-        :rtype: str or bytes or ChangeSet
+        Parameters
+        ----------
+        commit : str
+            later (second) of two commits to compare, defaults to
+            'HEAD', that is the current commit
+        prev : str or None
+            earlier (first) of two commits to compare, defaults to None,
+            which means comparing to parent of `commit`
+        wrap : bool
+            whether to wrap the result in PatchSet
+
+        Returns
+        -------
+        str | bytes | ChangeSet
+            the changes between two arbitrary commits, `prev` and
+            `commit`
         """
         if prev is None:
             try:
@@ -918,11 +1023,19 @@ class GitRepo:
         If false, generate series of raw commit + unified diff of commit
         changes (as `str`).  This is similar to how `unidiff()` method works.
 
-        :param revision_range: arguments to pass to `git log --patch`, see
-            https://git-scm.com/docs/git-log; by default generates single patch
-            from the HEAD
-        :param wrap: whether to wrap the result in PatchSet
-        :return: the changes for given `revision_range`
+        Parameters
+        ----------
+        revision_range
+            arguments to pass to `git log --patch`, see https://git-
+            scm.com/docs/git-log; by default generates single patch from
+            the HEAD
+        wrap
+            whether to wrap the result in PatchSet
+
+        Yields
+        ------
+        ChangeSet | str
+            the changes for given `revision_range`
         """
         def commit_with_patch(_commit_id: str, _commit_data: StringIO) -> ChangeSet:
             """Helper to create ChangeSet with from _commit_data stream"""
@@ -1012,12 +1125,19 @@ class GitRepo:
     def file_contents(self, commit: str, path: str, encoding: Optional[str] = None) -> str:
         """Retrieve contents of given file at given revision / tree
 
-        :param str commit: The commit for which to return file contents.
-        :param str path: Path to a file, relative to the top-level of the repository
-        :param encoding: Encoding of the file (optional)
-        :type: str or None
-        :return: Contents of the file with given path at given revision
-        :rtype: str
+        Parameters
+        ----------
+        commit : str
+            The commit for which to return file contents.
+        path : str
+            Path to a file, relative to the top-level of the repository
+        encoding : str or None
+            Encoding of the file (optional)
+
+        Returns
+        -------
+        str
+            Contents of the file with given path at given revision
         """
         if encoding is None:
             encoding = GitRepo.default_file_encoding
@@ -1035,14 +1155,22 @@ class GitRepo:
         """Open given file at given revision / tree as binary file
 
         Works as a context manager, like `pathlib.Path.open()`:
+
             >>> with GitRepo('/path/to/repo').open_file('v1', 'example_file') as fpb:
             ...     contents = fpb.read().decode('utf8')
             ...
 
-        :param str commit: The commit for which to return file contents.
-        :param str path: Path to a file, relative to the top-level of the repository
-        :return: file object, opened in binary mode
-        :rtype: io.BufferedReader
+        Parameters
+        ----------
+        commit : str
+            The commit for which to return file contents.
+        path : str
+            Path to a file, relative to the top-level of the repository
+
+        Returns
+        -------
+        io.BufferedReader
+            file object, opened in binary mode
         """
         process = self._file_contents_process(commit, path)
         try:
@@ -1055,8 +1183,10 @@ class GitRepo:
     def list_tags(self) -> list[str]:
         """Retrieve list of all tags in the repository
 
-        :return: List of all tags in the repository.
-        :rtype: list[str]
+        Returns
+        -------
+        list[str]
+            List of all tags in the repository.
         """
         cmd = ['git', '-C', self.repo, 'tag', '--list']
         process = subprocess.Popen(cmd, stdout=subprocess.PIPE)
@@ -1076,13 +1206,20 @@ class GitRepo:
         would require deciding on tagger identity (at least for some
         backends).
 
-        :param str tag_name: Name of tag to be created.
-            Should follow `git check-ref-format` rules for name;
-            see https://git-scm.com/docs/git-check-ref-format ;
-            for example they cannot contain space ' ', tilde '~', caret '^',
-            or colon ':'.  Those rules are NOT checked.
-        :param str commit: Revision to be tagged.  Defaults to 'HEAD'.
-        :rtype: None
+        Parameters
+        ----------
+        tag_name : str
+            Name of tag to be created. Should follow `git check-ref-
+            format` rules for name; see https://git-scm.com/docs/git-
+            check-ref-format ; for example they cannot contain space '
+            ', tilde '~', caret '^', or colon ':'.  Those rules are NOT
+            checked.
+        commit : str
+            Revision to be tagged.  Defaults to 'HEAD'.
+
+        Returns
+        -------
+        None
         """
         cmd = [
             'git', '-C', self.repo, 'tag', tag_name, commit,
@@ -1093,10 +1230,17 @@ class GitRepo:
     def get_commit_metadata(self, commit: str = 'HEAD') -> dict[str, Union[str, dict, list]]:
         """Retrieve metadata about given commit
 
-        :param str commit: The commit to examine.
-            Defaults to 'HEAD', that is the current (most recent) commit.
-        :return: Information about selected parts of commit metadata,
-            the following format:
+        Parameters
+        ----------
+        commit : str
+            The commit to examine. Defaults to 'HEAD', that is the
+            current (most recent) commit.
+
+        Returns
+        -------
+        dict
+            Information about selected parts of commit metadata, the
+            following format:
 
             {
                 'id': 'f8ffd4067d1f1b902ae06c52db4867f57a424f38',
@@ -1121,7 +1265,6 @@ class GitRepo:
 
             TODO: use dataclass for result (for computed fields)
 
-        :rtype: dict
         """
         # NOTE: using low level git 'plumbing' command means 'utf8' encoding is not assured
         # same as in `parse_commit` in gitweb/gitweb.perl in https://github.com/git/git
@@ -1141,18 +1284,23 @@ class GitRepo:
     def find_commit_by_timestamp(self, timestamp: Union[str, int], start_commit: str = 'HEAD') -> str:
         """Find first commit in repository older than given date
 
-        :param timestamp: Date in UNIX epoch format, also known as timestamp format.
+        Parameters
+        ----------
+        timestamp: int or str
+            Date in UNIX epoch format, also known as timestamp format.
             Returned commit would be older than this date.
-        :type: int or str
-        :param str start_commit: The commit from which to start walking through commits,
+        start_commit : str
+            The commit from which to start walking through commits,
             trying to find the one we want.  Defaults to 'HEAD'
-        :return: Full SHA-1 identifier of found commit.
+
+        Returns
+        -------
+        str
+            Full SHA-1 identifier of found commit.
 
             WARNING: there is currently no support for error handling,
             among others for not finding any commit that fulfills
             the condition.  At least it is not tested.
-
-        :rtype: str
         """
         cmd = [
             'git', '-C', self.repo, 'rev-list',
@@ -1174,10 +1322,16 @@ class GitRepo:
 
         Returns None if object `obj` is not present in the repository
 
-        :param str obj: object reference, for example "HEAD" or "main^",
-            see e.g. https://git-scm.com/docs/gitrevisions
-        :return: SHA-1 identifier of object, or None if object is not found
-        :rtype: str or None
+        Parameters
+        ----------
+        obj : str
+            object reference, for example "HEAD" or "main^", see e.g.
+            https://git-scm.com/docs/gitrevisions
+
+        Returns
+        -------
+        str or None
+            SHA-1 identifier of object, or None if object is not found
         """
         cmd = [
             'git', '-C', self.repo,
@@ -1195,10 +1349,16 @@ class GitRepo:
     def is_valid_commit(self, commit: str) -> bool:
         """Check if `commit` is present in the repository as a commit
 
-        :param str commit: reference to a commit, for example "HEAD" or "main",
-            or "fc6db4e600d633d6fc206217e70641bbb78cbc53^"
-        :return: whether `commit` is a valid commit in repo
-        :rtype: bool
+        Parameters
+        ----------
+        commit : str
+            reference to a commit, for example "HEAD" or "main", or
+            "fc6db4e600d633d6fc206217e70641bbb78cbc53^"
+
+        Returns
+        -------
+        bool
+            whether `commit` is a valid commit in repo
         """
         return self.to_oid(str(commit) + '^{commit}') is not None
 
@@ -1211,8 +1371,10 @@ class GitRepo:
         Will return None if there is no current branch, that is if
         repo is in the 'detached HEAD' state.
 
-        :return: name of the current branch
-        :rtype: str or None
+        Returns
+        -------
+        str or None
+            name of the current branch
         """
         cmd = [
             'git', '-C', self.repo,
@@ -1237,9 +1399,15 @@ class GitRepo:
         If `ref` is not symbolic reference (e.g. ref='HEAD' and detached
         HEAD state) it returns None.
 
-        :param str ref: name of the symbolic reference, e.g. "HEAD"
-        :return: resolved `ref`
-        :rtype: str or None
+        Parameters
+        ----------
+        ref : str
+            name of the symbolic reference, e.g. "HEAD"
+
+        Returns
+        -------
+        str or None
+            resolved `ref`
         """
         cmd = [
             'git', '-C', self.repo,
@@ -1287,15 +1455,22 @@ class GitRepo:
 
         Note that symbolic refs, such as 'HEAD', are expanded.
 
-        :param str commit: The commit to check if it is merged
-        :param ref_pattern: <pattern>…, that is a pattern or list of patterns;
-            check each ref that match against at least one patterns, either using
-            fnmatch(3) or literally, in the latter case matching completely,
-            or from the beginning up to a slash.  Defaults to 'HEAD'.
-        :type ref_pattern: str or list[str]
-        :return: list of refs matching `ref_pattern` that `commit` is merged into
-            (that contain given `commit`)
-        :rtype: list[str]
+        Parameters
+        ----------
+        commit : str
+            The commit to check if it is merged
+        ref_pattern : str or list[str]
+            <pattern>…, that is a pattern or list of patterns; check
+            each ref that match against at least one patterns, either
+            using fnmatch(3) or literally, in the latter case matching
+            completely, or from the beginning up to a slash.  Defaults
+            to 'HEAD'.
+
+        Returns
+        -------
+        list[str]
+            list of refs matching `ref_pattern` that `commit` is merged
+            into (that contain given `commit`)
         """
         ref_pattern = self._to_refs_list(ref_pattern)
 
@@ -1324,15 +1499,21 @@ class GitRepo:
         If `first_parent` is set to True, makes Git follow only the first
         parent commit upon seeing a merge commit.
 
-        :param start_from: where to start from to follow 'parent' links
-        :type start_from: str or StartLogFrom
-        :param until_commit: where to stop following 'parent' links;
-            also ensures that we follow ancestry path to it, optional
-        :type until_commit: str or None
-        :param bool first_parent: follow only the first parent commit
-            upon seeing a merge commit
-        :return: number of commits
-        :rtype: int
+        Parameters
+        ----------
+        start_from : str or StartLogFrom
+            where to start from to follow 'parent' links
+        until_commit : str or None
+            where to stop following 'parent' links; also ensures that we
+            follow ancestry path to it, optional
+        first_parent : bool
+            follow only the first parent commit upon seeing a merge
+            commit
+
+        Returns
+        -------
+        int
+            number of commits
         """
         if hasattr(start_from, 'value'):
             start_from = start_from.value
@@ -1358,11 +1539,16 @@ class GitRepo:
         together with their commit counts.  Uses `git shortlog --summary`
         internally.
 
-        :param start_from: where to start from to follow 'parent' links
-        :type start_from: str or StartLogFrom
-        :return: list of authors together with their commit count,
-            in the 'SPACE* <count> TAB <author>' format
-        :rtype: list[str|bytes]
+        Parameters
+        ----------
+        start_from : str or StartLogFrom
+            where to start from to follow 'parent' links
+
+        Returns
+        -------
+        list[str|bytes]
+            list of authors together with their commit count, in the
+            'SPACE* <count> TAB <author>' format
         """
         if hasattr(start_from, 'value'):
             start_from = start_from.value
@@ -1386,10 +1572,15 @@ class GitRepo:
     def find_roots(self, start_from: str = StartLogFrom.CURRENT) -> list[str]:
         """Find root commits (commits without parents), starting from `start_from`
 
-        :param start_from: where to start from to follow 'parent' links
-        :type start_from: str or StartLogFrom
-        :return: list of root commits, as SHA-1
-        :rtype: list[str]
+        Parameters
+        ----------
+        start_from : str or StartLogFrom
+            where to start from to follow 'parent' links
+
+        Returns
+        -------
+        list[str]
+            list of root commits, as SHA-1
         """
         if hasattr(start_from, 'value'):
             start_from = start_from.value
@@ -1414,14 +1605,20 @@ class GitRepo:
         If there is no Git configuration variable named `name`,
         then it returns None.
 
-        :param str name: name of configuration option, for example
+        Parameters
+        ----------
+        name : str
+            name of configuration option, for example
             'remote.origin.url' or 'user.name'
-        :param value_type: name of git type to canonicalize outgoing value,
-            see https://git-scm.com/docs/git-config#Documentation/git-config.txt---typelttypegt
-            optional
-        :type value_type: Literal['bool', 'int', 'bool-or-int', 'path', 'expiry-date', 'color'] or None
-        :return: value of requested git configuration variable
-        :rtype: str or None
+        value_type : Literal['bool', 'int', 'bool-or-int', 'path', 'expiry-date', 'color'] or None
+            name of git type to canonicalize outgoing value, see
+            https://git-scm.com/docs/git-config#Documentation/git-
+            config.txt---typelttypegt optional
+
+        Returns
+        -------
+        str or None
+            value of requested git configuration variable
         """
         cmd = [
             'git', '-C', self.repo,

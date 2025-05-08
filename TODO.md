@@ -29,7 +29,7 @@
     - [x] add `docs/` directory (for man pages, and maybe API documentation)
       - [x] use [MkDocs][] or [Material for MkDocs][mkdocs-material] for general documentation
       - [x] generate API documentation using [mkdocstrings][]
-          - [ ] switch from Sphinx/reST format to better supported Numpydoc format
+          - [x] switch from Sphinx/reST format to a better supported Numpydoc format
                 with [docconvert](https://github.com/cbillingham/docconvert)
                 or [pyment](https://github.com/dadadel/pyment)
       - [x] generate documentation for scripts using [mkdocs-typer2][]

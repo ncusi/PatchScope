@@ -139,7 +139,8 @@ def _is_not_changes(key: str, value: dict,
 class PurposeCounterResults:
     """Example class to count purposes of each hunk
 
-    Override this datastructure to gather results"""
+    Override this datastructure to gather results
+    """
 
     def __init__(self, processed_files: list,
                  hunk_purposes: Counter[str], added_line_purposes: Counter[str], removed_line_purposes: Counter[str]):
@@ -173,23 +174,33 @@ class PurposeCounterResults:
 
     @staticmethod
     def default() -> 'PurposeCounterResults':
-        """
-        Constructs empty datastructure to work as 0 for addition via "+"
+        """Constructs empty datastructure to work as 0 for addition via "+"
 
-        :return: empty datastructure
+        Returns
+        -------
+        PurposeCounterResults
+            empty datastructure
         """
         return PurposeCounterResults([], Counter(), Counter(), Counter())
 
     @staticmethod
     def create(file_path: str, data: dict,
                data_format: JSONFormat = JSONFormat.V1_5) -> 'PurposeCounterResults':
-        """
-        Override this function for single annotation handling
+        """Override this function for single annotation handling
 
-        :param file_path: path to processed file
-        :param data: dictionary with annotations (file content)
-        :param data_format: version of data schema used by annotation file
-        :return: datastructure instance
+        Parameters
+        ----------
+        file_path
+            path to processed file
+        data
+            dictionary with annotations (file content)
+        data_format
+            version of data schema used by annotation file
+
+        Returns
+        -------
+        PurposeCounterResults
+            datastructure instance
         """
         file_purposes = Counter()
         added_line_purposes = Counter()
@@ -222,7 +233,8 @@ class PurposeCounterResults:
 class ListAddedLinesResults:
     """Example class to gather added lines from each hunk
 
-    Override this datastructure to gather results"""
+    Override this datastructure to gather results
+    """
 
     def __init__(self, processed_files, added_lines):
         self._processed_files = processed_files
@@ -240,21 +252,30 @@ class ListAddedLinesResults:
 
     @staticmethod
     def default():
-        """
-        Constructs empty datastructure to work as 0 for addition via "+"
+        """Constructs empty datastructure to work as 0 for addition via "+"
 
-        :return: empty datastructure
+        Returns
+        -------
+        ListAddedLinesResults
+            empty datastructure
         """
         return ListAddedLinesResults([], [])
 
     @staticmethod
     def create(file_path, data):
-        """
-        Override this function for single annotation handling
+        """Override this function for single annotation handling
 
-        :param file_path: path to processed file
-        :param data: dictionary with annotations (file content)
-        :return: datastructure instance
+        Parameters
+        ----------
+        file_path
+            path to processed file
+        data
+            dictionary with annotations (file content)
+
+        Returns
+        -------
+        ListAddedLinesResults
+            datastructure instance
         """
         added_lines = []
         for hunk in data:
@@ -271,17 +292,26 @@ class AnnotatedFile:
     def __init__(self, file_path: PathLike):
         """Constructor of the annotated file of specific bug
 
-        :param file_path: path to the single file
+        Parameters
+        ----------
+        file_path
+            path to the single file
         """
         self._path = Path(file_path)
 
     def gather_data(self, bug_mapper: Callable[..., T],
                     **mapper_kwargs) -> T:
-        """
-        Retrieves data from file
+        """Retrieves data from file
 
-        :param bug_mapper: function to map bug to datastructure
-        :return: resulting datastructure
+        Parameters
+        ----------
+        bug_mapper
+            function to map bug to datastructure
+
+        Returns
+        -------
+        T
+            resulting datastructure
         """
         file_format = guess_format_version(self._path, warn_ambiguous=True)
         if file_format is None:
@@ -299,7 +329,10 @@ class AnnotatedBug:
     def __init__(self, bug_dir: PathLike, annotations_dir: str = Bug.DEFAULT_ANNOTATIONS_DIR):
         """Constructor of the annotated bug
 
-        :param bug_dir: path to the single bug
+        Parameters
+        ----------
+        bug_dir
+            path to the single bug
         """
         self._path = Path(bug_dir)
         self._annotations_path = self._path / annotations_dir
@@ -312,12 +345,20 @@ class AnnotatedBug:
     def gather_data(self, bug_mapper: Callable[..., T],
                     datastructure_generator: Callable[[], T],
                     **mapper_kwargs) -> T:
-        """
-        Gathers dataset data via processing each file in current bug using AnnotatedFile class and provided functions
+        """Gathers dataset data via processing each file in current bug using AnnotatedFile class and provided functions
 
-        :param bug_mapper: function to map bug to datastructure
-        :param datastructure_generator: function to create empty datastructure to combine results via "+"
-        :return: combined datastructure with all files data
+        Parameters
+        ----------
+        bug_mapper
+            function to map bug to datastructure
+        datastructure_generator
+            function to create empty datastructure to combine results
+            via "+"
+
+        Returns
+        -------
+        T
+            combined datastructure with all files data
         """
         combined_results = datastructure_generator()
         for annotation in self.annotations:
@@ -331,11 +372,17 @@ class AnnotatedBug:
 
     def gather_data_dict(self, bug_dict_mapper: Callable[..., dict],
                          **mapper_kwargs) -> dict:
-        """
-        Gathers dataset data via processing each file in current bug using AnnotatedFile class and provided functions
+        """Gathers dataset data via processing each file in current bug using AnnotatedFile class and provided functions
 
-        :param bug_dict_mapper: function to map diff to dictionary
-        :return: combined dictionary of all diffs
+        Parameters
+        ----------
+        bug_dict_mapper
+            function to map diff to dictionary
+
+        Returns
+        -------
+        dict
+            combined dictionary of all diffs
         """
         combined_results = {}
         for annotation in self.annotations:
@@ -354,7 +401,10 @@ class AnnotatedBugDataset:
     def __init__(self, dataset_dir: PathLike):
         """Constructor of the annotated bug dataset.
 
-        :param dataset_dir: path to the dataset
+        Parameters
+        ----------
+        dataset_dir
+            path to the dataset
         """
         self._path = Path(dataset_dir)
         self.bugs: list[str] = []
@@ -369,14 +419,23 @@ class AnnotatedBugDataset:
                     datastructure_generator: Callable[[], T],
                     annotations_dir: str = Bug.DEFAULT_ANNOTATIONS_DIR,
                     **mapper_kwargs) -> T:
-        """
-        Gathers dataset data via processing each bug using AnnotatedBug class and provided functions
+        """Gathers dataset data via processing each bug using AnnotatedBug class and provided functions
 
-        :param bug_mapper: function to map bug to datastructure
-        :param datastructure_generator: function to create empty datastructure to combine results via "+"
-        :param annotations_dir: subdirectory where annotations are; path
-            to annotation in a dataset is <bug_id>/<annotations_dir>/<patch_data>.json
-        :return: combined datastructure with all bug data
+        Parameters
+        ----------
+        bug_mapper
+            function to map bug to datastructure
+        datastructure_generator
+            function to create empty datastructure to combine results
+            via "+"
+        annotations_dir
+            subdirectory where annotations are; path to annotation in a
+            dataset is <bug_id>/<annotations_dir>/<patch_data>.json
+
+        Returns
+        -------
+        T
+            combined datastructure with all bug data
         """
         combined_results = datastructure_generator()
 
@@ -394,13 +453,20 @@ class AnnotatedBugDataset:
     def gather_data_dict(self, bug_dict_mapper: Callable[..., dict],
                          annotations_dir: str = Bug.DEFAULT_ANNOTATIONS_DIR,
                          **mapper_kwargs) -> dict:
-        """
-        Gathers dataset data via processing each bug using AnnotatedBug class and provided function
+        """Gathers dataset data via processing each bug using AnnotatedBug class and provided function
 
-        :param bug_dict_mapper: function to map diff to dictionary
-        :param annotations_dir: subdirectory where annotations are; path
-            to annotation in a dataset is <bug_id>/<annotations_dir>/<patch_data>.json
-        :return: combined dictionary of all bugs
+        Parameters
+        ----------
+        bug_dict_mapper
+            function to map diff to dictionary
+        annotations_dir
+            subdirectory where annotations are; path to annotation in a
+            dataset is <bug_id>/<annotations_dir>/<patch_data>.json
+
+        Returns
+        -------
+        dict
+            combined dictionary of all bugs
         """
         combined_results = {}
         for bug_id in tqdm.tqdm(self.bugs):
@@ -414,13 +480,20 @@ class AnnotatedBugDataset:
     def gather_data_list(self, bug_to_dict_mapper: Callable[..., dict],
                          annotations_dir: str = Bug.DEFAULT_ANNOTATIONS_DIR,
                          **mapper_kwargs) -> list:
-        """
-        Gathers dataset data via processing each bug using AnnotatedBug class and provided function
+        """Gathers dataset data via processing each bug using AnnotatedBug class and provided function
 
-        :param bug_to_dict_mapper: function to map diff annotations to dictionary
-        :param annotations_dir: subdirectory where annotations are; path
-            to annotation in a dataset is <bug_id>/<annotations_dir>/<patch_data>.json
-        :return: list of bug dictionaries
+        Parameters
+        ----------
+        bug_to_dict_mapper
+            function to map diff annotations to dictionary
+        annotations_dir
+            subdirectory where annotations are; path to annotation in a
+            dataset is <bug_id>/<annotations_dir>/<patch_data>.json
+
+        Returns
+        -------
+        list
+            list of bug dictionaries
         """
         combined_results = []
         for bug_id in tqdm.tqdm(self.bugs, desc="patchset", position=2, leave=False):
@@ -452,10 +525,19 @@ def map_diff_to_purpose_dict(_diff_file_path: str, data: dict,
             'tests/keras/engine/test_training.py': ['test'],
         }
 
-    :param _diff_file_path: file path containing diff, ignored
-    :param data: dictionary loaded from file
-    :param data_format: version of data schema used by annotation file
-    :return: dictionary with file purposes
+    Parameters
+    ----------
+    _diff_file_path
+        file path containing diff, ignored
+    data
+        dictionary loaded from file
+    data_format
+        version of data schema used by annotation file
+
+    Returns
+    -------
+    dict
+        dictionary with file purposes
     """
     result = {}
     maybe_changes = _extract_maybe_changes(data, data_format=data_format)
@@ -486,10 +568,15 @@ def map_diff_to_lines_stats(annotation_file_basename: str,
     It gathers information about file, and counts information about
     changed lines (in pre-image i.e. "-", in post-image i.e. "+",...).
 
-    :param annotation_file_basename: name of JSON file with annotation data
-    :param annotation_data: parsed annotations data, retrieved from
+    Parameters
+    ----------
+    annotation_file_basename
+        name of JSON file with annotation data
+    annotation_data
+        parsed annotations data, retrieved from
         `annotation_file_basename` file.
-    :param data_format: version of data schema used by annotation file
+    data_format
+        version of data schema used by annotation file
     """
     # Example fragment of annotation file:
     #
@@ -584,12 +671,19 @@ def map_diff_to_timeline(annotation_file_basename: str,
     It gathers information about file, and counts information about
     changed lines (in pre-image i.e. "-", in post-image i.e. "+",...).
 
-    :param annotation_file_basename: name of JSON file with annotation data
-    :param annotation_data: parsed annotations data, retrieved from
+    Parameters
+    ----------
+    annotation_file_basename
+        name of JSON file with annotation data
+    annotation_data
+        parsed annotations data, retrieved from
         `annotation_file_basename` file.
-    :param data_format: version of data schema used by annotation file
-    :param purpose_to_annotation: list of pairs (<file purpose>, <line type annotation>)
-        to treat each line of file with given purpose to have given type annotation.
+    data_format
+        version of data schema used by annotation file
+    purpose_to_annotation
+        list of pairs (<file purpose>, <line type annotation>) to treat
+        each line of file with given purpose to have given type
+        annotation.
     """
     # Example fragment of annotation file:
     #
@@ -773,8 +867,12 @@ def save_result(result: Any, result_json: Path) -> None:
     - prints progress information to stdout
     - creates parent directory if it does not exist
 
-    :param result: data to serialize and save
-    :param result_json: path to JSON file to save `result` to
+    Parameters
+    ----------
+    result
+        data to serialize and save
+    result_json
+        path to JSON file to save `result` to
     """
     print(f"Saving results to '{result_json}' JSON file")
 
@@ -804,10 +902,17 @@ def parse_colon_separated_pair(value: str) -> tuple[str, str]:
     >>> dict([parse_colon_separated_pair('key:value')])
     {'key': 'value'}
 
-    :param value: string with colon-separated values, 'KEY:VALUE',
-        or stringwithout colon, 'STR'
-    :return: 2-element tuple with KEY and VALUE: ('KEY', 'VALUE'),
-        or 2-element tuple ('STR', 'STR') if `str` does not include ':'
+    Parameters
+    ----------
+    value
+        string with colon-separated values, 'KEY:VALUE', or
+        stringwithout colon, 'STR'
+
+    Returns
+    -------
+    (str, str)
+        2-element tuple with KEY and VALUE: ('KEY', 'VALUE'), or
+        2-element tuple ('STR', 'STR') if `str` does not include ':'
     """
     result = tuple(value.split(sep=':', maxsplit=2))  # type is Union[tuple[str], tuple[str, str]]
     if len(result) == 1:  # len it is always > 0
