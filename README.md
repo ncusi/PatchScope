@@ -27,7 +27,7 @@ Check out our [video demonstration](https://youtu.be/8fj8Mgv-72s) on YouTube.
 
 ## Disambiguation
 
-There are a few projects research projects with a similar name:
+There are a few research projects with a similar name:
 
 - Asma Ghandeharioun, Avi Caciularu, Adam Pearce, Lucas Dixon, Mor Geva:
   _"Patchscopes: A Unifying Framework for Inspecting Hidden Representations of Language Models"_ (2024)
@@ -82,9 +82,9 @@ See also the ["Development"](#development) section below.
 
 This tool integrates four key components
 
-1. extracting patches from version control system or user-provided folders<br>
+1. extracting patches from a version control system or user-provided folders<br>
    either as separate step with `diff-generate`,
-   or integrated into annotation step (`diff-annotate`)
+   or integrated into the annotation step (`diff-annotate`)
 2. applying specified annotation rules for selected patches<br>
    using `diff-annotate`, which generates one JSON data file per patch
 3. generating configurable reports or summaries<br>
@@ -97,11 +97,11 @@ analyze individual patch files,
 enhance patch-based datasets,
 and monitor contributions to repositories.
 The process for those use cases differs in details;
-here is quick start tutorial for the case of repository contribution analysis.
+here is a quick start tutorial for the case of repository contribution analysis.
 
 ### Quick start: analyzing repository
 
-First step is to clone the repository you want to analyze,
+The first step is to clone the repository you want to analyze,
 if not already present.  Let's assume that you want to
 get insights about [tqdm][] project development.
 ```commandline
@@ -114,7 +114,7 @@ The clone might be bare.
 Second step is to generate annotations with `diff-annotate from-repo`.
 This might take a while for a larger repository, like the Linux kernel.
 You can use [Git revision selection](https://git-scm.com/docs/gitrevisions)
-arguments to select changes to annotate; for example you can use
+arguments to select changes to annotate; for example, you can use
 `--max-parents=1` to drop merges,
 and `--after=2020.01.01` to limit date range.
 ```commandline
@@ -125,7 +125,7 @@ diff-annotate from-repo \
 
 Third step is to generate summary of annotations with `diff-gather-stats`,
 gathering statistics into a single JSON file.
-For repository visualization you will need at least the timeline.
+For repository visualization, you will need at least the timeline.
 ```commandline
 diff-gather-stats --annotations-dir='' \
    timeline \
@@ -140,7 +140,7 @@ diff-gather-stats --annotations-dir='' \
 ```
 
 If you want to see Sankey flow diagram in the visualization,
-you need also to generate summary of changed lines statistics.
+you need also to generate a summary of changed lines statistics.
 ```commandline
 diff-gather-stats --annotations-dir='' \
    lines-stats \
@@ -163,7 +163,7 @@ _"[Annotation process](docs/annotation_process.md)"_ documentation.
 
 ### Running web app (dashboard)
 
-This package also includes web dashboard, created using the [Panel][]
+This package also includes a web dashboard, created using the [Panel][]
 framework.  You would need to install additional dependencies, denoted `[web]`,
 as described above.
 
@@ -176,10 +176,10 @@ diffinsights-web stats/
 ```
 Then open `http://localhost:7860/?repo=tqdm` in a web browser.
 
-Currently, this web dashboard consist of two pages (two web apps),
-namely Contributors Graph and Author Statistics.
+Currently, this web dashboard consists of two pages (two web apps),
+namely the Contributors Graph and the Author Statistics.
 
-You can find description of those two pages/apps, with screenshots,
+You can find the description of those two pages/apps, with screenshots,
 in [PatchScope documentation](https://ncusi.github.io/PatchScope/contributors_graph/):
 - [`docs/author_statistics.md`](docs/author_statistics.md)
 - [`docs/contributors_graph.md`](docs/contributors_graph.md)
@@ -193,7 +193,7 @@ directory.
 You can download data for more repos from <https://dagshub.com/ncusi/PatchScope>
 with [DVC][], see the ["Examples and demos"](#examples-and-demos) section below.
 
-There is web app demo available for those repos at <http://patchscope.mat.umk.pl/>,
+There is a web app demo available for those repos at <http://patchscope.mat.umk.pl/>,
 and also basic [demo on Heroku](https://patchscope-9d05e7f15fec.herokuapp.com/).
 
 The simplest solution to run those demos locally is to clone
@@ -246,7 +246,7 @@ you can change parameters to better fit your environment:
 
 This project uses [DVC](https://dvc.org/) (Data Version Control) tool
 to track annotations and metrics data, and version this data.  It allows
-to store large files and large directories outside of Git repository,
+storing large files and large directories outside of Git repository,
 while still have them to be version controlled.  They can be stored locally,
 or in the cloud.
 
@@ -270,7 +270,7 @@ in _DVC cache_, and you can push them to _DVC remote_ with `dvc push`, if you ha
 one configured (the `examples-init.bash` script from previous subsection
 configures DVC remote with storage on the local filesystem).
 
-<!-- TODO: add figure about how DVC works -->
+<!-- TODO: add a figure about how DVC works -->
 
 ### Downloading data from DAGsHub
 
@@ -327,7 +327,7 @@ a [virtual environment][venv], for example with:
 python -m venv .venv
 ```
 
-This needs to be done only once, from top directory of the project.
+This needs to be done only once, from the top directory of the project.
 For each session, you should activate the environment:
 ```commandline
 source .venv/bin/activate
@@ -345,7 +345,7 @@ packages, but Python is configured in a very specific way:
 
 ### Installing the package in editable mode
 
-To install the project in editable mode (from top directory of this repo):
+To install the project in editable mode (from the top directory of this repo):
 ```commandline
 python -m pip install -e .
 ```
@@ -437,7 +437,7 @@ Tools to generate HTML dashboard, or providing an interactive web application:
   **note** that [gitstats.me](https://gitstats.me/) no longer works
   (the domain is parked for sale)
 - [`repostat`](https://github.com/vifactor/repostat)
-  is Git repository analyser and HTML-report generator
+  is Git repository analyzer and HTML-report generator
   with [NVD3](https://nvd3.org/)-driven interactive metrics visualisations;<br>
   **note** that demo site <https://repostat.imfast.io/> no longer works
     - [NVD3.js](https://nvd3.org/) is an attempt to build re-usable charts
@@ -451,7 +451,7 @@ Tools to generate HTML dashboard, or providing an interactive web application:
 - [cregit](https://github.com/cregit/cregit)
   is a tool for helping to find and analyse code credits
   (unify identities, find contribution by token,
-  extract metadata into a SQLite database, etc.)
+  extract metadata into an SQLite database, etc.)
 - [Githru](https://github.com/githru/githru) is an interactive visual analytics system
   that enables developers to effectively understand the context of development history
   through the [interactive exploration of Git and GitHub metadata (demo)](https://githru.github.io/demo/).
