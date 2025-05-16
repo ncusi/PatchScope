@@ -936,7 +936,13 @@ def common(
         )
     ] = Bug.DEFAULT_ANNOTATIONS_DIR,
 ) -> None:
-    # if anything is printed by this function, it needs to utilize context
+    """Generate a configurable report or a summary of annotation results.
+    Each summary is saved as a single JSON file.  Various subcommands
+    compute different types of statistics.
+
+    To create annotation results, run the `diff-annotate` command.
+    """
+    # if anything is printed by this function, it needs to check the context
     # to not break installed shell completion for the command
     # see https://typer.tiangolo.com/tutorial/options/callback-and-context/#fix-completion-using-the-context
     if ctx.resilient_parsing:
