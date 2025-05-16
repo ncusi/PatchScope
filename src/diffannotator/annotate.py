@@ -3,9 +3,9 @@
 """Usage: python -m diffannotator.annotate [<common-options>] <subcommand> <options>
 
 Annotate existing dataset (that is, patch files in subdirectories corresponding to bugs),
-or selected subset of commits (of changes in selectes subset of commits) in a given repository.
+or selected subset of commits (of changes in a selected subset of commits) in a given repository.
 
-The result of annotation is saved in JSON files, one per patch / commit.
+The result of the annotation is saved in JSON files, one per patch / commit.
 
 This script provides the following subcommands:
 
@@ -2539,6 +2539,15 @@ def common(
         )
     ] = None
 ):
+    """Applies specified annotation rules to selected patches or selected commits,
+    creating JSON files with annotation data, one file per patch or commit.
+
+    Common options can be used to specify annotation rules for changed files
+    (which files are considered documentation, where are test files, etc.),
+    for changed lines (for example, whether empty lines should have their
+    own "whitespace" annotation label), and for the changeset itself (whether
+    to compute sizes and spreads metrics for the patchset).
+    """
     global LANGUAGES, compute_patch_sizes_and_spreads
     # if anything is printed by this function, it needs to utilize context
     # to not break installed shell completion for the command
