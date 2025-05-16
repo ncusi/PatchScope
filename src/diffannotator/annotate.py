@@ -93,7 +93,7 @@ class LanguagesFromLinguist:
 
     @staticmethod
     def annotate(path: str) -> dict:
-        """Annotate file with its primary / first language metadata
+        """Annotate a file with its primary / first language metadata
 
         Parameters
         ----------
@@ -103,7 +103,7 @@ class LanguagesFromLinguist:
         Returns
         -------
         dict
-            metadata about language, file type, and purpose of file
+            metadata about language, file type, and purpose of the file path
         """
         langs = LinguistLanguage.find_by_filename(path)
         if len(langs) > 1:
@@ -160,7 +160,7 @@ def line_ends_idx(text: str) -> list[int]:
     Returns
     -------
     list[int]
-        list of positions after end of line characters
+        list of positions after end-of-the-line characters
     """
     return [i for i, ch in enumerate(text, start=1)
             if ch == '\n']
@@ -173,7 +173,7 @@ def split_multiline_lex_tokens(tokens_unprocessed: Iterable[T]) -> Generator[T, 
     ----------
     tokens_unprocessed
         Result of calling `get_tokens_unprocessed(text)` method on a
-        `pygments.lexer.Lexer` instance.  This is an iterable of (index,
+        `pygments.lexer.Lexer` instance.  This is iterable of (index,
         token_type, value) tuples, where index is the starting position
         of the token within the input text.
 
@@ -203,7 +203,7 @@ def group_tokens_by_line(code: str, tokens: Iterable[T]) -> dict[int, list[T]]:
 
     For each line in the source `code`, find all `tokens` that belong
     to that line, and group tokens by line.  **Note** that `tokens` must
-    be result of parsing `code`.
+    be the result of parsing `code`.
 
     Parameters
     ----------
@@ -212,7 +212,7 @@ def group_tokens_by_line(code: str, tokens: Iterable[T]) -> dict[int, list[T]]:
     tokens
         An iterable of (index, token_type, value) tuples, preferably
         with `value` split into individual lines with the help of
-        `split_multiline_lex_tokens` function.
+        the `split_multiline_lex_tokens` function.
 
     Returns
     -------
@@ -222,7 +222,7 @@ def group_tokens_by_line(code: str, tokens: Iterable[T]) -> dict[int, list[T]]:
     """
     tokens_deque = deque(tokens)
     idx_code = line_ends_idx(code)
-    # handle special case where `code` does not end in '\n' (newline)
+    # handle the special case where `code` does not end in '\n' (newline)
     # otherwise the last (and incomplete) line would be dropped
     len_code = len(code)
     if len_code not in idx_code:
@@ -242,7 +242,7 @@ def group_tokens_by_line(code: str, tokens: Iterable[T]) -> dict[int, list[T]]:
 
 
 def front_fill_gaps(data: dict[int, T]) -> dict[int, T]:
-    """Fill any gaps in `data` keys with previous value
+    """Fill any gaps in `data` keys with the previous value
 
     >>> front_fill_gaps({1: '1', 3: '3'})
     {1: '1', 2: '1', 3: '3'}
@@ -331,8 +331,8 @@ def line_is_empty(tokens_list: Iterable[tuple]) -> bool:
     Returns
     -------
     bool
-        Whether set of tokens in `tokens_list` can be all considered to
-        come from empty line
+        Whether the set of tokens in `tokens_list` can be all considered to
+        come from an empty line
     """
     tokens_list = list(tokens_list)
     return len(tokens_list) == 1 and (tokens_list[0][2] == '\n' or tokens_list[0][2] == '\r\n')
@@ -350,7 +350,7 @@ def line_is_whitespace(tokens_list: Iterable[tuple]) -> bool:
     Returns
     -------
     bool
-        Whether set of tokens in `tokens_list` are all whitespace tokens
+        Whether the set of tokens in `tokens_list` are all whitespace tokens
     """
     return all([token_type in Token.Text.Whitespace or
                 token_type in Token.Text and text_fragment.isspace()
@@ -358,7 +358,7 @@ def line_is_whitespace(tokens_list: Iterable[tuple]) -> bool:
 
 
 def line_is_comment(tokens_list: Iterable[tuple]) -> bool:
-    """Given results of parsing line, find if it is comment
+    """Given the result of parsing the line, find if it is all comment
 
     Parameters
     ----------
@@ -369,7 +369,7 @@ def line_is_comment(tokens_list: Iterable[tuple]) -> bool:
     Returns
     -------
     bool
-        Whether set of tokens in `tokens_list` can be all considered to
+        Whether the set of tokens in `tokens_list` can be all considered to
         be a comment
     """
     can_be_comment = False
@@ -383,7 +383,7 @@ def line_is_comment(tokens_list: Iterable[tuple]) -> bool:
             can_be_comment = True
         elif token_type in Token.Text.Whitespace:
             # white space in line is also ok, but only whitespace is not a comment
-            pass  # does not change the status f the line
+            pass  # does not change the status of the line
         elif token_type in Token.Text and text_fragment.isspace():  # just in case
             # white space in line is also ok, but only whitespace is not a comment
             pass  # does not change the status of the line
@@ -402,7 +402,7 @@ def purpose_to_default_annotation(file_purpose: str) -> str:
 
 
 class AnnotatedPatchSet:
-    """Annotations for whole patch / diff
+    """Annotations for the whole patch / diff
 
     Attributes
     ----------
@@ -431,7 +431,7 @@ class AnnotatedPatchSet:
     def add_repo(self, repo: GitRepo) -> 'AnnotatedPatchSet':
         """Add the Git repository the patch (supposedly) came from
 
-        **NOTE:** Modifies self, and returns modified object.
+        **NOTE:** Modifies self, and returns the modified object.
 
         Parameters
         ----------
@@ -441,7 +441,7 @@ class AnnotatedPatchSet:
         Returns
         -------
         AnnotatedPatchSet
-            changed object, to enable flow/builder pattern
+            the changed object (to enable the flow/builder pattern)
         """
         self.repo = repo
         return self
@@ -458,7 +458,7 @@ class AnnotatedPatchSet:
                       errors: Optional[str] = None, newline: Optional[str] = None,
                       missing_ok: bool = False,
                       ignore_diff_parse_errors: bool = True,) -> Optional['AnnotatedPatchSet']:
-        """Return a AnnotatedPatchSet instance given a diff filename
+        """Return an AnnotatedPatchSet instance given a diff filename
 
         Parameters
         ----------
@@ -526,7 +526,7 @@ class AnnotatedPatchSet:
     def compute_sizes_and_spreads(self) -> Counter:
         """Compute patch set sizes and spread
 
-        See the detailed description of returned metrics in docstring
+        See the detailed description of returned metrics in the docstring
         for `AnnotatedPatchedFile.compute_sizes_and_spreads`.
 
         Returns
@@ -604,7 +604,7 @@ class AnnotatedPatchSet:
             # for each changed file
             patched_file: unidiff.PatchedFile
             for i, patched_file in enumerate(self.patch_set, start=1):
-                # create AnnotatedPatchedFile object from i-th changed file in patchset
+                # create AnnotatedPatchedFile object from the i-th changed file in patchset
                 annotated_patch_file = AnnotatedPatchedFile(patched_file)
 
                 # add sources, if repo is available, and they are available from repo
@@ -648,7 +648,7 @@ class AnnotatedPatchedFile:
     It includes metadata about the programming language associated with
     the changed/patched file.
 
-    Note that major part of the annotation process is performed on demand,
+    Note that the major part of the annotation process is performed on demand,
     during the `process()` method call.
 
     Fixes some problems with `unidiff.PatchedFile`
@@ -658,10 +658,10 @@ class AnnotatedPatchedFile:
     patched_file
         original `unidiff.PatchedFile` to be annotated
     source_file
-        name of source file (pre-image name), without the "a/" prefix
+        name of the source file (pre-image name), without the "a/" prefix
         from diff / patch
     target_file
-        name of target file (post-image name), without the "b/" prefix
+        name of the target file (post-image name), without the "b/" prefix
         from diff / patch
     patch_data
         gathers patch files and changed patch lines annotations; mapping
@@ -673,7 +673,7 @@ class AnnotatedPatchedFile:
 
     @staticmethod
     def make_line_callback(code_str: str) -> OptionalLineCallback:
-        """Create line callback function from text of its body
+        """Create the line callback function from the text of its body
 
         Example of creating a no-op callback:
         >>> AnnotatedPatchedFile.line_callback = AnnotatedPatchedFile.make_line_callback("return None")
@@ -777,7 +777,7 @@ class AnnotatedPatchedFile:
     def add_sources(self, src: str, dst: str) -> 'AnnotatedPatchedFile':
         """Add pre-image and post-image of a file at given diff
 
-        **NOTE:** Modifies self, and returns modified object.
+        **NOTE:** Modifies self, and returns the modified object.
 
         Example:
 
@@ -794,14 +794,14 @@ class AnnotatedPatchedFile:
         Parameters
         ----------
         src
-            pre-image contents of patched file
+            pre-image contents of the patched file
         dst
-            post-image contents of patched file
+            post-image contents of the patched file
 
         Returns
         -------
         AnnotatedPatchedFile
-            changed object, to enable flow/builder pattern
+            the changed object (to enable flow/builder pattern)
         """
         self.source = src
         self.target = dst
@@ -813,8 +813,8 @@ class AnnotatedPatchedFile:
                                dst_file: Path) -> 'AnnotatedPatchedFile':
         """Read pre-image and post-image for patched file at given diff
 
-        **NOTE:** Modifies self, adding contents of files, and returns modified
-        object.
+        **NOTE:** Modifies self, adding contents of files, and returns
+        the modified object.
 
         Example:
 
@@ -834,14 +834,14 @@ class AnnotatedPatchedFile:
         Parameters
         ----------
         src_file
-            path to pre-image contents of patched file
+            path to pre-image contents of the patched file
         dst_file
-            path to post-image contents of patched file
+            path to post-image contents of the patched file
 
         Returns
         -------
         AnnotatedPatchedFile
-            changed object
+            the changed object
         """
         return self.add_sources(
             src_file.read_text(encoding="utf-8"),
@@ -854,12 +854,12 @@ class AnnotatedPatchedFile:
         Parameters
         ----------
         line_type
-            denotes line type, e.g. line.line_type from unidiff
+            denotes the line type, e.g., line.line_type from unidiff
 
         Returns
         -------
         str | None
-            pre-image or post-image, or None if pre/post-images are not
+            pre-image or post-image, or None if pre-/post-images are not
             set
         """
         if line_type == unidiff.LINE_TYPE_REMOVED:  # '-'
@@ -870,26 +870,26 @@ class AnnotatedPatchedFile:
             raise ValueError(f"value must be '-' or '+', got {line_type!r}")
 
     def tokens_for_type(self, line_type: Literal['-','+']) -> Optional[dict[int, list[tuple]]]:
-        """Run lexer on a pre-image or post-image contents, if available
+        """Run lexer on a pre-image or post-image content, if available
 
-        Returns (cached) result of lexing pre-image for `line_type` '-',
+        Returns (cached) the result of lexing pre-image for `line_type` '-',
         and of post-image for line type '+'.
 
-        The pre-image and post-image contents of patched file should / can
+        The pre-image and post-image contents of the patched file should / can
         be provided with the help of `add_sources()` or `add_sources_from_files()`
-        methods.
+        method.
 
         Parameters
         ----------
         line_type
-            denotes line type, e.g. line.line_type from unidiff; must be
+            denotes the line type, e.g., line.line_type from unidiff; it must be
             one of '+' or '-'.
 
         Returns
         -------
         dict | None
-            post-processed result of lexing, split into lines, if there
-            is pre-/post-image file contents available.
+            post-processed result of lexing, split into lines
+            (if there is pre-/post-image file content available).
         """
         # return cached value, if available
         if line_type == unidiff.LINE_TYPE_REMOVED:  # '-'
@@ -913,7 +913,7 @@ class AnnotatedPatchedFile:
         tokens_list = LEXER.lex(file_path, contents)
         tokens_split = split_multiline_lex_tokens(tokens_list)
         tokens_group = group_tokens_by_line(contents, tokens_split)
-        # just in case, it should not be needed
+        # just in case, it should not be necessary
         tokens_group = front_fill_gaps(tokens_group)
 
         # save/cache computed data
@@ -940,11 +940,11 @@ class AnnotatedPatchedFile:
         Parameters
         ----------
         line_type
-            denotes line type, e.g. line.line_type from unidiff; must be
-            one of '-' (unidiff.LINE_TYPE_REMOVED) or '+'
-            (unidiff.LINE_TYPE_ADDED).
+            denotes the line type, e.g., line.line_type from unidiff;
+            must be one of '-' (unidiff.LINE_TYPE_REMOVED)
+            or '+' (unidiff.LINE_TYPE_ADDED).
         start_line
-            starting line number in file, counting from 1
+            starting line number in the file, counting from 1
         length
             number of lines to return results for, starting from
             `start_line`
@@ -952,9 +952,9 @@ class AnnotatedPatchedFile:
         Returns
         -------
         dict | None
-            post-processed result of lexing, split into lines, if there
-            is pre-/post-image file contents available; None if there is
-            no pre-/post-image contents attached.
+            post-processed result of lexing split into lines, if there
+            is pre-/post-image file content available; None, if there is
+            no pre-/post-image content attached.
         """
         tokens_list = self.tokens_for_type(line_type=line_type)
         if tokens_list is None:
@@ -972,9 +972,9 @@ class AnnotatedPatchedFile:
                              hunk: Union[unidiff.Hunk, 'AnnotatedHunk']) -> Optional[dict[int, list[tuple]]]:
         """Lexing results for removed ('-')/added ('+') lines in hunk, if possible
 
-        The pre-image and post-image contents of patched file should / can
+        The pre-image and post-image contents of the patched file should / can
         be provided with the help of `add_sources()` or `add_sources_from_files()`
-        methods.  If this contents is not provided, this method returns None.
+        methods.  If this content is not provided, this method returns None.
 
         The result is mapping from line number of the pre- or post-image
         contents, counting from 1 (the same as diff and unidiff), to the list
@@ -983,19 +983,19 @@ class AnnotatedPatchedFile:
         Parameters
         ----------
         line_type
-            denotes line type, e.g. line.line_type from unidiff; must be
+            denotes the line type, e.g., line.line_type from unidiff; must be
             one of '-' (unidiff.LINE_TYPE_REMOVED) or '+'
             (unidiff.LINE_TYPE_ADDED).
         hunk
-            block of changes in fragment of diff corresponding to
-            changed file, either unidiff.Hunk or annotate.AnnotatedHunk
+            block of changes in the fragment of diff corresponding to
+            the changed file, either unidiff.Hunk or annotate.AnnotatedHunk
 
         Returns
         -------
         dict | None
-            post-processed result of lexing, split into lines, if there
-            is pre-/post-image file contents available; None if there is
-            no pre-/post-image contents attached.
+            post-processed result of lexing split into lines, if there
+            is pre-/post-image file content available; None, if there is
+            no pre-/post-image content attached.
         """
         tokens_list = self.tokens_for_type(line_type=line_type)
         if tokens_list is None:
@@ -1008,16 +1008,16 @@ class AnnotatedPatchedFile:
         for hunk_line_no, line in enumerate(hunk):
             if line.line_type != line_type:
                 continue
-            # NOTE: first line of file is line number 1, not 0, according to (uni)diff
+            # NOTE: the first line of the file is line number 1, not 0, according to (uni)diff
             # but self.tokens_for_type(line_type) returns 0-based indexing
             line_no = line.source_line_no if line_type == unidiff.LINE_TYPE_REMOVED else line.target_line_no
-            # first line is 1; first element has index 0
+            # the first line is 1; the first element has index 0
             result[hunk_line_no] = tokens_list[line_no - 1]
 
         return result
 
     def compute_sizes_and_spreads(self) -> Counter:
-        """Compute sizes and spread for patched file in diff/patch
+        """Compute sizes and spread for the patched file in diff/patch
 
         Computes the following metrics:
 
@@ -1072,11 +1072,11 @@ class AnnotatedPatchedFile:
         result = Counter({
             'n_files': 1,
             'hunk_span_src':
-                # line number of last hunk - line number of first hunk in source (pre-image)
+                # line number of last hunk - line number of first hunk in the source (the pre-image)
                 (self.patched_file[-1].source_start + self.patched_file[-1].source_length - 1
                  - self.patched_file[0].source_start),
             'hunk_span_dst':
-                # line number of last hunk - line number of first hunk in target (post-image)
+                # line number of last hunk - line number of first hunk in the target (the post-image)
                 (self.patched_file[-1].target_start + self.patched_file[-1].target_length - 1
                  - self.patched_file[0].target_start),
         })
@@ -1101,7 +1101,7 @@ class AnnotatedPatchedFile:
             result += hunk_result
 
             if prev_hunk_info is not None:
-                # there was previous hunk,
+                # there was a previous hunk,
 
                 # computing hunk-to-hunk distance
                 # between pre- and post-image line numbers of end of previous hunk
@@ -1155,14 +1155,14 @@ class AnnotatedPatchedFile:
         return result
 
     def process(self):
-        """Process hunks in patched file, annotating changes
+        """Process hunks in the patched file, annotating changes
 
         Returns single-element mapping from filename to pre- and post-image
-        line annotations.  The pre-image line annotations use "-" as key,
-        while post-image use "+".
+        line annotations.  The pre-image line annotations use "-" as a key,
+        while post-image annotations use "+" as a key.
 
         The format of returned values is described in more detail
-        in `AnnotatedHunk.process()` documentation.
+        in the `AnnotatedHunk.process()` documentation.
 
         Updates and returns the `self.patch_data` field.
 
@@ -1170,8 +1170,8 @@ class AnnotatedPatchedFile:
         -------
         dict[str, dict[str, dict]]
             annotated patch data, mapping from changed file name to
-            '+'/'-', to annotated line info (from post-image or pre-
-            image)
+            '+'/'-', to annotated line info (from post-image or
+            pre-image)
         """
         for idx, hunk in enumerate(self.patched_file):
             hunk_data = AnnotatedHunk(self, hunk, hunk_idx=idx).process()
@@ -1186,7 +1186,7 @@ class AnnotatedHunk:
     It parses pre-image and post-image of a hunk using Pygments, and assigns
     the type of "code" or "documentation" for each changed line.
 
-    Note that major part of the annotation process is performed on demand,
+    Note that the major part of the annotation process is performed on demand,
     during the `process()` method call.
 
     Attributes
@@ -1201,10 +1201,10 @@ class AnnotatedHunk:
     def __init__(self, patched_file: AnnotatedPatchedFile, hunk: unidiff.Hunk, hunk_idx: int):
         """Initialize AnnotatedHunk with AnnotatedPatchedFile and Hunk
 
-        The `patched_file` is used to examine file purpose, and possibly
+        The `patched_file` is used to examine the file purpose, and possibly
         annotate lines according to `PURPOSE_TO_ANNOTATION` mapping.
-        For example each changed line in a changed file which purpose is
-        "documentation" is also marked as having "documentation" type.
+        For example, each changed line in a changed file whose purpose is
+        "documentation" is also marked as having the "documentation" type.
 
         Parameters
         ----------
@@ -1223,16 +1223,17 @@ class AnnotatedHunk:
 
     @staticmethod
     def file_line_no(line: PatchLine) -> int:
-        """Line number in source file (for '-') or target file (for '+' and ' ')
+        """Line number in the source file (for '-') or the target file (for '+' and ' ')
 
         This line number is 1-based (first line in file has file line no equal 1,
         not 0), and is _not unique_.  For example, for changed line there might be
         added line with the same file line no in target as removed line in source.
 
-        Similar code is used in AnnotatedPatchedFile.hunk_tokens_for_type() method.
+        Similar code is used in the `AnnotatedPatchedFile.hunk_tokens_for_type()` method.
 
-        NOTE: Might be made into a function, instead of static method
-        (it does not use `self`), or method or property monkey-patched onto PatchLine.
+        NOTE: Might be made into a function, instead of being a static method
+        (it does not use `self`), or a method or a property monkey-patched
+        onto `PatchLine` class.
 
         Parameters
         ----------
@@ -1242,7 +1243,7 @@ class AnnotatedHunk:
         Returns
         -------
         int
-            1-based line number of changed line in source or target
+            1-based line number of changed line in the source or the target
             file, respectively
         """
         return line.source_line_no \
@@ -1252,13 +1253,13 @@ class AnnotatedHunk:
     def tokens_for_type(self, line_type: Literal['-','+']) -> Optional[dict[int, list[tuple]]]:
         """Lexing results for removed ('-')/added ('+') lines in hunk, if possible
 
-        Passes work to `AnnotatedPatchedFile.hunk_tokens_for_type` method
+        Passes work to the `AnnotatedPatchedFile.hunk_tokens_for_type` method
         for a patched file this hunk belongs to.
 
         Parameters
         ----------
         line_type
-            line_type: denotes line type, e.g. line.line_type from
+            line_type: denotes line type, e.g., line.line_type from
             unidiff; must be one of '-' (unidiff.LINE_TYPE_REMOVED) or
             '+' (unidiff.LINE_TYPE_ADDED).
 
@@ -1292,7 +1293,7 @@ class AnnotatedHunk:
 
         - hunk spread
 
-          - number of groups, i.e. spans of removed and added lines,
+          - number of groups, i.e., spans of removed and added lines,
             not interrupted by context line (also called "chunks"),
             as 'n_groups'
           - sum of distance in context lines between groups (chunks)
@@ -1300,7 +1301,7 @@ class AnnotatedHunk:
 
         - patched file spread helpers
 
-          - start and end if hunk (pre-image and post-image)
+          - start and end of hunk (pre-image and post-image)
             as 'hunk_start' and 'hunk_end' - both values are tuple of
             source file (pre-image) line number and target file (post-image) line number
           - start of first group and end of first group (pre-/post-image)
@@ -1354,7 +1355,7 @@ class AnnotatedHunk:
                 else:
                     info['groups_end'] = (info['groups_end'][0], hunk_line.target_line_no)
 
-                # check if number of removed lines is not greater than number of added lines
+                # check if the number of removed lines is not greater than the number of added lines
                 if n_same_type > 0:
                     result['n_mod'] += 1
                     result['n_rem'] -= 1  # previous group
@@ -1372,7 +1373,7 @@ class AnnotatedHunk:
                     info['groups_end'] = (hunk_line.source_line_no, info['groups_end'][1])
 
                 # NOTE: this should never happen in a proper unified diff
-                # check if number of removed lines is not greater than number of added lines
+                # check if the number of removed lines is not greater than the number of added lines
                 if n_same_type > 0:
                     result['n_mod'] += 1
                     result['n_add'] -= 1  # previous group
@@ -1382,8 +1383,8 @@ class AnnotatedHunk:
                     # Assumes only __++--__ is possible, and --++-- etc. is not
 
             elif hunk_line.is_context:
-                # A chunk (group) is a sequence of continuous changes in a file, consisting of the combination
-                # of addition, removal, and modification of lines (i.e. added ('+') or removed ('-') lines)
+                # A chunk (group) is a sequence of continuous changes in a file consisting of the combination
+                # of addition, removal, and modification of lines (i.e., added ('+') or removed ('-') lines)
                 if prev_group_line_type != unidiff.LINE_TYPE_CONTEXT:
                     result['n_groups'] += 1
                     if prev_group_line_type in {unidiff.LINE_TYPE_REMOVED, unidiff.LINE_TYPE_ADDED}:
@@ -1454,9 +1455,9 @@ class AnnotatedHunk:
         """Process associated patch hunk, annotating changes
 
         Returns single-element mapping from filename to pre- and post-image
-        line annotations.  The pre-image line annotations use "-" as key,
-        while post-image use "+".  For each line, there is currently gathered
-        the following data:
+        line annotations.  The pre-image line annotations use "-" as a key,
+        while post-image use "+" as a key.  For each line, there is currently
+        gathered the following data:
 
         - "id": line number in the hunk itself (it is not line number in pre-image
           for "-" lines, or line image in post-image for "+" lines); this numbering
@@ -1478,10 +1479,10 @@ class AnnotatedHunk:
         -------
         dict[str, dict[str, dict]]
             annotated patch data, mapping from changed file name to
-            '+'/'-', to annotated line info (from post-image or pre-
-            image)
+            '+'/'-', to annotated line info (from post-image or
+            pre-image)
         """
-        # choose file name to be used to select file type and lexer
+        # choose the file name to be used to select the file type and the lexer
         if self.patched_file.source_file == "/dev/null":
             file_path = self.patched_file.target_file
         else:
@@ -1533,14 +1534,14 @@ class AnnotatedHunk:
 
             tokens_group = self.tokens_for_type(line_type)
             if tokens_group is None:
-                # pre-/post-image contents is not available, use what is in diff
-                # dict are sorted, line_data elements are entered ascending
+                # pre-/post-image content is not available, use what is in diff
+                # dicts are sorted, line_data elements are entered ascending
                 source = ''.join([line['value'] for line in line_data.values()])
 
                 tokens_list = LEXER.lex(file_path, source)
                 tokens_split = split_multiline_lex_tokens(tokens_list)
                 tokens_group = group_tokens_by_line(source, tokens_split)
-                # just in case, it should not be needed
+                # just in case, it should not be necessary
                 tokens_group = front_fill_gaps(tokens_group)
                 # index tokens_group with hunk line no, not line index of pre-/post-image fragment
                 tokens_group = {
@@ -1639,7 +1640,7 @@ def annotate_single_diff(diff_path: PathLike,
                          missing_ok: bool = False,
                          ignore_diff_parse_errors: bool = True,
                          ignore_annotation_errors: bool = True) -> dict:
-    """Annotate single unified diff patch file at given path
+    """Annotate a single unified diff patch file at the given path
 
     Parameters
     ----------
@@ -1703,7 +1704,7 @@ class Bug:
     def __init__(self, patches_data: dict, *,
                  read_dir: Optional[PathLike] = None,
                  save_dir: Optional[PathLike] = None):
-        """Constructor for class representing a single Bug
+        """Constructor for the class representing a single Bug
 
         You better use alternative constructors instead:
 
@@ -1714,13 +1715,13 @@ class Bug:
         ----------
         patches_data
             annotation data, from annotating a patch or a series of
-            patches (e.g. from `annotate_single_diff()`); a mapping from
-            patch id (e.g. filename of a patch file) to the result of
+            patches (e.g., from `annotate_single_diff()`); a mapping from
+            patch id (e.g., filename of a patch file) to the result of
             annotating said patch
         read_dir
-            path to the directory patches were read from, or None
+            the path to the directory patches were read from, or None
         save_dir
-            path to default directory where annotated data should be
+            the path to default directory where annotated data should be
             saved, or None
         """
         self.read_dir: Optional[Path] = Path(read_dir) \
@@ -1737,7 +1738,7 @@ class Bug:
                      annotations_dir: str = DEFAULT_ANNOTATIONS_DIR,
                      sizes_and_spreads: bool = False,
                      fan_out: bool = False) -> 'Bug':
-        """Create Bug object from patch files for given bug in given dataset
+        """Create the Bug object from patch files for given bug in given dataset
 
         Assumes that patch files have '*.diff' extension, and that they are
         in the `dataset_dir` / `bug_id` / `patches_dir` subdirectory (if `patches_dir`
@@ -1798,7 +1799,7 @@ class Bug:
     def from_patchset(cls, patch_id: Union[str, None], patch_set: unidiff.PatchSet,
                       sizes_and_spreads: bool = False,
                       repo: Optional[GitRepo] = None) -> 'Bug':
-        """Create Bug object from unidiff.PatchSet
+        """Create the Bug object from the unidiff.PatchSet
 
         If `patch_id` is None, then it tries to use the 'commit_id' attribute
         of `patch_set`; if this attribute does not exist, it constructs artificial
@@ -1807,7 +1808,7 @@ class Bug:
         Parameters
         ----------
         patch_id
-            identifies source of the `patch_set`
+            identifies the source of the `patch_set`
         patch_set
             changes to annotate
         sizes_and_spreads
@@ -1862,7 +1863,7 @@ class Bug:
     def _get_patches_from_dir(self, patches_dir: PathLike,
                               sizes_and_spreads: bool = False,
                               fan_out: bool = False) -> dict[str, dict]:
-        """Get and annotate set of patches from given directory
+        """Get and annotate the set of patches from the given directory
 
         Parameters
         ----------
@@ -1899,11 +1900,11 @@ class Bug:
 
     def _get_patches_from_dir_with_fanout(self, patches_dir: PathLike,
                                           sizes_and_spreads: bool = False) -> dict[str, dict]:
-        """Get and annotate set of patches from given directory, with fan-out
+        """Get and annotate the set of patches from the given directory, with fan-out
 
         Fan-out means that individual patches (diffs), instead of being
         stored directly in the `patches_dir` directory, are instead
-        stored in subdirectories of said directory, 1 level deeper.
+        stored in subdirectories of the said directory, 1 level deeper.
 
         Parameters
         ----------
@@ -1950,7 +1951,7 @@ class Bug:
             `self.save_dir` is used as a base path.
         fan_out
             Save annotated data in a fan-out directory, named after
-            first 2 hexdigits of patch_id; the rest is used for the
+            the first 2 hexdigits of patch_id; the rest is used for the
             basename; splits patch_id.
         output_format_ext
             Extension used when saving the data; should look like JSON,
@@ -1968,7 +1969,7 @@ class Bug:
         if base_path is None:
             raise ValueError("For this Bug, annotate_dir parameter must be provided to .save()")
 
-        # ensure that base_path exists in filesystem
+        # ensure that base_path exists in the filesystem
         base_path.mkdir(parents=True, exist_ok=True)
 
         # save annotated patches data
@@ -1996,14 +1997,14 @@ class BugDataset:
         list of bug identifiers (directories with patch files) contained
         in a given `dataset_dir`, or list of PatchSet extracted from Git
         repo - that can be turned into annotated patch data with
-        `get_bug()` method.
+        the `get_bug()` method.
     _dataset_path
         path to the dataset directory (with directories with patch
-        files); present only when creating `BugDataset` object from
-        dataset directory.
+        files); present only when creating the `BugDataset` object from
+        the dataset directory.
     _patches
         mapping from patch id to `unidiff.PatchSet` (unparsed); present
-        only when creating `BugDataset` object from Git repo commits.
+        only when creating the `BugDataset` object from Git repo commits.
     """
 
     def __init__(self, bug_ids: list[str],
@@ -2115,16 +2116,16 @@ class BugDataset:
     def from_repo(cls,
                   repo: Union[GitRepo, PathLike],
                   revision_range: Union[str, Iterable[str]] = 'HEAD') -> 'BugDataset':
-        """Create BugDataset object from selected commits in a Git repo
+        """Create the BugDataset object from selected commits in a Git repo
 
         Parameters
         ----------
         repo
             GitRepo, or path to Git repository
         revision_range
-            arguments to pass to `git log --patch`, see https://git-
-            scm.com/docs/git-log; by default generates patches for all
-            commits from the HEAD
+            arguments to pass to `git log --patch`, see
+            https://git-scm.com/docs/git-log; by default, it generates patches
+            for all commits reachable from the HEAD
 
         Returns
         -------
@@ -2164,8 +2165,8 @@ class BugDataset:
         use_repo
             whether to retrieve pre-/post-image contents from
             self._git_repo, if available (makes difference only for
-            datasets created from repository, for example with
-            BugDataset.from_repo())
+            datasets created from repository, for example, with
+            `BugDataset.from_repo()`)
 
         Returns
         -------
@@ -2227,7 +2228,7 @@ class BugDataset:
         return self.bug_ids[idx]
 
     def __contains__(self, item: str) -> bool:
-        """Is bug with given id contained in the dataset?"""
+        """Is the bug with the given id contained in the dataset?"""
         return item in self.bug_ids
 
 
@@ -2250,7 +2251,7 @@ def to_simple_mapping_callback(ctx: typer.Context, param: typer.CallbackParam,
     """Update given to simple `mapping` with '<key>:<value>'s
 
     If `allow_simplified` is true, and there is no ':' (colon) separating
-    key from value, add the original both as key and as value.  This means
+    key from value, add the original both as a key and as a value.  This means
     that using '<value>' adds {<value>: <value>} mapping.
 
     If `allow_simplified` is false, and there is no ':' (colon) separating
@@ -2271,7 +2272,7 @@ def to_simple_mapping_callback(ctx: typer.Context, param: typer.CallbackParam,
     mapping
         mapping to change
     allow_simplified
-        whether <value> means <value>:<value>, or just gets ignored
+        denotes whether <value> means <value>:<value>, or just gets ignored
 
     Returns
     -------
@@ -2323,7 +2324,7 @@ def pattern_to_purpose_callback(ctx: typer.Context, param: typer.CallbackParam,
 def to_language_mapping_callback(ctx: typer.Context, param: typer.CallbackParam,
                                  values: Optional[list[str]],
                                  mapping: dict[str, list[str]]) -> list[str]:
-    """To create callback for providing to language mapping with '<key>:<value>'s
+    """To create a callback for providing to language mapping with '<key>:<value>'s
 
     If there is no ':' (colon) separating key from value,
     it ignores the value.
@@ -2379,7 +2380,7 @@ def extension_to_language_callback(ctx: typer.Context, param: typer.CallbackPara
 
 def filename_to_language_callback(ctx: typer.Context, param: typer.CallbackParam,
                                   values: Optional[list[str]]) -> list[str]:
-    """Update filename to language mapping with '<key>:<value>'s"""
+    """Update the filename to language mapping with '<key>:<value>'s"""
     return to_language_mapping_callback(ctx, param, values,
                                         mapping=languages.FILENAME_TO_LANGUAGES)
 
@@ -2432,7 +2433,7 @@ def process_single_bug(bugs: BugDataset, bug_id: str, output_dir: Path,
                        bugsinpy_layout: bool, use_fanout: bool, use_repo: bool) -> None:
     """The workhorse of the `from_repo` command, processing a single bug / commit
 
-    Uses the value of he global variable `compute_patch_sizes_and_spreads`.
+    Uses the value of the global variable `compute_patch_sizes_and_spreads`.
 
     Parameters
     ----------
@@ -2549,7 +2550,7 @@ def common(
     to compute sizes and spreads metrics for the patchset).
     """
     global LANGUAGES, compute_patch_sizes_and_spreads
-    # if anything is printed by this function, it needs to utilize context
+    # if anything is printed by this function, it needs to check context
     # to not break installed shell completion for the command
     # see https://typer.tiangolo.com/tutorial/options/callback-and-context/#fix-completion-using-the-context
     if ctx.resilient_parsing:
@@ -2629,7 +2630,7 @@ def common(
             else:
                 print(f"\t*{ext} in {langs}")
 
-    # slight code duplication with previous block
+    # slight code duplication with the previous block
     if filename_to_language is not None:
         if not languages.FILENAME_TO_LANGUAGES:
             print("Cleared mapping from filename to programming language")
@@ -2711,13 +2712,13 @@ def dataset(
 ) -> None:
     """Annotate all bugs in provided DATASETS
 
-    Each DATASET is expected to be existing directory with the following
+    Each DATASET is expected to be an existing directory with the following
     structure, by default:
 
         <dataset_directory>/<bug_directory>/patches/<patch_file>.diff
 
-    You can change the `/patches/` part with --patches-dir option.
-    For example with --patches-dir='' the script would expect data
+    You can change the `/patches/` part with the --patches-dir option.
+    For example, with --patches-dir='' the script would expect data
     to have the following structure:
 
         <dataset_directory>/<bug_directory>/<patch_file>.diff
@@ -2867,11 +2868,11 @@ def from_repo(
     You can add additional options and parameters, which will be passed to
     the `git log -p` command.  With those options and arguments you
     can specify which commits to operate on (defaults to all commits).\n
-    See https://git-scm.com/docs/git-log or `man git-log` (or `git log -help`).
+    See https://git-scm.com/docs/git-log or `man git-log` (or `git log --help`).
 
-    When no <revision-range> is specified, it defaults to HEAD (i.e. the whole
+    When no <revision-range> is specified, it defaults to HEAD (i.e., the whole
     history leading to the current commit). origin..HEAD specifies all the
-    commits reachable from the current commit (i.e. HEAD), but not from origin.
+    commits reachable from the current commit (i.e., HEAD), but not from origin.
     For a complete list of ways to spell <revision-range>, see the
     "Specifying Ranges" section of the gitrevisions(7) manpage:\n
     https://git-scm.com/docs/gitrevisions#_specifying_revisions
