@@ -1,6 +1,6 @@
 typer-slim==0.15.3
 click>=8.0.0
-joblib==1.4.2
+joblib==1.5.0
 pygments==2.19.1
 pyyaml==6.0.2
 unidiff==0.7.5
