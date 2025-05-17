@@ -45,7 +45,10 @@ def get_version() -> str:
     if possible, with fallback to global variable `__version__`.
     Updates `__version__`.
 
-    :returns: version string
+    Returns
+    -------
+    str
+        version string
     """
     global __version__
 
@@ -61,10 +64,18 @@ def get_version() -> str:
 def guess_format_version(file_path: Path, warn_ambiguous: bool = False) -> Optional[JSONFormat]:
     """Guess annotation format schema version based on name of the file
 
-    :param file_path: name of the file with annotation data
-    :param warn_ambiguous: whether to log warning on situations where
-        the result is ambiguous; as a side effect makes it less forgiving
-    :return: enum defining the format, or None if there is no match
+    Parameters
+    ----------
+    file_path
+        name of the file with annotation data
+    warn_ambiguous
+        whether to log warning on situations where the result is
+        ambiguous; as a side effect makes it less forgiving
+
+    Returns
+    -------
+    JSONFormat, optional
+        enum defining the format, or None if there is no match
     """
     suffixes_2_list = file_path.suffixes[-2:]
     suffixes_2_str = ''.join(suffixes_2_list)

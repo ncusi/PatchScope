@@ -51,8 +51,15 @@ class Lexer(object):
     def get_lexer(self, filename: str) -> PygmentsLexer:
         """Get lexer suitable for file with given path
 
-        :param filename: path to a file inside repository
-        :return: appropriate lexer
+        Parameters
+        ----------
+        filename
+            path to a file inside repository
+
+        Returns
+        -------
+        PygmentsLexer
+            appropriate lexer
         """
         suffix = Path(filename).suffix
         # there are many different file types with an empty suffix
@@ -77,9 +84,17 @@ class Lexer(object):
     def lex(self, filename: str, code: str) -> Iterable[tuple]:
         """Run lexer on a fragment of code from file with given filename
 
-        :param filename: path to file within the repository
-        :param code: source code or text to parse
-        :return: an iterable of (index, token_type, text_fragment) tuples
+        Parameters
+        ----------
+        filename
+            path to file within the repository
+        code
+            source code or text to parse
+
+        Returns
+        -------
+        Iterable[tuple]
+            iterable of (index, token_type, text_fragment) tuples
         """
         lexer = self.get_lexer(filename)
 

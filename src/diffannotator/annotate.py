@@ -3,9 +3,9 @@
 """Usage: python -m diffannotator.annotate [<common-options>] <subcommand> <options>
 
 Annotate existing dataset (that is, patch files in subdirectories corresponding to bugs),
-or selected subset of commits (of changes in selectes subset of commits) in a given repository.
+or selected subset of commits (of changes in a selected subset of commits) in a given repository.
 
-The result of annotation is saved in JSON files, one per patch / commit.
+The result of the annotation is saved in JSON files, one per patch / commit.
 
 This script provides the following subcommands:
 
@@ -93,10 +93,17 @@ class LanguagesFromLinguist:
 
     @staticmethod
     def annotate(path: str) -> dict:
-        """Annotate file with its primary / first language metadata
+        """Annotate a file with its primary / first language metadata
 
-        :param path: file path in the repository
-        :return: metadata about language, file type, and purpose of file
+        Parameters
+        ----------
+        path
+            file path in the repository
+
+        Returns
+        -------
+        dict
+            metadata about language, file type, and purpose of the file path
         """
         langs = LinguistLanguage.find_by_filename(path)
         if len(langs) > 1:
@@ -145,8 +152,15 @@ def line_ends_idx(text: str) -> list[int]:
     >>> example_text[4:7]
     '56\\n'
 
-    :param text: str to process
-    :return: list of positions after end of line characters
+    Parameters
+    ----------
+    text
+        str to process
+
+    Returns
+    -------
+    list[int]
+        list of positions after end-of-the-line characters
     """
     return [i for i, ch in enumerate(text, start=1)
             if ch == '\n']
@@ -155,12 +169,18 @@ def line_ends_idx(text: str) -> list[int]:
 def split_multiline_lex_tokens(tokens_unprocessed: Iterable[T]) -> Generator[T, None, None]:
     """Split multiline tokens into individual lines
 
-    :param tokens_unprocessed: Result of calling `get_tokens_unprocessed(text)`
-        method on a `pygments.lexer.Lexer` instance.  This is an iterable
-        of (index, token_type, value) tuples, where index is the starting
-        position of the token within the input text.
+    Parameters
+    ----------
+    tokens_unprocessed
+        Result of calling `get_tokens_unprocessed(text)` method on a
+        `pygments.lexer.Lexer` instance.  This is iterable of (index,
+        token_type, value) tuples, where index is the starting position
+        of the token within the input text.
 
-    :return: An iterable of (index, token_type, value) tuples, where `index`
+    Yields
+    ------
+    tuple
+        An iterable of (index, token_type, value) tuples, where `index`
         is the starting position of `value` in the input text, and each
         `value` contains at most one newline.
     """
@@ -183,18 +203,26 @@ def group_tokens_by_line(code: str, tokens: Iterable[T]) -> dict[int, list[T]]:
 
     For each line in the source `code`, find all `tokens` that belong
     to that line, and group tokens by line.  **Note** that `tokens` must
-    be result of parsing `code`.
+    be the result of parsing `code`.
 
-    :param code: Source code text that was parsed into tokens
-    :param tokens: An iterable of (index, token_type, value) tuples,
-        preferably with `value` split into individual lines with the
-        help of `split_multiline_lex_tokens` function.
-    :return: mapping from line number in `code` to list of tokens
-        in that line
+    Parameters
+    ----------
+    code
+        Source code text that was parsed into tokens
+    tokens
+        An iterable of (index, token_type, value) tuples, preferably
+        with `value` split into individual lines with the help of
+        the `split_multiline_lex_tokens` function.
+
+    Returns
+    -------
+    dict
+        mapping from line number in `code` to list of tokens in that
+        line
     """
     tokens_deque = deque(tokens)
     idx_code = line_ends_idx(code)
-    # handle special case where `code` does not end in '\n' (newline)
+    # handle the special case where `code` does not end in '\n' (newline)
     # otherwise the last (and incomplete) line would be dropped
     len_code = len(code)
     if len_code not in idx_code:
@@ -214,13 +242,20 @@ def group_tokens_by_line(code: str, tokens: Iterable[T]) -> dict[int, list[T]]:
 
 
 def front_fill_gaps(data: dict[int, T]) -> dict[int, T]:
-    """Fill any gaps in `data` keys with previous value
+    """Fill any gaps in `data` keys with the previous value
 
     >>> front_fill_gaps({1: '1', 3: '3'})
     {1: '1', 2: '1', 3: '3'}
 
-    :param data: Input data - dictionary with int keys
-    :return: Front filled input data
+    Parameters
+    ----------
+    data
+        Input data - dictionary with int keys
+
+    Returns
+    -------
+    dict
+        Front filled input data
     """
     if not data:
         return {}
@@ -251,9 +286,17 @@ def deep_update(d: dict, u: collections.abc.Mapping) -> dict:
     deeply nested levels in input dictionary `d`.  **Note** that this
     would also extend `d` with new keys from `u`.
 
-    :param d: dict to update
-    :param u: data to update with
-    :return: updated input dict
+    Parameters
+    ----------
+    d
+        dict to update
+    u
+        data to update with
+
+    Returns
+    -------
+    dict
+        updated input dict
     """
     # modified from https://stackoverflow.com/a/3233356/46058
     # see also https://github.com/pydantic/pydantic/blob/v2.7.4/pydantic/_internal/_utils.py#L103
@@ -279,10 +322,17 @@ def clean_text(text: str) -> str:
 def line_is_empty(tokens_list: Iterable[tuple]) -> bool:
     """Given results of parsing a line, find if it is empty
 
-    :param tokens_list: An iterable of (index, token_type, text_fragment) tuples,
+    Parameters
+    ----------
+    tokens_list
+        An iterable of (index, token_type, text_fragment) tuples,
         supposedly created by parsing some line of source code text
-    :return: Whether set of tokens in `tokens_list` can be all
-        considered to come from empty line
+
+    Returns
+    -------
+    bool
+        Whether the set of tokens in `tokens_list` can be all considered to
+        come from an empty line
     """
     tokens_list = list(tokens_list)
     return len(tokens_list) == 1 and (tokens_list[0][2] == '\n' or tokens_list[0][2] == '\r\n')
@@ -291,10 +341,16 @@ def line_is_empty(tokens_list: Iterable[tuple]) -> bool:
 def line_is_whitespace(tokens_list: Iterable[tuple]) -> bool:
     """Given results of parsing a line, find if it consists only of whitespace tokens
 
-    :param tokens_list: An iterable of (index, token_type, text_fragment) tuples,
+    Parameters
+    ----------
+    tokens_list
+        An iterable of (index, token_type, text_fragment) tuples,
         supposedly created by parsing some line of source code text
-    :return: Whether set of tokens in `tokens_list` are all
-        whitespace tokens
+
+    Returns
+    -------
+    bool
+        Whether the set of tokens in `tokens_list` are all whitespace tokens
     """
     return all([token_type in Token.Text.Whitespace or
                 token_type in Token.Text and text_fragment.isspace()
@@ -302,12 +358,19 @@ def line_is_whitespace(tokens_list: Iterable[tuple]) -> bool:
 
 
 def line_is_comment(tokens_list: Iterable[tuple]) -> bool:
-    """Given results of parsing line, find if it is comment
+    """Given the result of parsing the line, find if it is all comment
 
-    :param tokens_list: An iterable of (index, token_type, text_fragment) tuples,
+    Parameters
+    ----------
+    tokens_list
+        An iterable of (index, token_type, text_fragment) tuples,
         supposedly from parsing some line of source code text
-    :return: Whether set of tokens in `tokens_list` can be all
-        considered to be a comment
+
+    Returns
+    -------
+    bool
+        Whether the set of tokens in `tokens_list` can be all considered to
+        be a comment
     """
     can_be_comment = False
     cannot_be_comment = False
@@ -320,7 +383,7 @@ def line_is_comment(tokens_list: Iterable[tuple]) -> bool:
             can_be_comment = True
         elif token_type in Token.Text.Whitespace:
             # white space in line is also ok, but only whitespace is not a comment
-            pass  # does not change the status f the line
+            pass  # does not change the status of the line
         elif token_type in Token.Text and text_fragment.isspace():  # just in case
             # white space in line is also ok, but only whitespace is not a comment
             pass  # does not change the status of the line
@@ -339,19 +402,27 @@ def purpose_to_default_annotation(file_purpose: str) -> str:
 
 
 class AnnotatedPatchSet:
-    """Annotations for whole patch / diff
+    """Annotations for the whole patch / diff
 
-    :ivar patch_set: original unidiff.PatchSet or diffannotator.git.ChangeSet
-    :ivar repo: optionally, the repository diffannotator.git.ChangeSet came from"""
+    Attributes
+    ----------
+    patch_set
+        original unidiff.PatchSet or diffannotator.git.ChangeSet
+    repo
+        optionally, the repository diffannotator.git.ChangeSet came from
+    """
     def __init__(self,
                  patch_set: Union[ChangeSet, unidiff.PatchSet],
                  repo: Optional[GitRepo] = None):
         """Initialize AnnotatedPatchSet with unidiff.PatchSet (or derived class)
 
-        :param patch_set: parsed unified diff (if unidiff.PatchSet),
-            or parsed commit changes and parsed commit metadata (if ChangeSet)
-        :param repo: the Git repository the `patch_set` (ChangeSet)
-            came from
+        Parameters
+        ----------
+        patch_set
+            parsed unified diff (if unidiff.PatchSet), or parsed commit
+            changes and parsed commit metadata (if ChangeSet)
+        repo
+            the Git repository the `patch_set` (ChangeSet) came from
         """
         self.patch_set = patch_set
         self.repo = repo
@@ -360,10 +431,17 @@ class AnnotatedPatchSet:
     def add_repo(self, repo: GitRepo) -> 'AnnotatedPatchSet':
         """Add the Git repository the patch (supposedly) came from
 
-        **NOTE:** Modifies self, and returns modified object.
+        **NOTE:** Modifies self, and returns the modified object.
 
-        :param repo: the Git repository connected to self / the patchset
-        :return: changed object, to enable flow/builder pattern
+        Parameters
+        ----------
+        repo
+            the Git repository connected to self / the patchset
+
+        Returns
+        -------
+        AnnotatedPatchSet
+            the changed object (to enable the flow/builder pattern)
         """
         self.repo = repo
         return self
@@ -380,25 +458,39 @@ class AnnotatedPatchSet:
                       errors: Optional[str] = None, newline: Optional[str] = None,
                       missing_ok: bool = False,
                       ignore_diff_parse_errors: bool = True,) -> Optional['AnnotatedPatchSet']:
-        """Return a AnnotatedPatchSet instance given a diff filename
+        """Return an AnnotatedPatchSet instance given a diff filename
 
-        :param filename: path to the patch file (diff file) to try to parse
-            (absolute or relative to the current working directory)
-        :param encoding: name of the encoding used to decode the file,
-            defaults to "UTF-8"
-        :param errors: optional string that specifies how decoding errors
-            are to be handled; see documentation of `open` function for list
-            of possible values, see: https://docs.python.org/3/library/functions.html#open
-        :param newline: determines how to parse newline characters from the stream;
+        Parameters
+        ----------
+        filename
+            path to the patch file (diff file) to try to parse (absolute
+            or relative to the current working directory)
+        encoding
+            name of the encoding used to decode the file, defaults to
+            "UTF-8"
+        errors
+            optional string that specifies how decoding errors are to be
+            handled; see documentation of `open` function for list of
+            possible values, see:
+            https://docs.python.org/3/library/functions.html#open
+        newline
+            determines how to parse newline characters from the stream;
             see documentation of `open` function for possible values
-        :param missing_ok: if false (the default), `FileNotFoundError` is raised
-            if the path does not exist, and `PermissionError` is raised if file
-            exists but cannot be read because of path permissions; if `missing_ok` is true,
-            return None on missing file, or file with wrong permissions
-        :param ignore_diff_parse_errors: if false (the default), `unidiff.UnidiffParseError`
-            is raised if there was error parsing the unified diff; if true, return None
-            on parse errors
-        :return: wrapped result of parsing patch file `filename`
+        missing_ok
+            if false (the default), `FileNotFoundError` is raised if the
+            path does not exist, and `PermissionError` is raised if file
+            exists but cannot be read because of path permissions; if
+            `missing_ok` is true, return None on missing file, or file
+            with wrong permissions
+        ignore_diff_parse_errors
+            if false (the default), `unidiff.UnidiffParseError` is
+            raised if there was error parsing the unified diff; if true,
+            return None on parse errors
+
+        Returns
+        -------
+        AnnotatedPatchSet | None
+            wrapped result of parsing patch file `filename`
         """
         # NOTE: unconditionally using `file_path = Path(filename)` would simplify some code
         try:
@@ -434,11 +526,14 @@ class AnnotatedPatchSet:
     def compute_sizes_and_spreads(self) -> Counter:
         """Compute patch set sizes and spread
 
-        See the detailed description of returned metrics in docstring
+        See the detailed description of returned metrics in the docstring
         for `AnnotatedPatchedFile.compute_sizes_and_spreads`.
 
-        :return: Counter with different sizes and different spreads
-            of the given patch set (unified diff object, or diff file)
+        Returns
+        -------
+        Counter
+            Counter with different sizes and different spreads of the
+            given patch set (unified diff object, or diff file)
         """
         result = Counter()
 
@@ -466,13 +561,21 @@ class AnnotatedPatchSet:
 
         TODO: Update and returns the `self.patch_set_data` field (caching results).
 
-        :param sizes_and_spreads: if true, compute also various metrics
-            for patch size and for patch spread with `compute_sizes_and_spreads`
-        :param ignore_annotation_errors: if true (the default), ignore errors during
-            patch annotation process
-        :return: annotated patch data, mapping from changed file names
-            to '+'/'-', to annotated line info (from post-image or pre-image)
-        :rtype: dict[str, dict[str, dict | list | str]]
+        Parameters
+        ----------
+        sizes_and_spreads
+            if true, compute also various metrics for patch size and for
+            patch spread with `compute_sizes_and_spreads`
+        ignore_annotation_errors
+            if true (the default), ignore errors during patch annotation
+            process
+
+        Returns
+        -------
+        dict[str, dict[str, dict | list | str]]
+            annotated patch data, mapping from changed file names to
+            '+'/'-', to annotated line info (from post-image or pre-
+            image)
         """
         i: Optional[int] = None
         patch_annotations: dict[str, Union[dict[str, Union[str, dict]], Counter]] = {}
@@ -501,7 +604,7 @@ class AnnotatedPatchSet:
             # for each changed file
             patched_file: unidiff.PatchedFile
             for i, patched_file in enumerate(self.patch_set, start=1):
-                # create AnnotatedPatchedFile object from i-th changed file in patchset
+                # create AnnotatedPatchedFile object from the i-th changed file in patchset
                 annotated_patch_file = AnnotatedPatchedFile(patched_file)
 
                 # add sources, if repo is available, and they are available from repo
@@ -545,18 +648,24 @@ class AnnotatedPatchedFile:
     It includes metadata about the programming language associated with
     the changed/patched file.
 
-    Note that major part of the annotation process is performed on demand,
+    Note that the major part of the annotation process is performed on demand,
     during the `process()` method call.
 
     Fixes some problems with `unidiff.PatchedFile`
 
-    :ivar patched_file: original `unidiff.PatchedFile` to be annotated
-    :ivar source_file: name of source file (pre-image name),
-        without the "a/" prefix from diff / patch
-    :ivar target_file: name of target file (post-image name),
-        without the "b/" prefix from diff / patch
-    :ivar patch_data: gathers patch files and changed patch lines
-        annotations; mapping from file name to gathered data
+    Attributes
+    ----------
+    patched_file
+        original `unidiff.PatchedFile` to be annotated
+    source_file
+        name of the source file (pre-image name), without the "a/" prefix
+        from diff / patch
+    target_file
+        name of the target file (post-image name), without the "b/" prefix
+        from diff / patch
+    patch_data
+        gathers patch files and changed patch lines annotations; mapping
+        from file name to gathered data
     """
     # NOTE: similar signature to line_is_comment, but returning str
     # TODO: store this type as TypeVar to avoid code duplication
@@ -564,13 +673,20 @@ class AnnotatedPatchedFile:
 
     @staticmethod
     def make_line_callback(code_str: str) -> OptionalLineCallback:
-        """Create line callback function from text of its body
+        """Create the line callback function from the text of its body
 
         Example of creating a no-op callback:
         >>> AnnotatedPatchedFile.line_callback = AnnotatedPatchedFile.make_line_callback("return None")
 
-        :param code_str: text of the function body code
-        :return: callback function or None
+        Parameters
+        ----------
+        code_str
+            text of the function body code
+
+        Returns
+        -------
+        OptionalLineCallback
+            callback function or None
         """
         #print(f"RUNNING make_line_callback(code_str='{code_str[:6]}[...]')")
         if not code_str:
@@ -623,7 +739,10 @@ class AnnotatedPatchedFile:
         of the file based solely on the pathname of a source and of
         a target file, using the :mod:`languages` module.
 
-        :param patched_file: patched file data parsed from unified diff
+        Parameters
+        ----------
+        patched_file
+            patched file data parsed from unified diff
         """
         self.patch_data: dict[str, dict] = defaultdict(lambda: defaultdict(list))
 
@@ -658,7 +777,7 @@ class AnnotatedPatchedFile:
     def add_sources(self, src: str, dst: str) -> 'AnnotatedPatchedFile':
         """Add pre-image and post-image of a file at given diff
 
-        **NOTE:** Modifies self, and returns modified object.
+        **NOTE:** Modifies self, and returns the modified object.
 
         Example:
 
@@ -672,9 +791,17 @@ class AnnotatedPatchedFile:
         >>> patched_file.target
         'b'
 
-        :param src: pre-image contents of patched file
-        :param dst: post-image contents of patched file
-        :return: changed object, to enable flow/builder pattern
+        Parameters
+        ----------
+        src
+            pre-image contents of the patched file
+        dst
+            post-image contents of the patched file
+
+        Returns
+        -------
+        AnnotatedPatchedFile
+            the changed object (to enable flow/builder pattern)
         """
         self.source = src
         self.target = dst
@@ -686,8 +813,8 @@ class AnnotatedPatchedFile:
                                dst_file: Path) -> 'AnnotatedPatchedFile':
         """Read pre-image and post-image for patched file at given diff
 
-        **NOTE:** Modifies self, adding contents of files, and returns modified
-        object.
+        **NOTE:** Modifies self, adding contents of files, and returns
+        the modified object.
 
         Example:
 
@@ -704,9 +831,17 @@ class AnnotatedPatchedFile:
         >>> patched_file_with_sources.source.splitlines()[2]
         'from __future__ import absolute_import'
 
-        :param src_file: path to pre-image contents of patched file
-        :param dst_file: path to post-image contents of patched file
-        :return: changed object
+        Parameters
+        ----------
+        src_file
+            path to pre-image contents of the patched file
+        dst_file
+            path to post-image contents of the patched file
+
+        Returns
+        -------
+        AnnotatedPatchedFile
+            the changed object
         """
         return self.add_sources(
             src_file.read_text(encoding="utf-8"),
@@ -716,8 +851,16 @@ class AnnotatedPatchedFile:
     def image_for_type(self, line_type: Literal['-','+']) -> Optional[str]:
         """Return pre-image for '-', post-image for '+', if available
 
-        :param line_type: denotes line type, e.g. line.line_type from unidiff
-        :return: pre-image or post-image, or None if pre/post-images are not set
+        Parameters
+        ----------
+        line_type
+            denotes the line type, e.g., line.line_type from unidiff
+
+        Returns
+        -------
+        str | None
+            pre-image or post-image, or None if pre-/post-images are not
+            set
         """
         if line_type == unidiff.LINE_TYPE_REMOVED:  # '-'
             return self.source
@@ -727,19 +870,26 @@ class AnnotatedPatchedFile:
             raise ValueError(f"value must be '-' or '+', got {line_type!r}")
 
     def tokens_for_type(self, line_type: Literal['-','+']) -> Optional[dict[int, list[tuple]]]:
-        """Run lexer on a pre-image or post-image contents, if available
+        """Run lexer on a pre-image or post-image content, if available
 
-        Returns (cached) result of lexing pre-image for `line_type` '-',
+        Returns (cached) the result of lexing pre-image for `line_type` '-',
         and of post-image for line type '+'.
 
-        The pre-image and post-image contents of patched file should / can
+        The pre-image and post-image contents of the patched file should / can
         be provided with the help of `add_sources()` or `add_sources_from_files()`
-        methods.
+        method.
 
-        :param line_type: denotes line type, e.g. line.line_type from unidiff;
-            must be one of '+' or '-'.
-        :return: post-processed result of lexing, split into lines,
-            if there is pre-/post-image file contents available.
+        Parameters
+        ----------
+        line_type
+            denotes the line type, e.g., line.line_type from unidiff; it must be
+            one of '+' or '-'.
+
+        Returns
+        -------
+        dict | None
+            post-processed result of lexing, split into lines
+            (if there is pre-/post-image file content available).
         """
         # return cached value, if available
         if line_type == unidiff.LINE_TYPE_REMOVED:  # '-'
@@ -763,7 +913,7 @@ class AnnotatedPatchedFile:
         tokens_list = LEXER.lex(file_path, contents)
         tokens_split = split_multiline_lex_tokens(tokens_list)
         tokens_group = group_tokens_by_line(contents, tokens_split)
-        # just in case, it should not be needed
+        # just in case, it should not be necessary
         tokens_group = front_fill_gaps(tokens_group)
 
         # save/cache computed data
@@ -787,14 +937,24 @@ class AnnotatedPatchedFile:
         contents, counting from 1 (the same as diff and unidiff), to the list
         of tokens corresponding to the line in question.
 
-        :param line_type: denotes line type, e.g. line.line_type from unidiff;
-            must be one of '-' (unidiff.LINE_TYPE_REMOVED) or '+' (unidiff.LINE_TYPE_ADDED).
-        :param start_line: starting line number in file, counting from 1
-        :param length: number of lines to return results for,
-            starting from `start_line`
-        :return: post-processed result of lexing, split into lines,
-            if there is pre-/post-image file contents available;
-            None if there is no pre-/post-image contents attached.
+        Parameters
+        ----------
+        line_type
+            denotes the line type, e.g., line.line_type from unidiff;
+            must be one of '-' (unidiff.LINE_TYPE_REMOVED)
+            or '+' (unidiff.LINE_TYPE_ADDED).
+        start_line
+            starting line number in the file, counting from 1
+        length
+            number of lines to return results for, starting from
+            `start_line`
+
+        Returns
+        -------
+        dict | None
+            post-processed result of lexing split into lines, if there
+            is pre-/post-image file content available; None, if there is
+            no pre-/post-image content attached.
         """
         tokens_list = self.tokens_for_type(line_type=line_type)
         if tokens_list is None:
@@ -812,21 +972,30 @@ class AnnotatedPatchedFile:
                              hunk: Union[unidiff.Hunk, 'AnnotatedHunk']) -> Optional[dict[int, list[tuple]]]:
         """Lexing results for removed ('-')/added ('+') lines in hunk, if possible
 
-        The pre-image and post-image contents of patched file should / can
+        The pre-image and post-image contents of the patched file should / can
         be provided with the help of `add_sources()` or `add_sources_from_files()`
-        methods.  If this contents is not provided, this method returns None.
+        methods.  If this content is not provided, this method returns None.
 
         The result is mapping from line number of the pre- or post-image
         contents, counting from 1 (the same as diff and unidiff), to the list
         of tokens corresponding to the line in question.
 
-        :param line_type: denotes line type, e.g. line.line_type from unidiff;
-            must be one of '-' (unidiff.LINE_TYPE_REMOVED) or '+' (unidiff.LINE_TYPE_ADDED).
-        :param hunk: block of changes in fragment of diff corresponding
-            to changed file, either unidiff.Hunk or annotate.AnnotatedHunk
-        :return: post-processed result of lexing, split into lines,
-            if there is pre-/post-image file contents available;
-            None if there is no pre-/post-image contents attached.
+        Parameters
+        ----------
+        line_type
+            denotes the line type, e.g., line.line_type from unidiff; must be
+            one of '-' (unidiff.LINE_TYPE_REMOVED) or '+'
+            (unidiff.LINE_TYPE_ADDED).
+        hunk
+            block of changes in the fragment of diff corresponding to
+            the changed file, either unidiff.Hunk or annotate.AnnotatedHunk
+
+        Returns
+        -------
+        dict | None
+            post-processed result of lexing split into lines, if there
+            is pre-/post-image file content available; None, if there is
+            no pre-/post-image content attached.
         """
         tokens_list = self.tokens_for_type(line_type=line_type)
         if tokens_list is None:
@@ -839,16 +1008,16 @@ class AnnotatedPatchedFile:
         for hunk_line_no, line in enumerate(hunk):
             if line.line_type != line_type:
                 continue
-            # NOTE: first line of file is line number 1, not 0, according to (uni)diff
+            # NOTE: the first line of the file is line number 1, not 0, according to (uni)diff
             # but self.tokens_for_type(line_type) returns 0-based indexing
             line_no = line.source_line_no if line_type == unidiff.LINE_TYPE_REMOVED else line.target_line_no
-            # first line is 1; first element has index 0
+            # the first line is 1; the first element has index 0
             result[hunk_line_no] = tokens_list[line_no - 1]
 
         return result
 
     def compute_sizes_and_spreads(self) -> Counter:
-        """Compute sizes and spread for patched file in diff/patch
+        """Compute sizes and spread for the patched file in diff/patch
 
         Computes the following metrics:
 
@@ -881,8 +1050,11 @@ class AnnotatedPatchedFile:
             a single changed patched file, measuring how wide across file
             contents the patch spreads, as 'groups_spread'
 
-        :return: Counter with different sizes and different spreads
-            of the given changed file
+        Returns
+        -------
+        Counter
+            Counter with different sizes and different spreads of the
+            given changed file
         """
         # Handle the case where there are no hunks of changed lines,
         # for the case of change to the binary file:
@@ -900,11 +1072,11 @@ class AnnotatedPatchedFile:
         result = Counter({
             'n_files': 1,
             'hunk_span_src':
-                # line number of last hunk - line number of first hunk in source (pre-image)
+                # line number of last hunk - line number of first hunk in the source (the pre-image)
                 (self.patched_file[-1].source_start + self.patched_file[-1].source_length - 1
                  - self.patched_file[0].source_start),
             'hunk_span_dst':
-                # line number of last hunk - line number of first hunk in target (post-image)
+                # line number of last hunk - line number of first hunk in the target (the post-image)
                 (self.patched_file[-1].target_start + self.patched_file[-1].target_length - 1
                  - self.patched_file[0].target_start),
         })
@@ -929,7 +1101,7 @@ class AnnotatedPatchedFile:
             result += hunk_result
 
             if prev_hunk_info is not None:
-                # there was previous hunk,
+                # there was a previous hunk,
 
                 # computing hunk-to-hunk distance
                 # between pre- and post-image line numbers of end of previous hunk
@@ -983,20 +1155,23 @@ class AnnotatedPatchedFile:
         return result
 
     def process(self):
-        """Process hunks in patched file, annotating changes
+        """Process hunks in the patched file, annotating changes
 
         Returns single-element mapping from filename to pre- and post-image
-        line annotations.  The pre-image line annotations use "-" as key,
-        while post-image use "+".
+        line annotations.  The pre-image line annotations use "-" as a key,
+        while post-image annotations use "+" as a key.
 
         The format of returned values is described in more detail
-        in `AnnotatedHunk.process()` documentation.
+        in the `AnnotatedHunk.process()` documentation.
 
         Updates and returns the `self.patch_data` field.
 
-        :return: annotated patch data, mapping from changed file name
-            to '+'/'-', to annotated line info (from post-image or pre-image)
-        :rtype: dict[str, dict[str, dict]]
+        Returns
+        -------
+        dict[str, dict[str, dict]]
+            annotated patch data, mapping from changed file name to
+            '+'/'-', to annotated line info (from post-image or
+            pre-image)
         """
         for idx, hunk in enumerate(self.patched_file):
             hunk_data = AnnotatedHunk(self, hunk, hunk_idx=idx).process()
@@ -1011,24 +1186,34 @@ class AnnotatedHunk:
     It parses pre-image and post-image of a hunk using Pygments, and assigns
     the type of "code" or "documentation" for each changed line.
 
-    Note that major part of the annotation process is performed on demand,
+    Note that the major part of the annotation process is performed on demand,
     during the `process()` method call.
 
-    :ivar patched_file: `AnnotatedPatchedFile` this `AnnotatedHunk` belongs to
-    :ivar hunk: source `unidiff.Hunk` (modified blocks of a file) to annotate
-    :ivar patch_data: place to gather annotated hunk data
+    Attributes
+    ----------
+    patched_file
+        `AnnotatedPatchedFile` this `AnnotatedHunk` belongs to
+    hunk
+        source `unidiff.Hunk` (modified blocks of a file) to annotate
+    patch_data
+        place to gather annotated hunk data
     """
     def __init__(self, patched_file: AnnotatedPatchedFile, hunk: unidiff.Hunk, hunk_idx: int):
         """Initialize AnnotatedHunk with AnnotatedPatchedFile and Hunk
 
-        The `patched_file` is used to examine file purpose, and possibly
+        The `patched_file` is used to examine the file purpose, and possibly
         annotate lines according to `PURPOSE_TO_ANNOTATION` mapping.
-        For example each changed line in a changed file which purpose is
-        "documentation" is also marked as having "documentation" type.
+        For example, each changed line in a changed file whose purpose is
+        "documentation" is also marked as having the "documentation" type.
 
-        :param patched_file: changed file the hunk belongs to
-        :param hunk: diff hunk to annotate
-        :param hunk_idx: index of this hunk in the patched file (0-based hunk number)
+        Parameters
+        ----------
+        patched_file
+            changed file the hunk belongs to
+        hunk
+            diff hunk to annotate
+        hunk_idx
+            index of this hunk in the patched file (0-based hunk number)
         """
         self.patched_file = patched_file
         self.hunk = hunk
@@ -1038,19 +1223,28 @@ class AnnotatedHunk:
 
     @staticmethod
     def file_line_no(line: PatchLine) -> int:
-        """Line number in source file (for '-') or target file (for '+' and ' ')
+        """Line number in the source file (for '-') or the target file (for '+' and ' ')
 
         This line number is 1-based (first line in file has file line no equal 1,
         not 0), and is _not unique_.  For example, for changed line there might be
         added line with the same file line no in target as removed line in source.
 
-        Similar code is used in AnnotatedPatchedFile.hunk_tokens_for_type() method.
+        Similar code is used in the `AnnotatedPatchedFile.hunk_tokens_for_type()` method.
 
-        NOTE: Might be made into a function, instead of static method
-        (it does not use `self`), or method or property monkey-patched onto PatchLine.
+        NOTE: Might be made into a function, instead of being a static method
+        (it does not use `self`), or a method or a property monkey-patched
+        onto `PatchLine` class.
 
-        :param line: PatchLine from Hunk from PatchedFile from PatchSet (unidiff)
-        :return: 1-based line number of changed line in source or target file, respectively
+        Parameters
+        ----------
+        line
+            PatchLine from Hunk from PatchedFile from PatchSet (unidiff)
+
+        Returns
+        -------
+        int
+            1-based line number of changed line in the source or the target
+            file, respectively
         """
         return line.source_line_no \
             if line.line_type == unidiff.LINE_TYPE_REMOVED \
@@ -1059,14 +1253,22 @@ class AnnotatedHunk:
     def tokens_for_type(self, line_type: Literal['-','+']) -> Optional[dict[int, list[tuple]]]:
         """Lexing results for removed ('-')/added ('+') lines in hunk, if possible
 
-        Passes work to `AnnotatedPatchedFile.hunk_tokens_for_type` method
+        Passes work to the `AnnotatedPatchedFile.hunk_tokens_for_type` method
         for a patched file this hunk belongs to.
 
-        :param line_type: line_type: denotes line type, e.g. line.line_type from unidiff;
-            must be one of '-' (unidiff.LINE_TYPE_REMOVED) or '+' (unidiff.LINE_TYPE_ADDED).
-        :return: post-processed result of lexing, split into lines,
-            if there is pre-/post-image file contents available;
-            None if there is no pre-/post-image contents attached.
+        Parameters
+        ----------
+        line_type
+            line_type: denotes line type, e.g., line.line_type from
+            unidiff; must be one of '-' (unidiff.LINE_TYPE_REMOVED) or
+            '+' (unidiff.LINE_TYPE_ADDED).
+
+        Returns
+        -------
+        dict | None
+            post-processed result of lexing, split into lines, if there
+            is pre-/post-image file contents available; None if there is
+            no pre-/post-image contents attached.
         """
         return self.patched_file.hunk_tokens_for_type(line_type, self.hunk)
 
@@ -1091,7 +1293,7 @@ class AnnotatedHunk:
 
         - hunk spread
 
-          - number of groups, i.e. spans of removed and added lines,
+          - number of groups, i.e., spans of removed and added lines,
             not interrupted by context line (also called "chunks"),
             as 'n_groups'
           - sum of distance in context lines between groups (chunks)
@@ -1099,7 +1301,7 @@ class AnnotatedHunk:
 
         - patched file spread helpers
 
-          - start and end if hunk (pre-image and post-image)
+          - start and end of hunk (pre-image and post-image)
             as 'hunk_start' and 'hunk_end' - both values are tuple of
             source file (pre-image) line number and target file (post-image) line number
           - start of first group and end of first group (pre-/post-image)
@@ -1107,8 +1309,11 @@ class AnnotatedHunk:
           - type of line that started first group, and that ended last group
             of changed lines, as 'type_first' and 'type_last'
 
-        :return: (Counter with different sizes and different spreads
-            of the given hunk, dict with data needed to compute inter-hunk
+        Returns
+        -------
+        (Counter, dict)
+            (Counter with different sizes and different spreads of the
+            given hunk, dict with data needed to compute inter-hunk
             spread)
         """
         result = Counter({
@@ -1150,7 +1355,7 @@ class AnnotatedHunk:
                 else:
                     info['groups_end'] = (info['groups_end'][0], hunk_line.target_line_no)
 
-                # check if number of removed lines is not greater than number of added lines
+                # check if the number of removed lines is not greater than the number of added lines
                 if n_same_type > 0:
                     result['n_mod'] += 1
                     result['n_rem'] -= 1  # previous group
@@ -1168,7 +1373,7 @@ class AnnotatedHunk:
                     info['groups_end'] = (hunk_line.source_line_no, info['groups_end'][1])
 
                 # NOTE: this should never happen in a proper unified diff
-                # check if number of removed lines is not greater than number of added lines
+                # check if the number of removed lines is not greater than the number of added lines
                 if n_same_type > 0:
                     result['n_mod'] += 1
                     result['n_add'] -= 1  # previous group
@@ -1178,8 +1383,8 @@ class AnnotatedHunk:
                     # Assumes only __++--__ is possible, and --++-- etc. is not
 
             elif hunk_line.is_context:
-                # A chunk (group) is a sequence of continuous changes in a file, consisting of the combination
-                # of addition, removal, and modification of lines (i.e. added ('+') or removed ('-') lines)
+                # A chunk (group) is a sequence of continuous changes in a file consisting of the combination
+                # of addition, removal, and modification of lines (i.e., added ('+') or removed ('-') lines)
                 if prev_group_line_type != unidiff.LINE_TYPE_CONTEXT:
                     result['n_groups'] += 1
                     if prev_group_line_type in {unidiff.LINE_TYPE_REMOVED, unidiff.LINE_TYPE_ADDED}:
@@ -1250,9 +1455,9 @@ class AnnotatedHunk:
         """Process associated patch hunk, annotating changes
 
         Returns single-element mapping from filename to pre- and post-image
-        line annotations.  The pre-image line annotations use "-" as key,
-        while post-image use "+".  For each line, there is currently gathered
-        the following data:
+        line annotations.  The pre-image line annotations use "-" as a key,
+        while post-image use "+" as a key.  For each line, there is currently
+        gathered the following data:
 
         - "id": line number in the hunk itself (it is not line number in pre-image
           for "-" lines, or line image in post-image for "+" lines); this numbering
@@ -1270,11 +1475,14 @@ class AnnotatedHunk:
 
         Updates and returns the `self.patch_data` field.
 
-        :return: annotated patch data, mapping from changed file name
-            to '+'/'-', to annotated line info (from post-image or pre-image)
-        :rtype: dict[str, dict[str, dict]]
+        Returns
+        -------
+        dict[str, dict[str, dict]]
+            annotated patch data, mapping from changed file name to
+            '+'/'-', to annotated line info (from post-image or
+            pre-image)
         """
-        # choose file name to be used to select file type and lexer
+        # choose the file name to be used to select the file type and the lexer
         if self.patched_file.source_file == "/dev/null":
             file_path = self.patched_file.target_file
         else:
@@ -1326,14 +1534,14 @@ class AnnotatedHunk:
 
             tokens_group = self.tokens_for_type(line_type)
             if tokens_group is None:
-                # pre-/post-image contents is not available, use what is in diff
-                # dict are sorted, line_data elements are entered ascending
+                # pre-/post-image content is not available, use what is in diff
+                # dicts are sorted, line_data elements are entered ascending
                 source = ''.join([line['value'] for line in line_data.values()])
 
                 tokens_list = LEXER.lex(file_path, source)
                 tokens_split = split_multiline_lex_tokens(tokens_list)
                 tokens_group = group_tokens_by_line(source, tokens_split)
-                # just in case, it should not be needed
+                # just in case, it should not be necessary
                 tokens_group = front_fill_gaps(tokens_group)
                 # index tokens_group with hunk line no, not line index of pre-/post-image fragment
                 tokens_group = {
@@ -1384,20 +1592,30 @@ class AnnotatedHunk:
                             tokens: list[tuple]) -> None:
         """Add line annotations for a given line in a hunk
 
-        :param line_no: line number (line index) in a diff hunk body, 0-based
-        :param hunk_idx: hunk number (hunk index) in a diff patched file, 0-based
-        :param in_hunk: line number (line index) of _changed_ line in a diff hunk body;
-            only '-' lines and '+' lines counts, 0-based
-        :param file_line_no: line number in a file the line came from, 1-based
-        :param source_file: name of changed file in pre-image of diff,
-            before changes
-        :param target_file: name of changed file in post-image of diff,
-            after changes
-        :param change_type: one of `LINE_TYPE_*` constants from `unidiff.constants`
-        :param line_annotation: type of line ("code", "documentation",...)
-        :param purpose: purpose of file ("project", "programming", "documentation",
+        Parameters
+        ----------
+        line_no
+            line number (line index) in a diff hunk body, 0-based
+        hunk_idx
+            hunk number (hunk index) in a diff patched file, 0-based
+        in_hunk
+            line number (line index) of _changed_ line in a diff hunk
+            body; only '-' lines and '+' lines counts, 0-based
+        file_line_no
+            line number in a file the line came from, 1-based
+        source_file
+            name of changed file in pre-image of diff, before changes
+        target_file
+            name of changed file in post-image of diff, after changes
+        change_type
+            one of `LINE_TYPE_*` constants from `unidiff.constants`
+        line_annotation
+            type of line ("code", "documentation",...)
+        purpose
+            purpose of file ("project", "programming", "documentation",
             "data", "markup", "other",...)
-        :param tokens: result of `pygments.lexer.Lexer.get_tokens_unprocessed()`
+        tokens
+            result of `pygments.lexer.Lexer.get_tokens_unprocessed()`
         """
         data = {
             'id': line_no,
@@ -1422,21 +1640,34 @@ def annotate_single_diff(diff_path: PathLike,
                          missing_ok: bool = False,
                          ignore_diff_parse_errors: bool = True,
                          ignore_annotation_errors: bool = True) -> dict:
-    """Annotate single unified diff patch file at given path
+    """Annotate a single unified diff patch file at the given path
 
-    :param diff_path: patch filename
-    :param sizes_and_spreads: if true, compute also various metrics
-        for patch size and for patch spread with `AnnotatedPatchSet.compute_sizes_and_spreads()`
-    :param missing_ok: if false (the default), raise exception if `diff_path`
-        does not exist, or cannot be read.
-    :param ignore_diff_parse_errors: if true (the default), ignore parse errors
-        (malformed patches), otherwise re-raise the exception
-    :param ignore_annotation_errors: if true (the default), ignore errors during
-        patch annotation process
-    :return: annotation data
+    Parameters
+    ----------
+    diff_path
+        patch filename
+    sizes_and_spreads
+        if true, compute also various metrics for patch size and for
+        patch spread with
+        `AnnotatedPatchSet.compute_sizes_and_spreads()`
+    missing_ok
+        if false (the default), raise exception if `diff_path` does not
+        exist, or cannot be read.
+    ignore_diff_parse_errors
+        if true (the default), ignore parse errors (malformed patches),
+        otherwise re-raise the exception
+    ignore_annotation_errors
+        if true (the default), ignore errors during patch annotation
+        process
+
+    Returns
+    -------
+    dict
+        annotation data
     """
-    patch_set = AnnotatedPatchSet.from_filename(diff_path, encoding="utf-8", missing_ok=missing_ok,
-                                                ignore_diff_parse_errors=ignore_diff_parse_errors)
+    patch_set: Optional[AnnotatedPatchSet] = \
+        AnnotatedPatchSet.from_filename(diff_path, encoding="utf-8", missing_ok=missing_ok,
+                                        ignore_diff_parse_errors=ignore_diff_parse_errors)
 
     return patch_set.process(sizes_and_spreads=sizes_and_spreads,
                              ignore_annotation_errors=ignore_annotation_errors)
@@ -1445,20 +1676,27 @@ def annotate_single_diff(diff_path: PathLike,
 class Bug:
     """Represents a single bug in a dataset, or a set of related patches
 
-    :ivar patches: mapping from some kind of identifiers to annotated patches;
-        the identifier might be the pathname of patch file, or the commit id
-    :vartype patches: dict[str, dict]
-    :cvar DEFAULT_PATCHES_DIR: default value for `patches_dir` parameter
-        in `Bug.from_dataset()` static method (class property)
-    :cvar DEFAULT_ANNOTATIONS_DIR:  default value for `annotations_dir` parameter
-        in `Bug.from_dataset()` static method (class property)
-    :ivar read_dir: path to the directory patches were read from, or None
-    :ivar save_dir: path to default directory where annotated data should
-        be saved (if `save()` method is called without `annotate_dir`), or None
-    :ivar relative_save_dir: bug_id / annotations_dir, i.e. subdirectory
-        where to save annotation data, relative to `annotate_dir` parameter
-        in `save()` method; **available only** if the Bug object was created
-        with `from_dataset()`
+    Attributes
+    ----------
+    patches : dict[str, dict]
+        mapping from some kind of identifiers to annotated patches; the
+        identifier might be the pathname of patch file, or the commit id
+    DEFAULT_PATCHES_DIR
+        default value for `patches_dir` parameter in
+        `Bug.from_dataset()` static method (class property)
+    DEFAULT_ANNOTATIONS_DIR
+        default value for `annotations_dir` parameter in
+        `Bug.from_dataset()` static method (class property)
+    read_dir
+        path to the directory patches were read from, or None
+    save_dir
+        path to default directory where annotated data should be saved
+        (if `save()` method is called without `annotate_dir`), or None
+    relative_save_dir
+        bug_id / annotations_dir, i.e. subdirectory where to save
+        annotation data, relative to `annotate_dir` parameter in
+        `save()` method; **available only** if the Bug object was
+        created with `from_dataset()`
     """
     DEFAULT_PATCHES_DIR: str = "patches"
     DEFAULT_ANNOTATIONS_DIR: str = "annotation"
@@ -1466,20 +1704,25 @@ class Bug:
     def __init__(self, patches_data: dict, *,
                  read_dir: Optional[PathLike] = None,
                  save_dir: Optional[PathLike] = None):
-        """Constructor for class representing a single Bug
+        """Constructor for the class representing a single Bug
 
         You better use alternative constructors instead:
 
         - `Bug.from_dataset` - from patch files in a directory (a dataset)
         - `Bug.from_patchset` - from patch id and unidiff.PatchSet
 
-        :param patches_data: annotation data, from annotating a patch
-            or a series of patches (e.g. from `annotate_single_diff()`);
-            a mapping from patch id (e.g. filename of a patch file)
-            to the result of annotating said patch
-        :param read_dir: path to the directory patches were read from, or None
-        :param save_dir: path to default directory where annotated data should
-            be saved, or None
+        Parameters
+        ----------
+        patches_data
+            annotation data, from annotating a patch or a series of
+            patches (e.g., from `annotate_single_diff()`); a mapping from
+            patch id (e.g., filename of a patch file) to the result of
+            annotating said patch
+        read_dir
+            the path to the directory patches were read from, or None
+        save_dir
+            the path to default directory where annotated data should be
+            saved, or None
         """
         self.read_dir: Optional[Path] = Path(read_dir) \
             if read_dir is not None else None
@@ -1495,28 +1738,42 @@ class Bug:
                      annotations_dir: str = DEFAULT_ANNOTATIONS_DIR,
                      sizes_and_spreads: bool = False,
                      fan_out: bool = False) -> 'Bug':
-        """Create Bug object from patch files for given bug in given dataset
+        """Create the Bug object from patch files for given bug in given dataset
 
         Assumes that patch files have '*.diff' extension, and that they are
         in the `dataset_dir` / `bug_id` / `patches_dir` subdirectory (if `patches_dir`
         is an empty string, this is just `dataset_dir` / `bug_id`).
 
-        :param dataset_dir: path to the dataset (parent directory to
-            the directory with patch files)
-        :param bug_id: bug id (name of directory with patch files)
-        :param patches_dir: name of subdirectory with patch files, if any;
-            patches are assumed to be in dataset_dir / bug_id / patches_dir directory;
-            use empty string ("") to not use subdirectory
-        :param annotations_dir: name of subdirectory where annotated data will be saved;
-            in case the `save()` method is invoked without providing `annotate_path`
-            parameter, the data is saved in dataset_dir / bug_id / annotations_dir
-            subdirectory; use empty string ("") to not use subdirectory
-        :param sizes_and_spreads: if true, compute also various metrics
-            for patch size and for patch spread
-        :param fan_out: the dataset uses stores patches in fan-out subdirectories,
-            like the ones generated by 'diff-generate --use-fanout', that is patches
-            are assumed to be in dataset_dir / bug_id / patches_dir / fanout_subdir
-        :return: Bug object instance
+        Parameters
+        ----------
+        dataset_dir
+            path to the dataset (parent directory to the directory with
+            patch files)
+        bug_id
+            bug id (name of directory with patch files)
+        patches_dir
+            name of subdirectory with patch files, if any; patches are
+            assumed to be in dataset_dir / bug_id / patches_dir
+            directory; use empty string ("") to not use subdirectory
+        annotations_dir
+            name of subdirectory where annotated data will be saved; in
+            case the `save()` method is invoked without providing
+            `annotate_path` parameter, the data is saved in dataset_dir
+            / bug_id / annotations_dir subdirectory; use empty string
+            ("") to not use subdirectory
+        sizes_and_spreads
+            if true, compute also various metrics for patch size and for
+            patch spread
+        fan_out
+            the dataset uses stores patches in fan-out subdirectories,
+            like the ones generated by 'diff-generate --use-fanout',
+            that is patches are assumed to be in dataset_dir / bug_id /
+            patches_dir / fanout_subdir
+
+        Returns
+        -------
+        Bug
+            Bug object instance
         """
         read_dir = Path(dataset_dir).joinpath(bug_id, patches_dir)
         save_dir = Path(dataset_dir).joinpath(bug_id, annotations_dir)  # default for .save()
@@ -1542,19 +1799,29 @@ class Bug:
     def from_patchset(cls, patch_id: Union[str, None], patch_set: unidiff.PatchSet,
                       sizes_and_spreads: bool = False,
                       repo: Optional[GitRepo] = None) -> 'Bug':
-        """Create Bug object from unidiff.PatchSet
+        """Create the Bug object from the unidiff.PatchSet
 
         If `patch_id` is None, then it tries to use the 'commit_id' attribute
         of `patch_set`; if this attribute does not exist, it constructs artificial
         `patch_id` (currently based on repr(patch_set), but that might change).
 
-        :param patch_id: identifies source of the `patch_set`
-        :param patch_set: changes to annotate
-        :param sizes_and_spreads: if true, compute also various metrics
-            for patch size and for patch spread with compute_sizes_and_spreads
-        :param repo: the git repository patch comes from; to be able to use
-            it, `patch_set` should be changes in repo for commit `patch_id`
-        :return: Bug object instance
+        Parameters
+        ----------
+        patch_id
+            identifies the source of the `patch_set`
+        patch_set
+            changes to annotate
+        sizes_and_spreads
+            if true, compute also various metrics for patch size and for
+            patch spread with compute_sizes_and_spreads
+        repo
+            the git repository patch comes from; to be able to use it,
+            `patch_set` should be changes in repo for commit `patch_id`
+
+        Returns
+        -------
+        Bug
+            Bug object instance
         """
         annotated_patch = AnnotatedPatchSet(patch_set=patch_set, repo=repo)
         patch_annotations = annotated_patch.process(
@@ -1570,10 +1837,18 @@ class Bug:
                    sizes_and_spreads: bool = False) -> dict:
         """Get and annotate a single patch
 
-        :param patch_file: basename of a patch
-        :param sizes_and_spreads: if true, compute also various metrics
-            for patch size and for patch spread
-        :return: annotated patch data
+        Parameters
+        ----------
+        patch_file
+            basename of a patch
+        sizes_and_spreads
+            if true, compute also various metrics for patch size and for
+            patch spread
+
+        Returns
+        -------
+        dict
+            annotated patch data
         """
         patch_path = self.read_dir.joinpath(patch_file)
 
@@ -1588,16 +1863,26 @@ class Bug:
     def _get_patches_from_dir(self, patches_dir: PathLike,
                               sizes_and_spreads: bool = False,
                               fan_out: bool = False) -> dict[str, dict]:
-        """Get and annotate set of patches from given directory
+        """Get and annotate the set of patches from the given directory
 
-        :param patches_dir: directory with patches
-        :param sizes_and_spreads: if true, compute also various metrics
-            for patch size and for patch spread
-        :param fan_out: the dataset uses stores patches in fan-out subdirectories,
-            like the ones generated by 'diff-generate --use-fanout', that is patches
-            are assumed to be in dataset_dir / bug_id / patches_dir / fanout_subdir
-        :return: mapping from patch filename (patch source)
-            to annotated patch data
+        Parameters
+        ----------
+        patches_dir
+            directory with patches
+        sizes_and_spreads
+            if true, compute also various metrics for patch size and for
+            patch spread
+        fan_out
+            the dataset uses stores patches in fan-out subdirectories,
+            like the ones generated by 'diff-generate --use-fanout',
+            that is patches are assumed to be in dataset_dir / bug_id /
+            patches_dir / fanout_subdir
+
+        Returns
+        -------
+        dict
+            mapping from patch filename (patch source) to annotated
+            patch data
         """
         patches_data = {}
 
@@ -1615,17 +1900,25 @@ class Bug:
 
     def _get_patches_from_dir_with_fanout(self, patches_dir: PathLike,
                                           sizes_and_spreads: bool = False) -> dict[str, dict]:
-        """Get and annotate set of patches from given directory, with fan-out
+        """Get and annotate the set of patches from the given directory, with fan-out
 
         Fan-out means that individual patches (diffs), instead of being
         stored directly in the `patches_dir` directory, are instead
-        stored in subdirectories of said directory, 1 level deeper.
+        stored in subdirectories of the said directory, 1 level deeper.
 
-        :param patches_dir: directory with patches
-        :param sizes_and_spreads: if true, compute also various metrics
-            for patch size and for patch spread
-        :return: mapping from patch filename (patch source),
-            relative to `patches_dir` (as string), to annotated patch data
+        Parameters
+        ----------
+        patches_dir
+            directory with patches
+        sizes_and_spreads
+            if true, compute also various metrics for patch size and for
+            patch spread
+
+        Returns
+        -------
+        dict
+            mapping from patch filename (patch source), relative to
+            `patches_dir` (as string), to annotated patch data
         """
         patches_data = {}
 
@@ -1648,16 +1941,21 @@ class Bug:
         return patches_data
 
     def save(self, annotate_dir: Optional[PathLike] = None, fan_out: bool = False,
-             output_format_ext: JSONFormatExt = JSONFormatExt.V2):
+             output_format_ext: JSONFormatExt = JSONFormatExt.V2) -> None:
         """Save annotated patches in JSON format
 
-        :param annotate_dir: Separate dir to save annotations, optional.
-            If not set, `self.save_dir` is used as a base path.
-        :param fan_out: Save annotated data in a fan-out directory,
-            named after first 2 hexdigits of patch_id; the rest is used
-            for the basename; splits patch_id.
-        :param output_format_ext: Extension used when saving the data;
-            should look like JSON, e.g. '.json', '.v2.json', etc.
+        Parameters
+        ----------
+        annotate_dir
+            Separate dir to save annotations, optional. If not set,
+            `self.save_dir` is used as a base path.
+        fan_out
+            Save annotated data in a fan-out directory, named after
+            the first 2 hexdigits of patch_id; the rest is used for the
+            basename; splits patch_id.
+        output_format_ext
+            Extension used when saving the data; should look like JSON,
+            e.g. '.json', '.v2.json', etc.
         """
         if annotate_dir is not None:
             base_path = Path(annotate_dir)
@@ -1671,7 +1969,7 @@ class Bug:
         if base_path is None:
             raise ValueError("For this Bug, annotate_dir parameter must be provided to .save()")
 
-        # ensure that base_path exists in filesystem
+        # ensure that base_path exists in the filesystem
         base_path.mkdir(parents=True, exist_ok=True)
 
         # save annotated patches data
@@ -1693,14 +1991,20 @@ class Bug:
 class BugDataset:
     """Bugs dataset class
 
-    :ivar bug_ids: list of bug identifiers (directories with patch files)
-        contained in a given `dataset_dir`, or list of PatchSet extracted
-        from Git repo - that can be turned into annotated patch data with
-        `get_bug()` method.
-    :ivar _dataset_path: path to the dataset directory (with directories with patch files);
-        present only when creating `BugDataset` object from dataset directory.
-    :ivar _patches: mapping from patch id to `unidiff.PatchSet` (unparsed);
-        present only when creating `BugDataset` object from Git repo commits.
+    Attributes
+    ----------
+    bug_ids
+        list of bug identifiers (directories with patch files) contained
+        in a given `dataset_dir`, or list of PatchSet extracted from Git
+        repo - that can be turned into annotated patch data with
+        the `get_bug()` method.
+    _dataset_path
+        path to the dataset directory (with directories with patch
+        files); present only when creating the `BugDataset` object from
+        the dataset directory.
+    _patches
+        mapping from patch id to `unidiff.PatchSet` (unparsed); present
+        only when creating the `BugDataset` object from Git repo commits.
     """
 
     def __init__(self, bug_ids: list[str],
@@ -1718,23 +2022,33 @@ class BugDataset:
           (bugs) of a given directory (a dataset)
         - `BugDataset.from_repo` - from selected commits in a Git repo
 
-        :param bug_ids: set of bug ids
-        :param dataset_path: path to the dataset, if BugDataset was created
-            from dataset directory via `BugDataset.from_directory`
-        :param patches_dict: mapping from patch id to patch / patchset
-        :param patches_dir: name of subdirectory with patch files, if any;
-            patches are assumed to be in dataset_dir / bug_id / patches_dir directory;
-            use empty string ("") to not use subdirectory;
+        Parameters
+        ----------
+        bug_ids
+            set of bug ids
+        dataset_path
+            path to the dataset, if BugDataset was created from dataset
+            directory via `BugDataset.from_directory`
+        patches_dict
+            mapping from patch id to patch / patchset
+        patches_dir
+            name of subdirectory with patch files, if any; patches are
+            assumed to be in dataset_dir / bug_id / patches_dir
+            directory; use empty string ("") to not use subdirectory;
             makes sense only if `dataset_path` is not None
-        :param annotations_dir: name of subdirectory where annotated data will be saved;
-            in case the `save()` method is invoked without providing `annotate_path`
-            parameter, the data is saved in dataset_dir / bug_id / annotations_dir
-            subdirectory; use empty string ("") to not use subdirectory;
-            makes sense only if `dataset_path` is not None
-        :param fan_out: assume that patches are stored in fan-out subdirectories,
-            like the ones generated by 'diff-generate --use-fanout', that is patches
-            are assumed to be in dataset_dir / bug_id / patches_dir / fanout_subdir;
-            makes sense only if `dataset_path` is not None
+        annotations_dir
+            name of subdirectory where annotated data will be saved; in
+            case the `save()` method is invoked without providing
+            `annotate_path` parameter, the data is saved in dataset_dir
+            / bug_id / annotations_dir subdirectory; use empty string
+            ("") to not use subdirectory; makes sense only if
+            `dataset_path` is not None
+        fan_out
+            assume that patches are stored in fan-out subdirectories,
+            like the ones generated by 'diff-generate --use-fanout',
+            that is patches are assumed to be in dataset_dir / bug_id /
+            patches_dir / fanout_subdir; makes sense only if
+            `dataset_path` is not None
         """
         self.bug_ids = bug_ids
         # identifies type of BugDataset
@@ -1757,18 +2071,30 @@ class BugDataset:
                        fan_out: bool = False) -> 'BugDataset':
         """Create BugDataset object from directory with directories with patch files
 
-        :param dataset_dir: path to the dataset
-        :param patches_dir: name of subdirectory with patch files, if any;
-            patches are assumed to be in dataset_dir / bug_id / patches_dir directory;
-            use empty string ("") to not use subdirectory
-        :param annotations_dir: name of subdirectory where annotated data will be saved;
-            in case the `save()` method is invoked without providing `annotate_path`
-            parameter, the data is saved in dataset_dir / bug_id / annotations_dir
-            subdirectory; use empty string ("") to not use subdirectory
-        :param fan_out: assume that patches are stored in fan-out subdirectories,
-            like the ones generated by 'diff-generate --use-fanout', that is patches
-            are assumed to be in dataset_dir / bug_id / patches_dir / fanout_subdir
-        :return: BugDataset object instance
+        Parameters
+        ----------
+        dataset_dir
+            path to the dataset
+        patches_dir
+            name of subdirectory with patch files, if any; patches are
+            assumed to be in dataset_dir / bug_id / patches_dir
+            directory; use empty string ("") to not use subdirectory
+        annotations_dir
+            name of subdirectory where annotated data will be saved; in
+            case the `save()` method is invoked without providing
+            `annotate_path` parameter, the data is saved in dataset_dir
+            / bug_id / annotations_dir subdirectory; use empty string
+            ("") to not use subdirectory
+        fan_out
+            assume that patches are stored in fan-out subdirectories,
+            like the ones generated by 'diff-generate --use-fanout',
+            that is patches are assumed to be in dataset_dir / bug_id /
+            patches_dir / fanout_subdir
+
+        Returns
+        -------
+        BugDataset
+            BugDataset object instance
         """
         dataset_path = Path(dataset_dir)
 
@@ -1790,13 +2116,21 @@ class BugDataset:
     def from_repo(cls,
                   repo: Union[GitRepo, PathLike],
                   revision_range: Union[str, Iterable[str]] = 'HEAD') -> 'BugDataset':
-        """Create BugDataset object from selected commits in a Git repo
+        """Create the BugDataset object from selected commits in a Git repo
 
-        :param repo: GitRepo, or path to Git repository
-        :param revision_range: arguments to pass to `git log --patch`, see
-            https://git-scm.com/docs/git-log; by default generates patches
-            for all commits from the HEAD
-        :return: BugDataset object instance
+        Parameters
+        ----------
+        repo
+            GitRepo, or path to Git repository
+        revision_range
+            arguments to pass to `git log --patch`, see
+            https://git-scm.com/docs/git-log; by default, it generates patches
+            for all commits reachable from the HEAD
+
+        Returns
+        -------
+        BugDataset
+            BugDataset object instance
         """
         # wrap in GitRepo, if necessary
         if not isinstance(repo, GitRepo):
@@ -1821,14 +2155,23 @@ class BugDataset:
                 use_repo: bool = True) -> Bug:
         """Return specified bug
 
-        :param bug_id: identifier of a bug in this dataset
-        :param sizes_and_spreads: if true, compute also various metrics
-            for patch size and for patch spread
-        :param use_repo: whether to retrieve pre-/post-image contents
-            from self._git_repo, if available (makes difference only
-            for datasets created from repository, for example with
-            BugDataset.from_repo())
-        :returns: Bug instance
+        Parameters
+        ----------
+        bug_id
+            identifier of a bug in this dataset
+        sizes_and_spreads
+            if true, compute also various metrics for patch size and for
+            patch spread
+        use_repo
+            whether to retrieve pre-/post-image contents from
+            self._git_repo, if available (makes difference only for
+            datasets created from repository, for example, with
+            `BugDataset.from_repo()`)
+
+        Returns
+        -------
+        Bug
+            Bug instance
         """
         if self._dataset_path is not None:
             return Bug.from_dataset(self._dataset_path, bug_id,
@@ -1852,9 +2195,16 @@ class BugDataset:
         Generator function, returning Bug after Bug from iteration
         to iteration.
 
-        :param sizes_and_spreads: if true, compute also various metrics
-            for patch size and for patch spread
-        :return: bugs in the dataset
+        Parameters
+        ----------
+        sizes_and_spreads
+            if true, compute also various metrics for patch size and for
+            patch spread
+
+        Yields
+        ------
+        Bug
+            bug in the dataset
         """
         for bug_id in self.bug_ids:
             yield self.get_bug(bug_id, sizes_and_spreads=sizes_and_spreads)
@@ -1878,7 +2228,7 @@ class BugDataset:
         return self.bug_ids[idx]
 
     def __contains__(self, item: str) -> bool:
-        """Is bug with given id contained in the dataset?"""
+        """Is the bug with the given id contained in the dataset?"""
         return item in self.bug_ids
 
 
@@ -1901,7 +2251,7 @@ def to_simple_mapping_callback(ctx: typer.Context, param: typer.CallbackParam,
     """Update given to simple `mapping` with '<key>:<value>'s
 
     If `allow_simplified` is true, and there is no ':' (colon) separating
-    key from value, add the original both as key and as value.  This means
+    key from value, add the original both as a key and as a value.  This means
     that using '<value>' adds {<value>: <value>} mapping.
 
     If `allow_simplified` is false, and there is no ':' (colon) separating
@@ -1909,15 +2259,25 @@ def to_simple_mapping_callback(ctx: typer.Context, param: typer.CallbackParam,
 
     On empty string it resets the whole mapping.
 
-    :param ctx: Context object with additional data about the current
-        execution of your program
-    :param param: the specific Click Parameter object with information
-        about the current parameter (argument or option)
-    :param values: list of values to parse
-    :param mapping: mapping to change
-    :param allow_simplified: whether <value> means <value>:<value>,
-        or just gets ignored
-    :return: list of values, or empty list
+    Parameters
+    ----------
+    ctx
+        Context object with additional data about the current execution
+        of your program
+    param
+        the specific Click Parameter object with information about the
+        current parameter (argument or option)
+    values
+        list of values to parse
+    mapping
+        mapping to change
+    allow_simplified
+        denotes whether <value> means <value>:<value>, or just gets ignored
+
+    Returns
+    -------
+    list
+        list of values, or empty list
     """
     # ctx.resilient_parsing will be True when handling completion
     if ctx.resilient_parsing:
@@ -1964,7 +2324,7 @@ def pattern_to_purpose_callback(ctx: typer.Context, param: typer.CallbackParam,
 def to_language_mapping_callback(ctx: typer.Context, param: typer.CallbackParam,
                                  values: Optional[list[str]],
                                  mapping: dict[str, list[str]]) -> list[str]:
-    """To create callback for providing to language mapping with '<key>:<value>'s
+    """To create a callback for providing to language mapping with '<key>:<value>'s
 
     If there is no ':' (colon) separating key from value,
     it ignores the value.
@@ -1975,12 +2335,18 @@ def to_language_mapping_callback(ctx: typer.Context, param: typer.CallbackParam,
     languages.yml), and that getting value for a key that exists in the
     mapping replaces the whole list.
 
-    :param ctx: Context object with additional data about the current
-        execution of your program
-    :param param: the specific Click Parameter object with information
-        about the current parameter (argument or option)
-    :param values: list of values to parse
-    :param mapping: mapping to change
+    Parameters
+    ----------
+    ctx
+        Context object with additional data about the current execution
+        of your program
+    param
+        the specific Click Parameter object with information about the
+        current parameter (argument or option)
+    values
+        list of values to parse
+    mapping
+        mapping to change
     """
     # ctx.resilient_parsing will be True when handling completion
     if ctx.resilient_parsing:
@@ -2014,7 +2380,7 @@ def extension_to_language_callback(ctx: typer.Context, param: typer.CallbackPara
 
 def filename_to_language_callback(ctx: typer.Context, param: typer.CallbackParam,
                                   values: Optional[list[str]]) -> list[str]:
-    """Update filename to language mapping with '<key>:<value>'s"""
+    """Update the filename to language mapping with '<key>:<value>'s"""
     return to_language_mapping_callback(ctx, param, values,
                                         mapping=languages.FILENAME_TO_LANGUAGES)
 
@@ -2067,20 +2433,29 @@ def process_single_bug(bugs: BugDataset, bug_id: str, output_dir: Path,
                        bugsinpy_layout: bool, use_fanout: bool, use_repo: bool) -> None:
     """The workhorse of the `from_repo` command, processing a single bug / commit
 
-    Uses the value of he global variable `compute_patch_sizes_and_spreads`.
+    Uses the value of the global variable `compute_patch_sizes_and_spreads`.
 
-    :param bugs: bug dataset the bug is from
-    :param bug_id: identifies the bug to process
-    :param output_dir: where to save annotation data
-    :param annotations_dir: whether to save annotations data in specific
-        subdirectory of the bug / commit directory
-    :param bugsinpy_layout: whether to use BugsInPy-like layout, with
-        annotations data in `annotations_dir` subdirectories
-    :param use_fanout: whether to save commits under fan-out directories,
-        that is with subdirectory composed out of two first hex digits
-        of commit SHA-1 identifier
-    :param use_repo: whether to use repository to retrieve pre-image
-        and post-immage version of the file for more accurate lexing
+    Parameters
+    ----------
+    bugs
+        bug dataset the bug is from
+    bug_id
+        identifies the bug to process
+    output_dir
+        where to save annotation data
+    annotations_dir
+        whether to save annotations data in specific subdirectory of the
+        bug / commit directory
+    bugsinpy_layout
+        whether to use BugsInPy-like layout, with annotations data in
+        `annotations_dir` subdirectories
+    use_fanout
+        whether to save commits under fan-out directories, that is with
+        subdirectory composed out of two first hex digits of commit
+        SHA-1 identifier
+    use_repo
+        whether to use repository to retrieve pre-image and post-immage
+        version of the file for more accurate lexing
     """
     if bugsinpy_layout:
         bugs.get_bug(bug_id,
@@ -2165,8 +2540,17 @@ def common(
         )
     ] = None
 ):
+    """Applies specified annotation rules to selected patches or selected commits,
+    creating JSON files with annotation data, one file per patch or commit.
+
+    Common options can be used to specify annotation rules for changed files
+    (which files are considered documentation, where are test files, etc.),
+    for changed lines (for example, whether empty lines should have their
+    own "whitespace" annotation label), and for the changeset itself (whether
+    to compute sizes and spreads metrics for the patchset).
+    """
     global LANGUAGES, compute_patch_sizes_and_spreads
-    # if anything is printed by this function, it needs to utilize context
+    # if anything is printed by this function, it needs to check context
     # to not break installed shell completion for the command
     # see https://typer.tiangolo.com/tutorial/options/callback-and-context/#fix-completion-using-the-context
     if ctx.resilient_parsing:
@@ -2246,7 +2630,7 @@ def common(
             else:
                 print(f"\t*{ext} in {langs}")
 
-    # slight code duplication with previous block
+    # slight code duplication with the previous block
     if filename_to_language is not None:
         if not languages.FILENAME_TO_LANGUAGES:
             print("Cleared mapping from filename to programming language")
@@ -2328,13 +2712,13 @@ def dataset(
 ) -> None:
     """Annotate all bugs in provided DATASETS
 
-    Each DATASET is expected to be existing directory with the following
+    Each DATASET is expected to be an existing directory with the following
     structure, by default:
 
         <dataset_directory>/<bug_directory>/patches/<patch_file>.diff
 
-    You can change the `/patches/` part with --patches-dir option.
-    For example with --patches-dir='' the script would expect data
+    You can change the `/patches/` part with the --patches-dir option.
+    For example, with --patches-dir='' the script would expect data
     to have the following structure:
 
         <dataset_directory>/<bug_directory>/<patch_file>.diff
@@ -2484,11 +2868,11 @@ def from_repo(
     You can add additional options and parameters, which will be passed to
     the `git log -p` command.  With those options and arguments you
     can specify which commits to operate on (defaults to all commits).\n
-    See https://git-scm.com/docs/git-log or `man git-log` (or `git log -help`).
+    See https://git-scm.com/docs/git-log or `man git-log` (or `git log --help`).
 
-    When no <revision-range> is specified, it defaults to HEAD (i.e. the whole
+    When no <revision-range> is specified, it defaults to HEAD (i.e., the whole
     history leading to the current commit). origin..HEAD specifies all the
-    commits reachable from the current commit (i.e. HEAD), but not from origin.
+    commits reachable from the current commit (i.e., HEAD), but not from origin.
     For a complete list of ways to spell <revision-range>, see the
     "Specifying Ranges" section of the gitrevisions(7) manpage:\n
     https://git-scm.com/docs/gitrevisions#_specifying_revisions

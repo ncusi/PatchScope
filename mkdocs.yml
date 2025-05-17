@@ -93,12 +93,12 @@ markdown_extensions:
       permalink: true
       slugify: !!python/name:pymdownx.slugs.uslugify
   - meta
-  - mkdocs-typer  # generate documentation for Typer command line applications
 plugins:
   - include-markdown  # including (embedding) Markdown files, by default within {% and %}
   - search:  # adds a search bar to the header; powered by lunr.js
       lang: en
   - mkdocs-jupyter  # use Jupyter Notebooks in mkdocs
+  - mkdocs-typer2  # generate documentation for Typer command line applications
   # automatic generation of files for mkdocstrings
   # see https://mkdocstrings.github.io/recipes/#automatic-code-reference-pages
   - gen-files:  # generate mkdocstrings pages on-the-fly
@@ -116,8 +116,8 @@ plugins:
           paths: [ "src" ]
           options:
             show_bases: true
-            docstring_style: sphinx
-            #docstring_section_style: spacy
+            docstring_style: numpy
+            docstring_section_style: spacy
             show_signature: true
             separate_signature: true
             show_signature_annotations: true

@@ -58,30 +58,30 @@ def main(
     use_fanout: Annotated[
         bool,
         typer.Option(
-            help="Use fan-out when saving patches, save as *.diff"
+            help="Use fan-out when saving patches, saved as `*.diff`"
         )
     ] = False,
 ) -> None:
     """Create patches from local Git repository with provided REPO_PATH
 
     You can add additional options and parameters, which will be passed to
-    the `git format-patch` command.  With those options and arguments you
+    the `git format-patch` command.  With those options and arguments, you
     can specify which commits to operate on.
 
-    1. A single commit, <since>, specifies that the commits leading to
+    1. A single commit, `<since>`, specifies that commits leading to
        the tip of the current branch that are not in the history
-       that leads to the <since> to be output.  Example: 'HEAD~2'.
-       Not supported with '--use-fanout'.
+       that leads to the `<since>` to be output.  Example: '`HEAD~2`'.
+       Not supported with '`--use-fanout`'.
 
-    2. Generic <revision-range> expression means the commits in the
-       specified range.  Example: 'origin/main..main', or '--root HEAD',
-       or '--user=joe --root HEAD'.
+    2. Generic `<revision-range>` expression means the commits in the
+       specified range.  Example: '`origin/main..main`', or '`--root HEAD`',
+       or '`--user=joe --root HEAD`'.
 
-    If not provided <since> or <revision-range>, a single patch for
-    the current commit on the current branch will be created ('HEAD').
+    If not provided `<since>` or `<revision-range>`, a single patch for
+    the current commit on the current branch will be created ('`HEAD`').
 
     To create patches for everything since the beginning of history
-    up until <commit>, use '--root <commit>' as extra options.
+    up until `<commit>`, use '`--root <commit>`' as extra options.
     """
     # create GitRepo 'helper' object
     repo = GitRepo(repo_path)
