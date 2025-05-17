@@ -33,7 +33,7 @@ def test_timeseries_file_no_such_file():
     assert actual is None, \
         "LinesDataStore returns None for counter if lines-stats file does not exist"
 
-    actual = data_store.sankey_data_rx.rx.value
+    actual = data_store.sankey_df_rx.rx.value
     assert actual is None, \
         "LinesDataStore returns None for Sankey data if lines-stats file does not exist"
 
@@ -117,7 +117,7 @@ def test_timeseries_file_hellogitworld():
         "removed at least one node from Sankey diagram"
     # TODO: add more checks
 
-    actual = lines_stats.sankey_data_rx.rx.value
+    actual = lines_stats.sankey_df_rx.rx.value
     assert len(actual) > 0, \
         "there is something to create Sankey diagram from"
 
@@ -142,7 +142,7 @@ def test_switch_repos_same_file():
     assert actual is None, \
         "switching to not-existing file clears stats counter, makes it None"
 
-    actual = lines_stats.sankey_data_rx.rx.value
+    actual = lines_stats.sankey_df_rx.rx.value
     assert actual is None, \
         "switching to not-existing file clears computed sankey data, makes it None"
 
