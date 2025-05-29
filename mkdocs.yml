@@ -121,8 +121,8 @@ plugins:
             show_signature: true
             separate_signature: true
             show_signature_annotations: true
-      watch:  # for `mkdocs serve`, to trigger rebuild
-        - src
+watch:  # for `mkdocs serve`, to trigger rebuild
+  - src
 #extra:
 #  version:
 #    provider: mike
