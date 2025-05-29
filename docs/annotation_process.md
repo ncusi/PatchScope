@@ -438,12 +438,14 @@ diff-annotate --line-callback <callback_script.py>
 An example of such callback function can be found in `data/experiments/`,
 in the `HaPy-Bug/` subdirectory, as [`hapybug_line_callback_func.py`](../data/experiments/HaPy-Bug/hapybug_line_callback_func.py):
 
+```python
+
 {%
-    include-markdown "../data/experiments/HaPy-Bug/hapybug_line_callback_func.py"
-    start="```python\n"
-    end="```\n"
+    include "../data/experiments/HaPy-Bug/hapybug_line_callback_func.py"
     recursive=false
 %}
+
+```
 
 > Note: actually, the `diff-annotate` script processing the `--line-callback`
 > parameter first checks if it can be interpreted as file name, and if file
