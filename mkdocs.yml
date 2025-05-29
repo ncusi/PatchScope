@@ -121,6 +121,8 @@ plugins:
             show_signature: true
             separate_signature: true
             show_signature_annotations: true
+hooks:
+  - scripts/my_hooks.py
 watch:  # for `mkdocs serve`, to trigger rebuild
   - src
 #extra:
