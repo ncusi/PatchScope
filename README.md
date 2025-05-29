@@ -193,7 +193,7 @@ directory.
 You can download data for more repos from <https://dagshub.com/ncusi/PatchScope>
 with [DVC][], see the ["Examples and demos"](#examples-and-demos) section below.
 
-There is a web app demo available for those repos at <http://patchscope.mat.umk.pl/>,
+There is a web app demo available for those repos at <https://patchscope.mat.umk.pl/>,
 and also basic [demo on Heroku](https://patchscope-9d05e7f15fec.herokuapp.com/).
 
 The simplest solution to run those demos locally is to clone
@@ -403,7 +403,7 @@ Command line and terminal interface tools:
 - [`statscat`](https://github.com/z1cheng/statscat)
   ![Go](https://img.shields.io/badge/Go-%2300ADD8.svg?logo=Go&logoColor=white)
   is a CLI tool to get statistics of your all git repositories
-- [hxtools](http://inai.de/projects/hxtools/)
+- [hxtools](https://inai.de/projects/hxtools/)
   ![Perl](https://img.shields.io/badge/Perl-%2339457E.svg?logo=Perl&logoColor=white)
   by Jan Engelhardt
   is a collection of small tools and scripts, which include
@@ -441,7 +441,7 @@ Tools to generate HTML dashboard, or providing an interactive web application:
   with [NVD3](https://nvd3.org/)-driven interactive metrics visualisations;<br>
   **note** that demo site <https://repostat.imfast.io/> no longer works
     - [NVD3.js](https://nvd3.org/) is an attempt to build re-usable charts
-      and chart components for [d3.js](http://d3js.org/)
+      and chart components for [d3.js](https://d3js.org/)
 - [Repositorch](https://github.com/kirnosenko/Repositorch)
   is a Git repository analysis engine written in C#;
   it recommends using Docker Compose to install
