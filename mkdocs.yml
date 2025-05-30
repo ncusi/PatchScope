@@ -15,7 +15,7 @@ nav:
   #- contributing: contributing.md
   #- authors: authors.md
   #- history: history.md
-  - CLI: cli.md
+  - CLI: cli_reference/
   - API: api_reference/
   - schema: schema.md
   - examples: examples.md
@@ -104,6 +104,7 @@ plugins:
   - gen-files:  # generate mkdocstrings pages on-the-fly
       scripts:
         - scripts/gen_api_ref_pages.py
+        - scripts/gen_cli_ref_pages.py
   - literate-nav:  # generate a literate navigation file for mkdocstrings pages
       nav_file: SUMMARY.md
   # NOTE: section-index is turned off, because it interfered with adding API docs for diffannotator
