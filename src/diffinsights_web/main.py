@@ -38,7 +38,7 @@ def main(
     click on the name and email of one of the contributors in the per-contributor
     grid below the main plot on the "Contributors' Graph" page (the default page).
 
-    Graphs configuration is hidden in the hamburger menu ('☰')
+    Graphs configuration is hidden in the hamburger menu
     in the top right corner (on both pages).
     """
     datastore.DATASET_DIR = str(dataset_dir)

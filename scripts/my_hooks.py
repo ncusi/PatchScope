@@ -56,7 +56,9 @@ def on_page_markdown(markdown, page, **kwargs):
 
         return match_obj.group(0)
 
-    if path.startswith('reference/'):
+    if path.startswith('api_reference/') or path.startswith('cli_reference/'):
+        return None
+    if path.endswith('/SUMMARY.md'):
         return None
 
     #log.info(f"Processing documentation file '{path}'")
