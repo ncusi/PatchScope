@@ -16,7 +16,7 @@ nav:
   #- authors: authors.md
   #- history: history.md
   - CLI: cli.md
-  - API: reference/
+  - API: api_reference/
   - schema: schema.md
   - examples: examples.md
   - experiments: experiments.md
