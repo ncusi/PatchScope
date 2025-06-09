@@ -94,7 +94,7 @@ web = [
   "panel==1.6.1",
   "param==2.2.0",
   # data processing
-  "pandas==2.2.3",
+  "pandas==2.3.0",
   "python-dateutil==2.9.0.post0",
   # data serialization
   "pyarrow==20.0.0",
