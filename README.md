@@ -21,7 +21,8 @@ generated and saved to JSON files by PatchScope's command line tools.
  
 You can find early draft of the project documentation at <https://ncusi.github.io/PatchScope/>.
 
-Demo of the web application can be found at <https://patchscope.mat.umk.pl/>.
+Demo of the web application can be found at <https://patchscope.mat.umk.pl/><br>
+and at <https://patchscope-9d05e7f15fec.herokuapp.com/>.
 
 Check out our [video demonstration](https://youtu.be/8fj8Mgv-72s) on YouTube.
 
