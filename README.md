@@ -29,6 +29,9 @@ Check out our [video demonstration](https://youtu.be/8fj8Mgv-72s) on YouTube.
 
 There are a few research projects with a similar name:
 
+- Rongkai Liu, Heyuan Shi, Shuning Liu, Chao Hu, Sisheng Li, Yuheng Shen, Runzhe Wang, Xiaohai Shi, Yu Jiang:
+  _"PatchScope: LLM-Enhanced Fine-Grained Stable Patch Classification for Linux Kernel"_ (2025)
+  [DOI:10.1145/3728944](https://doi.org/10.1145/3728944)
 - Asma Ghandeharioun, Avi Caciularu, Adam Pearce, Lucas Dixon, Mor Geva:
   _"Patchscopes: A Unifying Framework for Inspecting Hidden Representations of Language Models"_ (2024)
   [arXiv:2401.06102](https://arxiv.org/abs/2401.06102)
