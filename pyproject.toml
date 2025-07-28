@@ -91,7 +91,7 @@ examples = [
   "dvc[s3]==3.59.2",
 ]  # dvc-s3 is needed to access 'dagshub' dvc remote
 web = [
-  "panel==1.6.1",
+  "panel==1.7.5",
   "param==2.2.1",
   # data processing
   "pandas==2.3.0",
