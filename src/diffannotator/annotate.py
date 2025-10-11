@@ -2564,11 +2564,15 @@ def common(
         # common() should be called only when running it as Typer script, from app
         logger = logging.getLogger()
 
-    logging.basicConfig(filename=logfile, level=logging.WARNING)
-    print(f"Logging to '{logfile}' file, with log level={logging.getLevelName(logger.level)}")
+    try:
+        logging.basicConfig(filename=logfile, level=logging.WARNING)
+        print(f"Logging to '{logfile}' file, with log level={logging.getLevelName(logger.level)}")
+    except PermissionError:
+        print(f"Warning: could not open '{logfile}' file for logging, permission denied")
 
     if version:  # this should never happen, because version_callback() exits the app
         print(f"Diff Annotator version: {get_version()}")
+
     if use_pylinguist:
         if has_pylinguist:
             print('Detecting languages from file name using Python clone of GitHub Linguist.')
