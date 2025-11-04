@@ -772,8 +772,9 @@ class GitRepo:
         return result
 
     def diff_file_status(self, commit: str = 'HEAD',
-                         prev: Optional[str] = None) -> dict[tuple[str, str], str]:
-        """Retrieve status of file changes at given revision in repo
+                         prev: Optional[str] = None,
+                         silence_errors: bool = True) -> dict[tuple[str, str], str]:
+        """Retrieve the status of file changes at the given revision in the repo
 
         It returns in a structured way information equivalent to the one
         from calling 'git diff --name-status -r'.
@@ -796,6 +797,8 @@ class GitRepo:
             The commit for which to list changes from. If not set, then
             changes are relative to the parent of the `commit`
             parameter, which means 'commit^'.
+        silence_errors
+            Redirect stderr to /dev/null (e.g., about 'commit^' not existing)
 
         Returns
         -------
@@ -830,7 +833,10 @@ class GitRepo:
             '--find-renames', '-l5000', '--name-status', '-r',
             prev, commit
         ]
-        process = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+        if silence_errors:
+            process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+        else:
+            process = subprocess.Popen(cmd, stdout=subprocess.PIPE)
         lines = process.stdout.read().decode(GitRepo.path_encoding).splitlines()
         result = {}
         for line in lines:
