@@ -5,4 +5,4 @@ pyyaml~=6.0.3
 tqdm~=4.67.1
 typer~=0.20.0
 typing-extensions~=4.15.0
-unidiff~=0.7.5
+unidiff2~=0.7.8
