@@ -405,6 +405,7 @@ def _parse_blame_porcelain(blame_text: str) -> tuple[dict, list]:
             commits_data[curr_commit][key] = value
             # add 'filename' as 'original_filename' to line info
             if key == 'filename':
+                commits_data[curr_commit][key] = decode_c_quoted_str(value)
                 curr_line['original_filename'] = decode_c_quoted_str(value)
 
     return commits_data, line_data
@@ -819,12 +820,13 @@ class GitRepo:
         if prev is None:
             # NOTE: this means first-parent changes for merge commits
             prev = commit + '^'
+            # TODO: check if prev exists, and if not, use `prev = '--root'` (as an option)
 
         cmd = [
             'git', '-C', self.repo, 'diff-tree', '--no-commit-id',
             # turn on renames [with '-M' or '-C'];
             # note that parsing is a bit easier without '-z', assuming that filenames are sane
-            # increase inexact rename detection limit
+            # increase the inexact rename detection limit
             '--find-renames', '-l5000', '--name-status', '-r',
             prev, commit
         ]
@@ -834,9 +836,12 @@ class GitRepo:
         for line in lines:
             if line[0] == 'R' or line[0] == 'C':
                 status, old, new = line.split("\t")
+                old = decode_c_quoted_str(old)
+                new = decode_c_quoted_str(new)
                 result[(old, new)] = status[0]  # no similarity info
             else:
                 status, path = line.split("\t")
+                path = decode_c_quoted_str(path)
                 if status == 'A':
                     result[(None, path)] = status
                 elif status == 'D':
@@ -913,7 +918,7 @@ class GitRepo:
                             range_beg = line.target_line_no
                         range_end = line.target_line_no
 
-                        file_diff_lines_added[patched_file.path].append(
+                        file_diff_lines_added[decode_c_quoted_str(patched_file.path)].append(
                             line
                         )
 
@@ -926,7 +931,7 @@ class GitRepo:
                 if range_beg is not None:
                     line_ranges.append((range_beg, range_end))
 
-            file_ranges[patched_file.path] = line_ranges
+            file_ranges[decode_c_quoted_str(patched_file.path)] = line_ranges
 
         return file_ranges, file_diff_lines_added
 
@@ -1030,7 +1035,7 @@ class GitRepo:
             scm.com/docs/git-log; by default generates single patch from
             the HEAD
         wrap
-            whether to wrap the result in PatchSet
+            whether to wrap the result in PatchSet / ChangeSet
 
         Yields
         ------
@@ -1535,7 +1540,7 @@ class GitRepo:
     def list_authors_shortlog(self, start_from: str = StartLogFrom.ALL) -> list[Union[str, bytes]]:
         """List all authors using git-shortlog
 
-        Summarizes the history of the project by providing list of authors
+        Summarizes the history of the project by providing the list of authors
         together with their commit counts.  Uses `git shortlog --summary`
         internally.
 
@@ -1608,7 +1613,7 @@ class GitRepo:
         Parameters
         ----------
         name : str
-            name of configuration option, for example
+            name of the configuration option, for example,
             'remote.origin.url' or 'user.name'
         value_type : Literal['bool', 'int', 'bool-or-int', 'path', 'expiry-date', 'color'] or None
             name of git type to canonicalize outgoing value, see

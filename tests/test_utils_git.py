@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
 """Test cases for 'src/diffannotator/utils/git.py' module"""
+import textwrap
+
 import pytest
 from unidiff import PatchSet
 
 from diffannotator.utils.git import decode_c_quoted_str, GitRepo, DiffSide, AuthorStat, parse_shortlog_count, ChangeSet
-from tests.conftest import default_branch, example_repo
+from tests.conftest import default_branch, example_repo, example_repo_utf8
 
 
 def test_decode_c_quoted_str():
@@ -364,3 +366,86 @@ def test_ChangeSet_from_patch_file_with_cr():
     ChangeSet.from_filename(diff_filename)
 
     # there were no exceptions
+
+
+def test_repo_utf8(example_repo_utf8):
+    """"Test all GitRepo methods that deal with filenames, etc., on utf-8 data"""
+    expected = ['przykładowy plik']
+    actual = example_repo_utf8.list_files()
+    assert sorted(expected) == sorted(actual), "list_files() matches"
+
+    expected = ['przykładowy plik']
+    actual = example_repo_utf8.list_changed_files()
+    assert sorted(expected) == sorted(actual), "list_changed_files() matches"
+
+    expected = {('przykładowy plik', 'przykładowy plik'): 'M'}
+    actual = example_repo_utf8.diff_file_status()
+    assert expected == actual, "diff_file_status() matches"
+
+    expected = textwrap.dedent("""\
+    diff --git "a/przyk\\305\\202adowy plik" "b/przyk\\305\\202adowy plik"
+    index d66e895..000412a 100644
+    --- "a/przyk\\305\\202adowy plik"\t
+    +++ "b/przyk\\305\\202adowy plik"\t
+    @@ -1,3 +1,5 @@
+     zażółć
+    -gęsią
+    +gęślą
+     jaźń
+    +
+    +Pójdź, kińże tę chmurność w głąb flaszy!
+    \\ No newline at end of file
+    """)
+    actual = example_repo_utf8.unidiff(wrap=False)
+    assert expected == actual, "unidiff(wrap=False) matches"
+
+    actual = example_repo_utf8.unidiff(wrap=True)
+    assert isinstance(actual, PatchSet), "unidiff(wrap=True) is wrapped in unidiff.PatchSet"
+    # differs in tabs vs nothing at the end of ---/+++ lines
+    # TODO: send a bug report for 'unidiff2'
+    assert expected.replace('\t', '') == str(actual), "unidiff(wrap=True) matches stringification"
+
+    # uses GitRepo.unidiff
+    actual = example_repo_utf8.changed_lines_extents()
+    expected = {'przykładowy plik': [(2, 2), (4, 5)]}
+    assert expected == actual[0], "changed_lines_extents() matches extents"
+    for file_name, extents_data in actual[0].items():
+        n_lines = sum([pair[1] - pair[0] + 1 for pair in extents_data])
+        assert n_lines == len(actual[1][file_name]),\
+            f"changed_lines_extents() extents matches added lines for {file_name}"
+
+    actual = example_repo_utf8.log_p(wrap=False)
+    actual = list(actual)
+    assert len(actual) == 1,\
+        "log_p(wrap=False) by default returns single commit"
+    assert "author A U Þór <author@example.com>" in actual[0],\
+        "log_p(wrap=False) includes authorship information"
+
+    actual = example_repo_utf8.log_p(wrap=True)
+    actual = list(actual)
+    assert len(actual) == 1, \
+        "log_p(wrap=True) by default returns single commit"
+    assert isinstance(actual[0], ChangeSet), "log_p(wrap=True) contains single ChangeSet."
+    assert isinstance(actual[0], PatchSet), "log_p(wrap=True) contains single PatchSet."
+
+    expected = "zażółć\ngęsią\njaźń\n"
+    actual = example_repo_utf8.file_contents(commit="v1", path="przykładowy plik")
+    assert expected == actual, "file_contents() at v1 matches"
+
+    with example_repo_utf8.open_file(commit="v1", path="przykładowy plik") as fpb:
+        actual = fpb.read().decode('utf8')
+    assert expected == actual, "open_file() at v1 matches"
+
+    actual = example_repo_utf8.get_commit_metadata()
+    assert actual['author']['name'] == 'A U Þór',\
+        "get_commit_metadata() author name matches"
+
+    actual = example_repo_utf8.list_authors_shortlog()
+    assert len(actual) == 1, "list_authors_shortlog() returned info about 1 author"
+    count, author = actual[0].split('\t', maxsplit=1)
+    assert int(count) == 2, "list_authors_shortlog() counted 2 commits"
+    assert author == 'A U Þór', "list_authors_shortlog() returned correct author name"
+
+    expected = "A U Þór"
+    actual = example_repo_utf8.get_config("user.name")
+    assert expected == actual, "get_config() returned correct 'user.name' value"
