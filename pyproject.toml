@@ -66,6 +66,7 @@ version = {attr = "diffannotator.config.__version__"}
 dev = [
   "pytest==8.4.2",
   "pytest-benchmark==5.2.1",
+  "pytest-clarity==1.0.1",
 ]
 doc = [
   "mkdocs~=1.6.1",

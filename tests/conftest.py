@@ -107,6 +107,41 @@ def example_repo(tmp_path_factory: pytest.TempPathFactory) -> GitRepo:
     return GitRepo(repo_path)
 
 
+@pytest.fixture(scope="module")  # like unittest.setUpClass()
+def example_repo_utf8(tmp_path_factory: pytest.TempPathFactory) -> GitRepo:
+    """Prepare a Git repository with utf-8 names for testing `utils.git` module"""
+    tmp_path = tmp_path_factory.mktemp('repos')
+
+    repo_name = 'test_utils_git-repo_utf8'
+    repo_path = str(tmp_path / repo_name)
+
+    # initialize repository and  configure it
+    subprocess.run(['git', 'init', repo_path], check=True, stdout=subprocess.DEVNULL)  # noisy
+    subprocess.run(['git', '-C', repo_path, 'config', 'user.name', 'A U Þór'], check=True)
+    subprocess.run(['git', '-C', repo_path, 'config', 'user.email', 'author@example.com'], check=True)
+    subprocess.run(['git', '-C', repo_path, 'branch', '-m', default_branch], check=True)
+
+    # create files, and initial commit
+    Path(repo_path).joinpath('przykładowy plik').write_text('zażółć\ngęsią\njaźń\n', encoding='utf-8')
+    subprocess.run(['git', '-C', repo_path, 'add', '.'], check=True)
+
+    subprocess.run(['git', '-C', repo_path, 'commit', '-m', 'Początkowy commit'],
+                   check=True, stdout=subprocess.DEVNULL)  # noisy
+    subprocess.run(['git', '-C', repo_path, 'tag', 'v1'])
+
+    # change file, creating a new commit
+    Path(repo_path).joinpath('przykładowy plik').write_text(
+        'zażółć\ngęślą\njaźń\n\n'
+        'Pójdź, kińże tę chmurność w głąb flaszy!',
+        encoding = 'utf-8',
+    )
+    subprocess.run(['git', '-C', repo_path, 'commit', '-a', '-m', 'Zmieniono "przykładowy plik"'],
+                   check=True, stdout=subprocess.DEVNULL)  # noisy
+    subprocess.run(['git', '-C', repo_path, 'tag', 'v2'])
+
+    return GitRepo(repo_path)
+
+
 ## ----------------------------------------------------------------------
 ## helper functions
 
@@ -127,3 +162,7 @@ def count_pm_lines(changes_data: dict) -> tuple[int, int]:
                 total_p += len(data_value)
 
     return total_m, total_p
+
+
+# end of file tests/conftest.py
+
