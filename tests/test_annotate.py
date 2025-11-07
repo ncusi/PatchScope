@@ -221,6 +221,19 @@ def test_annotate_single_diff():
     with pytest.raises(FileNotFoundError):
         annotate_single_diff(file_path, missing_ok=False)
 
+    file_path = 'tests/test_dataset/binary_files_differ.diff'
+    patch = annotate_single_diff(file_path, missing_ok=False,
+                                 ignore_diff_parse_errors=False,
+                                 ignore_annotation_errors=False)
+    assert 'changes' in patch,\
+        "correctly created annotation structure for diff of binary files"
+    assert 'image.png' in patch['changes'],\
+        "changed file 'image.png' is in annotations for diff of binary files"
+    assert '-' not in patch['changes']['image.png'], \
+        "no removed _lines_ for diff of binary files"
+    assert '+' not in patch['changes']['image.png'],\
+        "no added _lines_ for diff of binary files"
+
 
 def test_hunk_sizes_and_spreads(example_patchset_java: unidiff.PatchSet):
     patched_file = example_patchset_java[0]
