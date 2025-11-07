@@ -123,6 +123,8 @@ PATTERN_TO_PURPOSE = {
             "build.gradle.kts",  # Gradle, with Kotlin DSL (Java, Kotlin / JVM)
             "build.sbt",  # SBT (Scala / JVM)
             "buildfile",  # build2 (C, C++)
+            "bun.lockb",  # npm (Bun)
+            "*.cabal",  # Cabal (Haskell)
             "composer.json",  # Composer (PHP)
             "conanfile.py",  # Conan (C++)
             "conanfile.txt",  # Conan (C++)
@@ -134,6 +136,7 @@ PATTERN_TO_PURPOSE = {
             "manifest",  # generic
             "MANIFEST.in",  # generic, used to be used by Python packaging
             "meson.build",  # Meson (C, C++, Objective-C, Java,...)
+            ".node-version",  # Node.js
             "package.json",  # npm (Node.js)
             "pom.xml",  # Maven (Java / JVM)
             "project.clj",  # Leiningen (Clojure)
@@ -141,6 +144,7 @@ PATTERN_TO_PURPOSE = {
             ".pylintrc",  # Python linter configuration
             "requirements.txt",  # pip (Python)
             "setup.cfg",  # Python
+            ".tool-versions",  # asdf, a tool version manager
             "vcpkg.json",  # vcpkg (C++)
         ]
     },
