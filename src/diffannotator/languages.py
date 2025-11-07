@@ -88,13 +88,17 @@ EXT_TO_LANGUAGES = {
     ".html": ["HTML"],
     ".json": ["JSON"],
     ".md": ["Markdown"],
+    ".php": ["PHP"],  # the alternative is "Hack", which has also .hack, .hh, .hhi
     ".pl": ["Perl"],
     ".pm": ["Perl"],
     ".properties": ["INI"],
+    ".rs": ["Rust"],  # more likely than "RenderScript", or "XML"
+    ".sol": ["Solidity"],  # the alternative is "Gerber Image", which should use .gbr, or .geb, .gerber
     ".sql": ["SQL"],
     ".t": ["Perl"],
     ".ts": ["TypeScript"],
     ".txt": ["Text"],
+    ".tsx": ["TSX"],  # the alternative is "XML"
     ".yaml": ["YAML"],
     ".yml": ["YAML"],
 }
