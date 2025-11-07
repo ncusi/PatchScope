@@ -433,6 +433,10 @@ Command line and terminal interface tools:
   ![Python](https://img.shields.io/badge/Python-3670A0?logo=Python&logoColor=ffdd54)
   tool is a set of util scripts to scrape data from git repositories
   to help teams improve (metrics such as lead time and open branches)
+- [GitHub Metrics](https://github.com/gomesfernanda/some-github-metrics)
+  ![Python](https://img.shields.io/badge/Python-3670A0?logo=Python&logoColor=ffdd54)
+  is a set of scripts to gather some metrics about repositories
+  of an organization, such as commits, forks, stars, etc.
 
 Tools to generate HTML dashboard, or providing an interactive web application:
 
