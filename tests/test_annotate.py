@@ -771,7 +771,7 @@ def test_BugDataset_from_directory_with_fanout():
 
 # MAYBE: mark that it requires network
 @pytest.mark.slow
-def test_BugDataset_from_repo(tmp_path: Path):
+def test_BugDataset_from_hellogitworld_repo(tmp_path: Path):
     # MAYBE: create a global variable in __init__.py
     sha1_re = re.compile(r"^[0-9a-fA-F]{40}$")  # SHA-1 identifier is 40 hex digits long
     # MAYBE: create fixture
