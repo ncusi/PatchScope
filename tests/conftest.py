@@ -142,6 +142,40 @@ def example_repo_utf8(tmp_path_factory: pytest.TempPathFactory) -> GitRepo:
     return GitRepo(repo_path)
 
 
+@pytest.fixture(scope="module")  # like unittest.setUpClass()
+def example_repo_binary(tmp_path_factory: pytest.TempPathFactory) -> GitRepo:
+    """Prepare a Git repository with "binary" files for testing `utils.git` module"""
+    tmp_path = tmp_path_factory.mktemp('repos')
+
+    repo_name = 'test_utils_git-binary'
+    repo_path = str(tmp_path / repo_name)
+
+    # initialize repository and  configure it
+    subprocess.run(['git', 'init', repo_path], check=True, stdout=subprocess.DEVNULL)  # noisy
+    subprocess.run(['git', '-C', repo_path, 'config', 'user.name', 'Joe Random'], check=True)
+    subprocess.run(['git', '-C', repo_path, 'config', 'user.email', 'joe@example.com'], check=True)
+    subprocess.run(['git', '-C', repo_path, 'branch', '-m', default_branch], check=True)
+
+    # create a "binary" file, and initial commit
+    Path(repo_path).joinpath('example.bin').write_bytes(b'\x00\x01\x02\x03\x04\x05\x06\x07')
+    Path(repo_path).joinpath('README.md').write_text('# Example repository\n')
+    subprocess.run(['git', '-C', repo_path, 'add', '.'],
+                   check=True)
+    subprocess.run(['git', '-C', repo_path, 'commit', '-m', 'Initial commit'],
+                   check=True, stdout=subprocess.DEVNULL)  # noisy
+    subprocess.run(['git', '-C', repo_path, 'tag', 'v1'],
+                   check=True)
+
+    # change a "binary" file, creating a new commit
+    Path(repo_path).joinpath('example.bin').write_bytes(b'\x00\x08\x09\x0a\x00\x00')
+    subprocess.run(['git', '-C', repo_path, 'commit', '-a', '-m', 'Changed example.bin file'],
+                   check=True, stdout=subprocess.DEVNULL)  # noisy
+    subprocess.run(['git', '-C', repo_path, 'tag', 'v2'],
+                   check=True)
+
+    return GitRepo(repo_path)
+
+
 ## ----------------------------------------------------------------------
 ## helper functions
 

@@ -16,7 +16,7 @@ from diffannotator.annotate import (split_multiline_lex_tokens, line_ends_idx,
                                     Bug, BugDataset, AnnotatedPatchedFile, AnnotatedHunk, AnnotatedPatchSet,
                                     line_is_whitespace)
 from diffannotator.utils.git import GitRepo, DiffSide, ChangeSet
-from .conftest import count_pm_lines
+from .conftest import count_pm_lines, example_repo_binary
 
 # Example code to be tokenized
 example_C_code = r'''
@@ -831,6 +831,47 @@ def test_BugDataset_from_hellogitworld_repo(tmp_path: Path):
 
         assert total_m + total_p == diff_metadata['n_rem'] + 2*diff_metadata['n_mod'] + diff_metadata['n_add'], \
             f"number of -/+ lines matches between 'changes' and 'diff_metadata' for patchset № {i}"
+
+
+def test_BugDataset_from_repo_binary(example_repo_binary: GitRepo, caplog: pytest.LogCaptureFixture):
+    bugs = BugDataset.from_repo(example_repo_binary, revision_range=[
+        '--no-walk=unsorted',
+        "v1", "v2",
+    ])
+
+    ## DEBUG
+    #print("")
+    #print(f"{bugs=}")
+    #print(f"{bugs._patches=}")
+
+    for bug_id in bugs.bug_ids:
+        actual = bugs.get_bug(bug_id=bug_id,
+                              sizes_and_spreads=True,
+                              use_repo=True)
+
+        ## DEBUG
+        #print(f"{actual.patches=}")
+
+        assert list(actual.patches.keys()) == [bug_id], \
+            f"{bug_id}: single commit is single change"
+        # TODO: fix the issue with '/dev/null' appearing in 'changes' for file creation
+        #assert list(actual.patches[bug_id]['changes'].keys()) == ['example.bin'], \
+        #    f"{bug_id}: expected file was changed"
+        # NOTE: remove this weaker assertion
+        assert 'example.bin' in actual.patches[bug_id]['changes'], \
+            f"{bug_id}: 'example.bin' file was changed"
+        # NOTE: not true for v1 any longer
+        #assert actual.patches[bug_id]['diff_metadata']['n_files'] == 1, \
+        #    f"{bug_id}: counted n_files == 1"
+        assert actual.patches[bug_id]['diff_metadata']['n_binary_files'] == 1, \
+            f"{bug_id}: counted n_binary_files == 1"
+
+        assert "Unknown file type for 'example.bin' (example.bin)" in caplog.text, \
+            f"{bug_id}: expected warning about unknown file type from languages.py"
+        ## DEBUG
+        #print(f"{caplog.messages=}")
+        #caplog.clear()
+        #print("")
 
 
 def test_line_callback_trivial():
