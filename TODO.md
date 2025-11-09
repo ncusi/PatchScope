@@ -24,7 +24,7 @@
          (see also ["version at runtime" in setuptools_scm docs](https://setuptools-scm.readthedocs.io/en/stable/usage/#version-at-runtime)
           and ["Single-sourcing the package version" in Python Packaging User Guide](https://packaging.python.org/en/latest/guides/single-sourcing-package-version/))
     - [ ] use `packaging.version.Version` (as `key` function for sorting)
-          to find cases where `__version__` is newer than installed version
+          to find cases where `__version__` is newer than the installed version
           (in which case we are for sure in editable install mode)
     - [x] add `docs/` directory (for man pages, and maybe API documentation)
       - [x] use [MkDocs][] or [Material for MkDocs][mkdocs-material] for general documentation
@@ -93,10 +93,10 @@ with `diff-annotate from-repo` subcommand.
 
 ## TO DO List for `diff-annotate` script
 
-This script can be used to annotate existing dataset (patch files in subdirectories),
-or selected subset of commits (of changes in commits) in given repository.
+This script can be used to annotate existing dataset (patch files in subdirectories)
+or selected subset of commits (of changes in commits) in a given repository.
 
-The result of annotation is saved in JSON files, one per patch / commit.
+The result of the annotation is saved in JSON files, one per patch / commit.
 
 - [ ] improvements and new features for `annotate.py`
     - [x] subcommands
@@ -112,6 +112,17 @@ The result of annotation is saved in JSON files, one per patch / commit.
         - [x] global option `--pattern-to-purpose` (using new API)
         - [ ] (optionally?) use [`wcmatch.pathlib`](https://facelessuser.github.io/wcmatch/pathlib/)
           to be able to use `**` in patterns (with `globmatch` and `pathlib.GLOBSTAR`)
+    - [ ] use some other library (or a mechanism) than GitHub's Linguist to detect file type
+          for non-text files (for example, for images like PNG, GIF, JPEG, etc. files)
+        - [ ] based on file name and file extension, for example,
+          [mimetypes](https://docs.python.org/3/library/mimetypes.html) in the standard Python library
+          with `guess_file_type(path, *, strict=True)`,
+          or [filetype](https://h2non.github.io/filetype.py/) package
+          with `get_type(mime=None, ext=None)` and `is_extension_supported(ext)`
+        - [ ] based on file contents, for example,
+          [python-magic](https://github.com/ahupp/python-magic),
+          [file](https://github.com/ionelmc/python-file), or
+          [file-magic](https://pypi.org/project/file-magic/)
     - [ ] option to limit analyzing changes to only "production code" changes,
       for example with `--production-code-only`, or `--file-purpose-limit`, etc.
     - [ ] support [.gitattributes overrides of GitHub Linguist][2]
