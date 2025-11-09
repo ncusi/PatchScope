@@ -1011,8 +1011,19 @@ class AnnotatedPatchedFile:
             # NOTE: the first line of the file is line number 1, not 0, according to (uni)diff
             # but self.tokens_for_type(line_type) returns 0-based indexing
             line_no = line.source_line_no if line_type == unidiff.LINE_TYPE_REMOVED else line.target_line_no
-            # the first line is 1; the first element has index 0
-            result[hunk_line_no] = tokens_list[line_no - 1]
+            try:
+                # the first line is 1; the first element has index 0
+                result[hunk_line_no] = tokens_list[line_no - 1]
+            except KeyError as err:
+                ## DEBUG
+                print(f"{err}")
+                print(f"{line_no=}")
+                print(f"{hunk_line_no=}")
+                print(f"{line=}")
+                print(f"{hunk=}")
+                if tokens_list is not None:
+                    print(f"{tokens_list.keys()=}")
+                raise err
 
         return result
 
