@@ -1122,7 +1122,7 @@ class GitRepo:
         if return_code != 0:
             print(f"Error running 'git log' for {self.repo.name} repo, error code = {return_code}")
             print(f"- repository path: '{self.repo}'")
-            print(f"- command: {cmd!r}")
+            print(f"- command: {' '.join(cmd)}")
 
     def _file_contents_process(self, commit: str, path: str) -> subprocess.Popen[bytes]:
         cmd = [
