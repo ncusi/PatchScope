@@ -65,7 +65,7 @@ version = {attr = "diffannotator.config.__version__"}
 [project.optional-dependencies]
 dev = [
   "pytest==8.4.2",
-  "pytest-benchmark==5.2.1",
+  "pytest-benchmark==5.2.3",
   "pytest-clarity==1.0.1",
 ]
 doc = [
