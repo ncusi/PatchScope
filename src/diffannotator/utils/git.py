@@ -18,6 +18,7 @@ WARNING: at the time this backend does not have error handling implemented;
 it would simply return empty result, without any notification about the
 error (like incorrect repository path, or incorrect commit)!!!
 """
+import functools
 import logging
 import os
 import re
@@ -647,6 +648,42 @@ class GitRepo:
                 return GitRepo(_to_repo_path(match.group(1)))
 
         return None
+
+    @functools.cached_property
+    def batch_command(self) -> subprocess.Popen:
+        """Persistent connection to `git cat-file --batch-command --buffer`
+
+        In `--batch-command` mode, `git cat-file` will read commands from stdin,
+        one per line, and print information based on the command given.  Namely,
+        the 'info' command followed by an object will print information about
+        the object the same way `--batch-check` would, and the 'contents' command
+        followed by an object prints contents in the same way `--batch` would.
+
+        Because the `--buffer` option is used, you can send multiple commands
+        in a batch, and you must end the input with the 'flush' command.
+        This is more efficient when running 'info' or 'object' commands
+        on large number of objects.
+
+        TODO: make the use of `--buffer` option configurable (make it method, not property).
+
+        Returns
+        -------
+        subprocess.Popen
+            Persistent (because @cached) connection to the `git cat-file`
+            in the `--batch-command` mode, buffered (because of `--buffer`),
+            see https://git-scm.com/docs/git-cat-file
+        """
+        return subprocess.Popen(
+            [
+                'git', '-C', str(self.repo),
+                'cat-file', '--batch-command', '--buffer',
+            ],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,  # silence errors, e.g., "error: short object ID dedf is ambiguous"
+            text=True,
+            bufsize=1,  # line buffered
+        )
 
     def format_patch(self,
                      output_dir: Optional[PathLike] = None,
@@ -1373,6 +1410,61 @@ class GitRepo:
             whether `commit` is a valid commit in repo
         """
         return self.to_oid(str(commit) + '^{commit}') is not None
+
+    def are_valid_objects(self, objects: Iterable[str],
+                          object_type: Optional[str] = "commit") -> list[None|bool]:
+        """Check which of given `objects` are present in the repository
+
+        You can ensure that `objects` not only exist but are of a specific
+        type ("commit" by default); setting `object_type` to None turns off
+        this check.
+
+        Parameters
+        ----------
+        objects
+            List of object identifiers to check.  Often used with a list
+            of commit identifiers (SHA-1, branches, or tags).
+
+        object_type
+            One of "commit", "tree", "blob", "tag", or None.
+            If not None, the type is used to restrict the type of object:
+            only objects of given `object_type` are considered valid,
+            which means that the object must exist and be of specified type.
+
+        Returns
+        -------
+        list[None|bool]
+            For each element of `objects`, returns True if this object exists
+            (and, if `object_type` is not None, is of the specified type),
+            False if this object does not exist, and None if given object identifier
+            is ambiguous.
+        """
+        proc = self.batch_command
+
+        # write commands, batched
+        for obj in objects:
+            if object_type is not None:
+                proc.stdin.write(f'info {obj}^{{{object_type}}}\n')
+            else:
+                proc.stdin.write(f'info {obj}\n')
+
+        proc.stdin.write('flush\n')
+        proc.stdin.flush()
+
+        # read results
+        results = []
+        for _ in objects:
+            line = proc.stdout.readline()
+            info = line.rstrip('\n').split(sep=' ', maxsplit=1)[1]
+
+            if info == 'missing':
+                results.append(False)
+            elif info == 'ambiguous':
+                results.append(None)
+            else:
+                results.append(True)
+
+        return results
 
     def get_current_branch(self) -> Union[str, None]:
         """Return short name of the current branch

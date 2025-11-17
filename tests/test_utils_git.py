@@ -229,6 +229,22 @@ def test_is_valid_commit(example_repo):
     assert not example_repo.is_valid_commit("HEAD~20"), "HEAD~20 is invalid"
 
 
+def test_are_valid_objects(example_repo):
+    """Test that GitRepo.are_valid_objects returns the correct answer"""
+    actual = example_repo.are_valid_objects(['HEAD', 'v1', 'v2'], object_type='commit')
+    assert actual == [True, True, True], "all provided commits are valid"
+    assert actual == [True, True, True], "all provided commits are valid"
+
+    actual = example_repo.are_valid_objects(['non_existent', 'v3', 'HEAD~20'], object_type='commit')
+    assert actual == [False, False, False], "all provided commits are invalid"
+
+    # a shortened sha-1 identifier needs to be at least 4 characters long
+    # you need a large enough repository to have an ambiguous 4-character prefix
+    # this very repository (current repository) is large enough (using any object)
+    #actual = GitRepo('.').are_valid_objects(['dedf', 'caa2'], object_type=None)
+    #assert actual == [None, None], "all provided objects are ambiguous"
+
+
 def test_get_current_branch(example_repo):
     """Basic test of GitRepo.get_current_branch"""
     assert example_repo.get_current_branch() == default_branch, \
