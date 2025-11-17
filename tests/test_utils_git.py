@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """Test cases for 'src/diffannotator/utils/git.py' module"""
+import subprocess
 import textwrap
 
 import pytest
@@ -139,6 +140,12 @@ def test_unidiff_wrap(example_repo):
         "with wrap=True return utils.git.ChangeSet"
     assert isinstance(example_repo.unidiff(wrap=False), str), \
         "with wrap=False return str"
+
+
+def test_unidiff_missing(example_repo):
+    """Test handling of missing commit by GitRepo.unidiff"""
+    with pytest.raises(subprocess.CalledProcessError):
+        example_repo.unidiff('non_existent')
 
 
 def test_changed_lines_extents(example_repo):
