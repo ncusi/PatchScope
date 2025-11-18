@@ -1476,6 +1476,9 @@ class GitRepo:
         ----------
         commits
              A list of commit identifiers to check
+        to_oid
+            Whether to convert elements in `commits` to SHA-1 object identifiers,
+            for example, "HEAD" to "3a27ee24b37a3e9572a0acc0aaecd22cc9c10bc7"
 
         Yields
         ------
