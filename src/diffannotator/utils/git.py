@@ -1466,6 +1466,44 @@ class GitRepo:
 
         return results
 
+    def filter_valid_commits(self, commits: Iterable[str], to_oid: bool = False) -> Iterable[str]:
+        """Filter out invalid commits from given list of commits
+
+        Commit is considered invalid if it does not exist in the repository,
+        or is not a commit.
+
+        Parameters
+        ----------
+        commits
+             A list of commit identifiers to check
+
+        Yields
+        ------
+        str
+            Commit from `commits` that is valid (i.e., exists in the repository,
+            and is a commit)
+
+        Returns
+        -------
+        Iterable[str]
+            Subset of identifiers from `commits` that are valid commits
+        """
+        proc = self.batch_command
+
+        # write commands, batched
+        for commit_id in commits:
+            proc.stdin.write(f'info {commit_id}^{{commit}}\n')
+
+        proc.stdin.write('flush\n')
+        proc.stdin.flush()
+
+        # read results, batched
+        for commit_id in commits:
+            line = proc.stdout.readline()
+            info = line.rstrip('\n').split(sep=' ')
+            if len(info) == 3 and info[1] == 'commit':
+                yield info[0] if to_oid else commit_id
+
     def get_current_branch(self) -> Union[str, None]:
         """Return short name of the current branch
 

@@ -233,7 +233,6 @@ def test_are_valid_objects(example_repo):
     """Test that GitRepo.are_valid_objects returns the correct answer"""
     actual = example_repo.are_valid_objects(['HEAD', 'v1', 'v2'], object_type='commit')
     assert actual == [True, True, True], "all provided commits are valid"
-    assert actual == [True, True, True], "all provided commits are valid"
 
     actual = example_repo.are_valid_objects(['non_existent', 'v3', 'HEAD~20'], object_type='commit')
     assert actual == [False, False, False], "all provided commits are invalid"
@@ -243,6 +242,15 @@ def test_are_valid_objects(example_repo):
     # this very repository (current repository) is large enough (using any object)
     #actual = GitRepo('.').are_valid_objects(['dedf', 'caa2'], object_type=None)
     #assert actual == [None, None], "all provided objects are ambiguous"
+
+
+def test_filter_valid_commits(example_repo):
+    """Test that GitRepo.filter_valid_commits returns the correct answer"""
+    filtered = example_repo.filter_valid_commits(['HEAD', 'non_existent', 'v1', 'v2', 'v3', 'HEAD~20'])
+    assert list(filtered) == ['HEAD', 'v1', 'v2'], "filter only valid commits"
+
+    filtered = example_repo.filter_valid_commits(['HEAD', 'non_existent', 'v1', 'v2', 'v3', 'HEAD~20'], to_oid=True)
+    assert len(list(filtered)) == 3, "there were 3 valid commits (now oids)"
 
 
 def test_get_current_branch(example_repo):
