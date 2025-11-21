@@ -533,7 +533,13 @@ def maybe_close_subprocess(process: Optional[subprocess.Popen]) -> None:
 
 
 class GitRepo:
-    """Class representing Git repository, for performing operations on"""
+    """Class representing Git repository, for performing operations on
+
+    Attributes
+    ----------
+    repo : Path
+        stores Path to the Git repository
+    """
     path_encoding = 'utf8'
     default_file_encoding = 'utf8'
     log_encoding = 'utf8'
