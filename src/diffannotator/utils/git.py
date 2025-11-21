@@ -23,6 +23,7 @@ import logging
 import os
 import re
 import subprocess
+import weakref
 from collections import defaultdict
 from contextlib import contextmanager
 from enum import Enum
@@ -506,8 +507,39 @@ def decode_c_quoted_str(text: str) -> str:
     return text
 
 
+def maybe_close_subprocess(process: Optional[subprocess.Popen]) -> None:
+    """Closes a subprocess safely to avoid resource warnings and resource starvation
+
+    This function ensures the safe termination of a subprocess by properly closing its
+    standard input and output streams, waiting for it to exit, and forcefully
+    killing it if necessary. It is designed to handle `git cat-file --batch-command`
+    and similar persistent subprocesses.
+
+    It is designed to be used as a ` weakref.finalize ` callback.
+
+    Parameters
+    ----------
+    process
+        The subprocess instance to close. If None, the function does nothing.
+    """
+    if process is None:
+        return
+
+    # closing stdin and stdout should end the persistent `git cat-file` process
+    process.stdout.close()  # to avoid ResourceWarning: unclosed file <_io.BufferedReader name=3>
+    process.stdin.close()  # just in case, see above
+    process.wait()  # to avoid ResourceWarning: subprocess NNN is still running
+    process.kill()  # just in case
+
+
 class GitRepo:
-    """Class representing Git repository, for performing operations on"""
+    """Class representing Git repository, for performing operations on
+
+    Attributes
+    ----------
+    repo : Path
+        stores Path to the Git repository
+    """
     path_encoding = 'utf8'
     default_file_encoding = 'utf8'
     log_encoding = 'utf8'
@@ -529,6 +561,8 @@ class GitRepo:
         # TODO: check that `git_directory` is a path to git repository
         # TODO: remember absolute path (it is safer)
         self.repo = Path(repo_dir)
+        self._cat_file: Optional[subprocess.Popen] = None
+        self._finalizer = weakref.finalize(self, maybe_close_subprocess, self._cat_file)
 
     def __repr__(self):
         class_name = type(self).__name__
@@ -673,7 +707,7 @@ class GitRepo:
             in the `--batch-command` mode, buffered (because of `--buffer`),
             see https://git-scm.com/docs/git-cat-file
         """
-        return subprocess.Popen(
+        self._cat_file = subprocess.Popen(
             [
                 'git', '-C', str(self.repo),
                 'cat-file', '--batch-command', '--buffer',
@@ -684,6 +718,18 @@ class GitRepo:
             text=True,
             bufsize=1,  # line buffered
         )
+        return self._cat_file
+
+    def close_batch_command(self) -> None:
+        """Close persistent connection to `git cat-file --batch-command --buffer`
+
+        This should be done only when you are finished with using it, because
+        at least with the current implementation calling this method would make
+        `.are_valid_objects()` and `.filter_valid_commits()` methods fail;
+        they rely on persistence of the cached `.batch_command` property.
+        """
+        self._finalizer()
+        self._cat_file = None
 
     def format_patch(self,
                      output_dir: Optional[PathLike] = None,
@@ -1476,6 +1522,9 @@ class GitRepo:
         ----------
         commits
              A list of commit identifiers to check
+        to_oid
+            Whether to convert elements in `commits` to SHA-1 object identifiers,
+            for example, "HEAD" to "3a27ee24b37a3e9572a0acc0aaecd22cc9c10bc7"
 
         Yields
         ------
