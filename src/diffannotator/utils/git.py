@@ -683,7 +683,7 @@ class GitRepo:
 
         return None
 
-    @functools.cached_property
+    @property
     def batch_command(self) -> subprocess.Popen:
         """Persistent connection to `git cat-file --batch-command --buffer`
 
@@ -703,10 +703,13 @@ class GitRepo:
         Returns
         -------
         subprocess.Popen
-            Persistent (because @cached) connection to the `git cat-file`
+            Persistent (cached) connection to the `git cat-file`
             in the `--batch-command` mode, buffered (because of `--buffer`),
             see https://git-scm.com/docs/git-cat-file
         """
+        if self._cat_file is not None:
+            return self._cat_file
+
         self._cat_file = subprocess.Popen(
             [
                 'git', '-C', str(self.repo),
@@ -723,10 +726,11 @@ class GitRepo:
     def close_batch_command(self) -> None:
         """Close persistent connection to `git cat-file --batch-command --buffer`
 
-        This should be done only when you are finished with using it, because
-        at least with the current implementation calling this method would make
-        `.are_valid_objects()` and `.filter_valid_commits()` methods fail;
-        they rely on persistence of the cached `.batch_command` property.
+        Note that any access to the `.batch_command` property will re-create
+        the connection by starting a new persistent ` git cat-file ` process.
+        The `.are_valid_objects()` and `.filter_valid_commits()` methods
+        access the `.batch_command` property internally, so they would do
+        the same.
         """
         self._finalizer()
         self._cat_file = None
