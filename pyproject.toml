@@ -100,7 +100,7 @@ web = [
   # data serialization
   "pyarrow==22.0.0",
   # plots
-  "holoviews==1.21.0",
+  "holoviews==1.22.0",
   "hvplot==0.12.1",
   "matplotlib==3.10.7",
   "seaborn==0.13.2",
