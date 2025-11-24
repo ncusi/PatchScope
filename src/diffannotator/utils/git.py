@@ -26,7 +26,7 @@ import subprocess
 import weakref
 from collections import defaultdict
 from contextlib import contextmanager
-from enum import Enum
+from enum import Enum, StrEnum
 from io import StringIO, BufferedReader, TextIOWrapper
 from pathlib import Path
 from typing import Optional, Union, TypeVar, Literal, overload, NamedTuple, TextIO
@@ -209,6 +209,21 @@ RE_DIFF_GIT_EXTENDED_HEADER_MODE = re.compile(
     pattern=r'^(?P<side>new|old) (?:file )?mode (?P<mode>[0-9]{6})',
     flags=re.MULTILINE,
 )
+
+
+class GitFileMode(StrEnum):
+    """Enumeration of file modes in git diff
+
+    To be used to compare the result of `get_patched_file_mode()` function
+    against, to check whether the file is a regular file, an executable file,
+    a symlink, or a submodule.
+    """
+    REGULAR = '100644'
+    NORMAL = '100644'
+    EXECUTABLE = '100755'
+    SYMLINK = '120000'
+    SUBMODULE = '160000'
+
 
 def get_patched_file_mode(patched_file: PatchedFile,
                           side: DiffSide = DiffSide.POST) -> str|None:
