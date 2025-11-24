@@ -34,6 +34,7 @@ from collections.abc import Iterable, Iterator
 
 from unidiff import PatchSet, DEFAULT_ENCODING
 from unidiff.patch import Line as PatchLine
+from unidiff.patch import PatchedFile
 
 
 # support logging
@@ -75,6 +76,16 @@ class ChangeSet(PatchSet):
     RE_DIFF_GIT_HEADER_GENERIC = re.compile(
         pattern=r'^diff --git [^\t\n]+ [^\t\n]+',
         flags=re.MULTILINE
+    )
+    RE_DIFF_GIT_EXTENDED_HEADER_INDEX_MODE = re.compile(
+        # e.g. 'index 7898192..6178079 100644'
+        pattern=r'^index (?P<sha_src>[0-9a-f]+)\.\.(?P<sha_dst>[0-9a-f]+) (?P<mode>[0-9]{6})',
+        flags=re.MULTILINE,
+    )
+    RE_DIFF_GIT_EXTENDED_HEADER_MODE = re.compile(
+        # e.g. 'new mode 100644' or 'old mode 100755', or 'new file mode 100644'
+        pattern=r'^(?P<side>new|old) (?:file )?mode (?P<mode>[0-9]{6})',
+        flags=re.MULTILINE,
     )
     RE_ALL_SHA1_FULL = re.compile(r'^[0-9a-f]{40}$')
     # TODO: support SHA-256 object names
@@ -194,6 +205,26 @@ class ChangeSet(PatchSet):
             obj.commit_id = obj.commit_metadata['id']
 
         return obj
+
+    # TODO: patch unidiff.PatchedFile or create subclass from it instead
+    def get_patched_file_mode(self, patched_file: PatchedFile,
+                              side: DiffSide = DiffSide.POST) -> str|None:
+        if not patched_file.patch_info:
+            return None
+
+        for line in patched_file.patch_info:
+            match = re.match(pattern=self.RE_DIFF_GIT_EXTENDED_HEADER_MODE, string=line)
+            if match:
+                if side == DiffSide.PRE and match.group('side') == 'old':
+                    return match.group('mode')
+                elif side == DiffSide.POST and match.group('side') == 'new':
+                    return match.group('mode')
+
+            match = re.match(pattern=self.RE_DIFF_GIT_EXTENDED_HEADER_INDEX_MODE, string=line)
+            if match:
+                return match.group('mode')
+
+        return None
 
 
 def _parse_authorship_info(authorship_line: str,

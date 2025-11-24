@@ -440,6 +440,38 @@ def test_ChangeSet_from_patch_file_with_cr():
     # there were no exceptions
 
 
+def test_ChangeSet_get_patched_file_mode(subtests):
+    """Test ChangeSet.get_patched_file_mode() method"""
+    with subtests.test("binary files, no mode change"):
+        diff_no_mode_change = 'tests/test_dataset/binary_files_differ.diff'
+        patch = ChangeSet.from_filename(diff_no_mode_change)
+        changed_file = patch[0]
+        actual_src = patch.get_patched_file_mode(changed_file, side=DiffSide.PRE)
+        actual_dst = patch.get_patched_file_mode(changed_file, side=DiffSide.POST)
+        expected = '100644'  # ordinary file
+        assert actual_src == expected, "source file mode matches"
+        assert actual_dst == expected, "destination file mode matches"
+
+    with subtests.test("ordinary files, with mode change"):
+        diff_with_mode_change = 'tests/test_dataset/with_mode_change.diff'
+        patch = ChangeSet.from_filename(diff_with_mode_change)
+        changed_file = patch[0]
+        actual_src = patch.get_patched_file_mode(changed_file, side=DiffSide.PRE)
+        actual_dst = patch.get_patched_file_mode(changed_file, side=DiffSide.POST)
+        expected_src = '100644'
+        expected_dst = '100755'
+        assert actual_src == expected_src, "source file mode matches"
+        assert actual_dst == expected_dst, "destination file mode matches"
+
+    with subtests.test("submodule without --recurse-submodules"):
+        diff_new_submodule = 'tests/test_dataset/with_submodule.diff'
+        patch = ChangeSet.from_filename(diff_new_submodule)
+        changed_file = patch[0]
+        actual = patch.get_patched_file_mode(changed_file)
+        expected = '160000'
+        assert actual == expected, "submodule file mode matches"
+
+
 def test_repo_utf8(example_repo_utf8):
     """"Test all GitRepo methods that deal with filenames, etc., on utf-8 data"""
     expected = ['przykładowy plik']
