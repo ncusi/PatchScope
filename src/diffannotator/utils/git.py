@@ -212,6 +212,33 @@ RE_DIFF_GIT_EXTENDED_HEADER_MODE = re.compile(
 
 def get_patched_file_mode(patched_file: PatchedFile,
                           side: DiffSide = DiffSide.POST) -> str|None:
+    """Extract pre- or post-image mode of a changed file from git diff, if possible
+
+    This function examines the extended git diff header of a given PatchedFile
+    in a PatchSet or ChangeSet created out of a git patch, in order to extract
+    the mode of the pre- or post-image of a changed file (according to the `side`
+    argument).
+
+    If there is not enough information in the header (for example if PatchSet
+    was created from unified diff, and not from git diff), it returns None.
+
+    Parameters
+    ----------
+    patched_file
+        unidiff.patch.PatchedFile element of unidiff.PatchSet or of ChangeSet,
+        i.e., the result of parsing of a patch (of a unified diff) with unidiff
+        library.
+    side
+        enum that select whether to return pre- or post-image mode.
+
+    Returns
+    -------
+    str | None
+        Extended file mode in octal: '100644' for normal files, '100755' for
+        executable files (`git add --chmod=+x`), '120000' for symlink,
+        and '160000' for submodule, or `None` if there is not enough information
+        to determine the `patched_file` mode.
+    """
     if not patched_file.patch_info:
         return None
 
