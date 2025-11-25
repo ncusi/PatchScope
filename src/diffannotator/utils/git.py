@@ -26,7 +26,7 @@ import subprocess
 import weakref
 from collections import defaultdict
 from contextlib import contextmanager
-from enum import Enum
+from enum import Enum, StrEnum
 from io import StringIO, BufferedReader, TextIOWrapper
 from pathlib import Path
 from typing import Optional, Union, TypeVar, Literal, overload, NamedTuple, TextIO
@@ -34,6 +34,7 @@ from collections.abc import Iterable, Iterator
 
 from unidiff import PatchSet, DEFAULT_ENCODING
 from unidiff.patch import Line as PatchLine
+from unidiff.patch import PatchedFile
 
 
 # support logging
@@ -194,6 +195,81 @@ class ChangeSet(PatchSet):
             obj.commit_id = obj.commit_metadata['id']
 
         return obj
+
+    # TODO: patch unidiff.PatchedFile or create subclass from it instead
+
+
+RE_DIFF_GIT_EXTENDED_HEADER_INDEX_MODE = re.compile(
+    # e.g. 'index 7898192..6178079 100644'
+    pattern=r'^index (?P<sha_src>[0-9a-f]+)\.\.(?P<sha_dst>[0-9a-f]+) (?P<mode>[0-9]{6})',
+    flags=re.MULTILINE,
+)
+RE_DIFF_GIT_EXTENDED_HEADER_MODE = re.compile(
+    # e.g. 'new mode 100644' or 'old mode 100755', or 'new file mode 100644'
+    pattern=r'^(?P<side>new|old) (?:file )?mode (?P<mode>[0-9]{6})',
+    flags=re.MULTILINE,
+)
+
+
+class GitFileMode(StrEnum):
+    """Enumeration of file modes in git diff
+
+    To be used to compare the result of `get_patched_file_mode()` function
+    against, to check whether the file is a regular file, an executable file,
+    a symlink, or a submodule.
+    """
+    REGULAR = '100644'
+    NORMAL = '100644'
+    EXECUTABLE = '100755'
+    SYMLINK = '120000'
+    SUBMODULE = '160000'
+
+
+def get_patched_file_mode(patched_file: PatchedFile,
+                          side: DiffSide = DiffSide.POST) -> str|None:
+    """Extract pre- or post-image mode of a changed file from git diff, if possible
+
+    This function examines the extended git diff header of a given PatchedFile
+    in a PatchSet or ChangeSet created out of a git patch, in order to extract
+    the mode of the pre- or post-image of a changed file (according to the `side`
+    argument).
+
+    If there is not enough information in the header (for example if PatchSet
+    was created from unified diff, and not from git diff), it returns None.
+
+    Parameters
+    ----------
+    patched_file
+        unidiff.patch.PatchedFile element of unidiff.PatchSet or of ChangeSet,
+        i.e., the result of parsing of a patch (of a unified diff) with unidiff
+        library.
+    side
+        enum that select whether to return pre- or post-image mode.
+
+    Returns
+    -------
+    str | None
+        Extended file mode in octal: '100644' for normal files, '100755' for
+        executable files (`git add --chmod=+x`), '120000' for symlink,
+        and '160000' for submodule, or `None` if there is not enough information
+        to determine the `patched_file` mode.
+    """
+    if not patched_file.patch_info:
+        return None
+
+    for line in patched_file.patch_info:
+        match = re.match(pattern=RE_DIFF_GIT_EXTENDED_HEADER_MODE, string=line)
+        if match:
+            if side == DiffSide.PRE and match.group('side') == 'old':
+                return match.group('mode')
+            elif side == DiffSide.POST and match.group('side') == 'new':
+                return match.group('mode')
+
+        match = re.match(pattern=RE_DIFF_GIT_EXTENDED_HEADER_INDEX_MODE, string=line)
+        if match:
+            return match.group('mode')
+
+    return None
 
 
 def _parse_authorship_info(authorship_line: str,
@@ -683,7 +759,7 @@ class GitRepo:
 
         return None
 
-    @functools.cached_property
+    @property
     def batch_command(self) -> subprocess.Popen:
         """Persistent connection to `git cat-file --batch-command --buffer`
 
@@ -703,10 +779,13 @@ class GitRepo:
         Returns
         -------
         subprocess.Popen
-            Persistent (because @cached) connection to the `git cat-file`
+            Persistent (cached) connection to the `git cat-file`
             in the `--batch-command` mode, buffered (because of `--buffer`),
             see https://git-scm.com/docs/git-cat-file
         """
+        if self._cat_file is not None:
+            return self._cat_file
+
         self._cat_file = subprocess.Popen(
             [
                 'git', '-C', str(self.repo),
@@ -723,10 +802,11 @@ class GitRepo:
     def close_batch_command(self) -> None:
         """Close persistent connection to `git cat-file --batch-command --buffer`
 
-        This should be done only when you are finished with using it, because
-        at least with the current implementation calling this method would make
-        `.are_valid_objects()` and `.filter_valid_commits()` methods fail;
-        they rely on persistence of the cached `.batch_command` property.
+        Note that any access to the `.batch_command` property will re-create
+        the connection by starting a new persistent ` git cat-file ` process.
+        The `.are_valid_objects()` and `.filter_valid_commits()` methods
+        access the `.batch_command` property internally, so they would do
+        the same.
         """
         self._finalizer()
         self._cat_file = None
