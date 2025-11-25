@@ -105,6 +105,7 @@ plugins:
       scripts:
         - scripts/gen_api_ref_pages.py
         - scripts/gen_cli_ref_pages.py
+  # NOTE: an alternative to mkdocs-literate-nav could be mkdocs-awesome-nav
   - literate-nav:  # generate a literate navigation file for mkdocstrings pages
       nav_file: SUMMARY.md
   # NOTE: section-index is turned off, because it interfered with adding API docs for diffannotator
