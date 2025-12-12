@@ -73,6 +73,7 @@ FILENAME_TO_LANGUAGES = {
         ]
     },
     "Makefile": ["Makefile"],
+    "build.cake": ["C#"],  # Cake Build uses C# DSL
     "configure.ac": ["M4Sugar"],
     "flake.lock": ["JSON"],
     ".pylintrc": ["INI"],
@@ -88,9 +89,11 @@ EXT_TO_LANGUAGES = {
     ".html": ["HTML"],
     ".json": ["JSON"],
     ".md": ["Markdown"],
+    ".MD": ["Markdown"],
     ".php": ["PHP"],  # the alternative is "Hack", which has also .hack, .hh, .hhi
     ".pl": ["Perl"],
     ".pm": ["Perl"],
+    ".plist": ["XML"],  # the alternative is "OpenStep Property List"
     ".properties": ["INI"],
     ".rs": ["Rust"],  # more likely than "RenderScript", or "XML"
     ".sol": ["Solidity"],  # the alternative is "Gerber Image", which should use .gbr, or .geb, .gerber
@@ -98,6 +101,7 @@ EXT_TO_LANGUAGES = {
     ".t": ["Perl"],
     ".ts": ["TypeScript"],
     ".txt": ["Text"],
+    ".TXT": ["Text"],
     ".tsx": ["TSX"],  # the alternative is "XML"
     ".yaml": ["YAML"],
     ".yml": ["YAML"],
@@ -112,6 +116,7 @@ PATTERN_TO_PURPOSE = {
             "*.cmake",  # CMake (C++)
             ".nuspec",  # NuGet (C# / CLR)
             "BUILD",  # Bazel (Java, C++, Go,...)
+            "build.cake",  # Cake Build (C#)
             "CMakeLists.txt",  # CMake (C++)
             "Cargo.toml",  # Cargo (Rust)
             "Dockerfile",  # Docker
