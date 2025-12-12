@@ -8,7 +8,7 @@ import pytest
 from unidiff import PatchSet
 
 from diffannotator.utils.git import decode_c_quoted_str, GitRepo, DiffSide, AuthorStat, parse_shortlog_count, ChangeSet, \
-    maybe_close_subprocess, get_patched_file_mode
+    maybe_close_subprocess, get_patched_file_mode, changes_survival_perc
 from tests.conftest import default_branch, example_repo, example_repo_utf8
 
 
@@ -324,6 +324,101 @@ def test_check_merged_into(example_repo):
     assert sorted(expected) == sorted(actual), "'v1' is merged into HEAD, v1, v1.5, v2"
     actual = example_repo.check_merged_into('v2', 'refs/tags/v1')
     assert not actual, "'v2' is not merged into v1"
+
+
+def test_reverse_blame(example_repo, subtests):
+    with subtests.test("reverse blame from v1.5"):
+        commits_data, line_data = example_repo.reverse_blame('v1.5', 'subdir/subfile')
+        # single line that survived
+        assert len(line_data) == 1, "there was single line in v1.5"
+        blame_commit = line_data[0]['commit']
+        assert 'previous' not in commits_data[blame_commit],\
+            "survived until commit with no previous (last commit)"
+        assert blame_commit == example_repo.to_oid("HEAD"),\
+            "reverse blame commit is HEAD (last commit)"
+
+    with subtests.test("reverse blame from v1"):
+        commits_data, line_data = example_repo.reverse_blame('v1', 'subdir/subfile')
+        # single line that did not survive for even a single commit
+        # and that commit was v1.5, which is not the last commit
+        assert len(line_data) == 1, "there was single line in v1"
+        blame_commit = line_data[0]['commit']
+        assert 'previous' in commits_data[blame_commit],\
+            "did not survive until commit with no previous (last commit)"
+        assert 'boundary' in commits_data[blame_commit],\
+            "was changed in subsequent commit"
+        assert blame_commit == example_repo.to_oid("v1"),\
+            "reverse blame commit is starting commit v1"
+
+    with subtests.test("reverse blame with line range"):
+        line_extent = (2, 3)
+        n_lines = line_extent[1] - line_extent[0] + 1
+        _, line_data = example_repo.reverse_blame(
+            commit='v1', file='example_file',
+            line_extents=[line_extent]
+        )
+        # requested two lines, got two lines
+        assert len(line_data) == n_lines, f"reverse blame returned {n_lines} lines"
+        # line numbers match
+        for blame_line, line_no in zip(line_data, line_extent, strict=True):
+            assert int(blame_line['final']) == line_no, f"line number match for line number {line_no}"
+
+
+def test_changes_survival(example_repo, subtests):
+    # for a more universal replacement of UnitTest.assertCountEqual in pytest,
+    # see https://stackoverflow.com/questions/41605889/does-pytest-have-an-assertitemsequal-assertcountequal-equivalent
+    with subtests.test("changes survival from v1.5"):
+        _, survival_info = example_repo.changes_survival("v1.5")
+        # single file changed, single line change, which survived
+        # was: self.assertCountEqual(survival_info.keys(), ['subdir/subfile'])
+        assert list(survival_info.keys()) == ['subdir/subfile'], "v1.5: single file changed"
+        assert len(survival_info['subdir/subfile']) == 1, "v1.5: single line change"
+        assert 'previous' not in survival_info['subdir/subfile'][0], "v1.5: changed line survived"
+
+    with subtests.test("changes survival from v1"):
+        _, survival_info = example_repo.changes_survival(
+            commit="v1",
+            prev=example_repo.empty_tree_sha1
+        )
+        # two files created in v1
+        # was: self.assertCountEqual(...)
+        assert sorted(survival_info.keys()) == sorted([
+            'example_file',
+            'subdir/subfile',
+        ]), "v1: two files created"
+        # changes in 'subdir/subfile' consist of a single line that did not survive
+        assert len(survival_info['subdir/subfile']) == 1,\
+            "v1: single line change in 'subdir/subfile'"
+        assert 'previous' in survival_info['subdir/subfile'][0],\
+            "v1: line change in 'subdir/subfile' did not survive"
+        # 4 lines out of 5 survived from 'example_file', 1 line in 'subdir/subfile' did not
+        assert changes_survival_perc(survival_info) == (5-1, 5+1),\
+            "v1: survival percentages match expectations"
+
+    with subtests.test("changes survival from v1 (addition_optimization=True)"):
+        _, survival_info = example_repo.changes_survival(
+            commit="v1",
+            prev=example_repo.empty_tree_sha1,
+            addition_optimization=True
+        )
+        # two files created in v1
+        assert sorted(survival_info.keys()) == sorted([
+            'example_file',
+            'subdir/subfile',
+        ]), "v1: two files changed (created)"
+
+    with subtests.test("changes survival from v2"):
+        _, survival_info = example_repo.changes_survival("v2")
+        # everything in changes survived because v2 is the last commit
+        assert sorted(survival_info.keys()) == sorted([
+            'new_file',
+            'renamed_file',
+            'subdir/subfile',
+        ]), "v2: three files changed"
+        for path, lines in survival_info.items():
+            for line_info in lines:
+                assert 'previous' not in line_info,\
+                    f"v2: {path!r} file survived"
 
 
 def test_count_commits(example_repo):
