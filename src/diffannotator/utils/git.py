@@ -28,6 +28,7 @@ from collections import defaultdict
 from contextlib import contextmanager
 from enum import Enum, StrEnum
 from io import StringIO, BufferedReader, TextIOWrapper
+from operator import attrgetter
 from pathlib import Path
 from typing import Optional, Union, TypeVar, Literal, overload, NamedTuple, TextIO
 from collections.abc import Iterable, Iterator
@@ -512,6 +513,65 @@ def parse_shortlog_count(shortlog_lines: list[Union[str, bytes]]) -> list[Author
     return result
 
 
+def select_core_authors(authors_stats: list[AuthorStat],
+                        perc: float = 0.8) -> tuple[list[AuthorStat], float]:
+    """Select sorted list of core authors from `authors_list`
+
+    Core authors are defined (like in World of Code) as those authors with
+    the greatest contribution count whose contribution sum up to more than
+    given `perc` fraction of contributions from all authors.  Usually
+    number of contributions comes from 'git shortlog', and counts commits.
+
+    This function returns a tuple.  First element is list of `AuthorStat`
+    named tuples, sorted by `count` field in decreasing order, so that their
+    contribution is minimal that covers `perc` fraction of all commits.
+    If there is tie at the last element, all tied authors are included.
+    Second element is actual fraction of all commits that selected authors'
+    contributions covers.
+
+    We have len(result[0]) <= len(authors_stats), and perc <= result[1].
+
+    Parameters
+    ----------
+    authors_stats:
+        all authors and their contribution statistics,
+        for example result of feeding the result of list_authors_shortlog()
+        method fed to parse_shortlog_count() function
+    perc:
+        fraction threshold for considering author a core author,
+        assumed to be 0.0 <= `perc` <= 1.0 (not checked!)
+
+    Returns
+    -------
+    list[AuthorStat], float
+        list of core authors, and cumulative fraction of contributions
+        of returned authors
+    """
+    authors_stats.sort(key=attrgetter('count'), reverse=True)
+    total_commits = sum([auth.count
+                         for auth in authors_stats])
+
+    result = []
+    idx = 0
+    running_total = 0
+    for idx, auth in enumerate(authors_stats):
+        result.append(auth)
+        running_total += auth.count
+        if running_total > perc*total_commits:
+            break
+
+    # handle ex aequo situation (draw / tie)
+    last_count = authors_stats[idx].count
+    for auth in authors_stats[idx+1:]:
+        if auth.count == last_count:
+            running_total += auth.count
+            result.append(auth)
+        else:
+            break
+
+    return result, running_total/total_commits
+
+
 def changes_survival_perc(lines_survival: dict[str, list[dict]]) -> tuple[int, int]:
     """Count fraction of surviving lines from GitRepo.changes_survival() output
 
@@ -783,6 +843,31 @@ class GitRepo:
                 return GitRepo(_to_repo_path(match.group(1)))
 
         return None
+
+    def checkout_revision(self, commit: str) -> None:
+        """Check out given commit in a given repository
+
+        This would usually (and for some cases always) result in
+        'detached HEAD' situation, that is HEAD reference pointing
+        directly to a commit, and not being on any named branch.
+
+        This function is called for its effects and does return nothing.
+
+        Notes
+        -----
+        Changes the repository, and therefore requires write access
+        to the repository.
+
+        Parameters
+        ----------
+        commit:
+            The commit to check out in given repository.
+        """
+        cmd = [
+            'git', '-C', self.repo, 'checkout', '-q', commit,
+        ]
+        # we are interested in effects of the command, not its output
+        subprocess.run(cmd, stdout=subprocess.DEVNULL, check=True)
 
     @property
     def batch_command(self) -> subprocess.Popen:
@@ -2051,6 +2136,33 @@ class GitRepo:
         except UnicodeDecodeError:
             # if not possible, return bytes
             return process.stdout.splitlines()
+
+    def list_core_authors(self, start_from: str|StartLogFrom = StartLogFrom.ALL,
+                          perc: float = 0.8) -> tuple[list[AuthorStat], float]:
+        """List core authors using git-shortlog, and their fraction of commits
+
+        Get list of authors contributions via 'git-shortlog' with
+        `list_authors_shortlog`, parse it with `parse_shortlog_count`,
+        and select core authors from this list with `select_core_authors`.
+
+        Parameters
+        ----------
+        start_from:
+            where to start from to follow 'parent' links
+        perc:
+            fraction threshold for considering author a core author,
+            assumed to be 0.0 <= `perc` <= 1.0 (not checked!)
+
+        Returns
+        -------
+        (list[AuthorStat], float)
+            list of core authors, sorted, and cumulative fraction of contributions
+            of returned authors
+        """
+        return select_core_authors(
+            parse_shortlog_count(self.list_authors_shortlog(start_from)),
+            perc
+        )
 
     def find_roots(self, start_from: str = StartLogFrom.CURRENT) -> list[str]:
         """Find root commits (commits without parents), starting from `start_from`
