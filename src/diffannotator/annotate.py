@@ -604,6 +604,11 @@ class AnnotatedPatchSet:
             # for each changed file
             patched_file: unidiff.PatchedFile
             for i, patched_file in enumerate(self.patch_set, start=1):
+                # TODO: make it configurable
+                # TODO: handle submodules in pre- image only (rare)
+                if get_patched_file_mode(patched_file) == GitFileMode.SUBMODULE:
+                    continue
+
                 # create AnnotatedPatchedFile object from the i-th changed file in patchset
                 annotated_patch_file = AnnotatedPatchedFile(patched_file)
 
