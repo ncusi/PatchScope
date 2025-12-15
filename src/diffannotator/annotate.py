@@ -65,7 +65,7 @@ from . import languages
 from .config import get_version, JSONFormat, JSONFormatExt, guess_format_version
 from .languages import Languages
 from .lexer import Lexer
-from .utils.git import GitRepo, ChangeSet
+from .utils.git import GitRepo, ChangeSet, get_patched_file_mode, DiffSide, GitFileMode
 
 # optional dependencies
 try:
@@ -1079,6 +1079,19 @@ class AnnotatedPatchedFile:
                 'n_removed_files': int(self.patched_file.is_removed_file),
                 'n_file_renames': int(self.patched_file.is_rename),
             })
+
+        # Handle the case of change to submodule _without_ submodule checked out
+        # TODO: check possible cases, noy only if there is submodule in the post-image
+        if get_patched_file_mode(self.patched_file, side=DiffSide.POST) == GitFileMode.SUBMODULE:
+            return Counter({
+                'n_files': 1,
+                'n_submodules': 1,
+                # TODO?: Do not add if value is 0
+                'n_added_files': int(self.patched_file.is_added_file),
+                'n_removed_files': int(self.patched_file.is_removed_file),
+                'n_file_renames': int(self.patched_file.is_rename),
+            })
+
 
         result = Counter({
             'n_files': 1,
