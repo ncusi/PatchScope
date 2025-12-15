@@ -32,6 +32,7 @@ from pathlib import Path
 from typing import Optional, Union, TypeVar, Literal, overload, NamedTuple, TextIO
 from collections.abc import Iterable, Iterator
 
+import unidiff
 from unidiff import PatchSet, DEFAULT_ENCODING
 from unidiff.patch import Line as PatchLine
 from unidiff.patch import PatchedFile
@@ -1050,7 +1051,8 @@ class GitRepo:
     def changed_lines_extents(self, commit: str = 'HEAD',
                               prev: Optional[str] = None,
                               side: DiffSide = DiffSide.POST) -> tuple[dict[str, list[tuple[int, int]]],
-                                                                       dict[str, list[PatchLine]]]:
+                                                                       dict[str, list[PatchLine]],
+                                                                       PatchSet]:
         """List target line numbers of changed files as extents, for each changed file
 
         For each changed file that appears in `side` side of the diff between
@@ -1086,10 +1088,11 @@ class GitRepo:
 
         Returns
         -------
-        (dict[str, list[tuple[int, int]]], dict[str, list[PatchLine]])
+        (dict[str, list[tuple[int, int]]], dict[str, list[PatchLine]], PatchSet)
             two dicts, with changed files names as keys, first with
             information about change lines extents, second with parsed
-            change lines (only for added lines)
+            change lines (only for added lines), and unidiff.PatchSet
+            to avoid recomputing diffs
         """
         # TODO: implement also for DiffSide.PRE
         if side != DiffSide.POST:
@@ -1126,7 +1129,7 @@ class GitRepo:
 
             file_ranges[decode_c_quoted_str(patched_file.path)] = line_ranges
 
-        return file_ranges, file_diff_lines_added
+        return file_ranges, file_diff_lines_added, patch
 
     @overload
     def unidiff(self, commit: str = ..., prev: Optional[str] = ..., wrap: Literal[True] = ...) -> ChangeSet:
@@ -1914,10 +1917,24 @@ class GitRepo:
         if addition_optimization:
             diff_stat = self.diff_file_status(commit, prev)
 
-        changes_info, file_diff_lines = self.changed_lines_extents(commit, prev, side=DiffSide.POST)
+        changes_info, file_diff_lines, patch = self.changed_lines_extents(commit, prev, side=DiffSide.POST)
+
+        # map from file name in changed files to unidiff.PatchedFile for that file
+        patched_files_map = {}
+        patched_file: unidiff.PatchedFile
+        for patched_file in patch:
+            # same key as used in .changed_lines_extents()
+            patched_files_map[decode_c_quoted_str(patched_file.path)] = patched_file
+
         for file_path, line_extents in changes_info.items():
             if not line_extents:
                 # empty changes, for example pure rename
+                continue
+
+            # TODO: make it configurable
+            # drop submodules from survival analysis
+            if (file_path in patched_files_map and  # just in case
+                get_patched_file_mode(patched_files_map[file_path], file_path) == GitFileMode.SUBMODULE):
                 continue
 
             # if file was added in commit, blame whole file

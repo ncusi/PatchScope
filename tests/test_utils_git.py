@@ -153,7 +153,7 @@ def test_unidiff_missing(example_repo):
 def test_changed_lines_extents(example_repo):
     # TODO?: use pytest-subtest plugin
     # with self.subTest("for HEAD (last commit)"):
-    actual, _ = example_repo.changed_lines_extents()
+    actual, _, _ = example_repo.changed_lines_extents()
     expected = {
         'new_file': [(1,10)],  # whole file added in v2
         'renamed_file': [(4,4)],  # file renamed in v2 from 'example_file', changed line 4
@@ -162,7 +162,7 @@ def test_changed_lines_extents(example_repo):
     assert expected == actual, "changed lines for post-image for changed files match (HEAD)"
 
     # with self.subTest("for v1 (first commit, root)"):
-    actual, _ = example_repo.changed_lines_extents('v1')
+    actual, _, _ = example_repo.changed_lines_extents('v1')
     expected = {
         'example_file': [(1,5)],  # whole file added in v1 with 5 lines
         'subdir/subfile': [(1,1)],  # whole file added in v2 with 1 incomplete line
