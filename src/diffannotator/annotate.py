@@ -631,7 +631,10 @@ class AnnotatedPatchSet:
         except Exception as ex:
             #print(f"Error processing patch {self.patch_set!r}, at file no {i}: {ex!r}")
             #traceback.print_tb(ex.__traceback__)
-            logger.error(msg=f"Error processing patch {self.patch_set!r}, at file no {i}",
+            logger.error(msg=f"Error processing patch {self.patch_set!r}, at file no {i}\n"
+                         f"in repo {self.repo} in commit "
+                         f"{self.patch_set.commit_id if isinstance(self.patch_set, ChangeSet) else 'unknown'}\n"
+                         f"{self.patch_set!s}",
                          exc_info=True)
 
             if not ignore_annotation_errors:
@@ -639,7 +642,6 @@ class AnnotatedPatchSet:
             # returns what it was able to process so far
 
         return patch_annotations
-
 
 
 class AnnotatedPatchedFile:
