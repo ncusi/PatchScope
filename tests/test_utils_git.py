@@ -5,10 +5,10 @@ import textwrap
 from typing import Optional
 
 import pytest
-from unidiff import PatchSet
+from unidiff import PatchSet, PatchedFile
 
 from diffannotator.utils.git import decode_c_quoted_str, GitRepo, DiffSide, AuthorStat, parse_shortlog_count, ChangeSet, \
-    maybe_close_subprocess, get_patched_file_mode, changes_survival_perc
+    maybe_close_subprocess, get_patched_file_mode, changes_survival_perc, GitFileMode
 from tests.conftest import default_branch, example_repo, example_repo_utf8
 
 
@@ -569,6 +569,35 @@ def test_get_patched_file_mode(subtests):
         actual = get_patched_file_mode(changed_file)
         expected = '160000'
         assert actual == expected, "submodule file mode matches"
+
+
+def test_submodule_avoidance_logic():
+    """Test submodule avoidance logic in GitRepo.changes_survival()"""
+    # from https://github.com/synth-inc/onit
+    patch_file = 'tests/test_dataset/6570767134ab5ff4d7e1a2fd761b4fc6c731d5ce.patch'
+    changeset = ChangeSet.from_filename(patch_file)
+
+    assert hasattr(changeset, 'commit_id'), \
+        "ChangeSet has commit_id extracted from patch file name"
+
+    # map from the file name in changed files to unidiff.PatchedFile for that file
+    patched_files_map = {}
+    patched_file: PatchedFile
+    for patched_file in changeset:
+        # the same key as used in .changed_lines_extents()
+        patched_files_map[decode_c_quoted_str(patched_file.path)] = patched_file
+
+    assert 'LLMStream' in patched_files_map, \
+        "'LLMStream' path is in files/paths changed by the patch"
+
+    file_path = 'LLMStream'
+    file_mode = get_patched_file_mode(patched_files_map[file_path], file_path)
+
+    assert file_mode == GitFileMode.SUBMODULE, \
+        "'LLMStream' file mode marks it as a submodule"
+
+    assert file_mode == GitFileMode.SUBMODULE.value, \
+        "'LLMStream' file mode marks it as a submodule"
 
 
 def test_repo_utf8(example_repo_utf8):

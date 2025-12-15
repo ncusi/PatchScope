@@ -1,0 +1,130 @@
+commit 6570767134ab5ff4d7e1a2fd761b4fc6c731d5ce
+Author: timl <tim.lenardo@gmail.com>
+Date:   Wed Jun 25 12:12:51 2025 -0700
+
+    Resize all windows in Pinned mode, not just tracked ones
+
+diff --git a/LLMStream b/LLMStream
+index 7467fbc8..f53547b3 160000
+--- a/LLMStream
++++ b/LLMStream
+@@ -1 +1 @@
+-Subproject commit 7467fbc8130b804fa1e6294264e1c36a1dc084de
++Subproject commit f53547b36033e292d0de59a7dc8a6d2c943150cc
+diff --git a/macos/Onit/Helpers/WindowHelpers.swift b/macos/Onit/Helpers/WindowHelpers.swift
+index 5e5308b2..701caede 100644
+--- a/macos/Onit/Helpers/WindowHelpers.swift
++++ b/macos/Onit/Helpers/WindowHelpers.swift
+@@ -44,4 +44,26 @@ struct WindowHelpers {
+             return nil
+         }
+     }
++    
++    /// Returns all PIDs of regular running applications excluding the current app (Onit)
++    static func getAllOtherAppPids() -> [pid_t] {
++        let onitName = Bundle.main.object(forInfoDictionaryKey: "CFBundleName") as? String
++        return NSWorkspace.shared.runningApplications
++            .filter { $0.activationPolicy == .regular }
++            .filter { $0.localizedName != onitName }
++            .map { $0.processIdentifier }
++    }
++    
++    /// Returns all windows for all regular running applications excluding the current app (Onit)
++    static func getAllOtherAppWindows() -> [AXUIElement] {
++        var allWindows: [AXUIElement] = []
++        let appPids = getAllOtherAppPids()
++        
++        for pid in appPids {
++            let windows = pid.findTargetWindows()
++            allWindows.append(contentsOf: windows)
++        }
++        
++        return allWindows
++    }
+ }
+diff --git a/macos/Onit/PanelStateManager/Pinned/PanelStatePinnedManager+Resize.swift b/macos/Onit/PanelStateManager/Pinned/PanelStatePinnedManager+Resize.swift
+index 5e5dae04..7996e3c5 100644
+--- a/macos/Onit/PanelStateManager/Pinned/PanelStatePinnedManager+Resize.swift
++++ b/macos/Onit/PanelStateManager/Pinned/PanelStatePinnedManager+Resize.swift
+@@ -13,21 +13,10 @@ extension PanelStatePinnedManager {
+         guard !isResizingWindows else { return }
+ 
+         isResizingWindows = true
+-        
+-        let onitName = Bundle.main.object(forInfoDictionaryKey: "CFBundleName") as? String
+-        let appPids = NSWorkspace.shared.runningApplications
+-            .filter { $0.activationPolicy == .regular }
+-            .filter { $0.localizedName != onitName }
+-            .map { $0.processIdentifier }
+-         
+-        for pid in appPids {
+-            let windows = pid.findTargetWindows()
+-            
+-            for window in windows {
+-                resizeWindow(for: screen, window: window, isPanelResized: isPanelResized)
+-            }
++        let windows = WindowHelpers.getAllOtherAppWindows()
++        for window in windows {
++            resizeWindow(for: screen, window: window, isPanelResized: isPanelResized)
+         }
+-        
+         isResizingWindows = false
+     }
+     
+diff --git a/macos/Onit/PanelStateManager/Pinned/PanelStatePinnedManager.swift b/macos/Onit/PanelStateManager/Pinned/PanelStatePinnedManager.swift
+index b0ca5410..17270584 100644
+--- a/macos/Onit/PanelStateManager/Pinned/PanelStatePinnedManager.swift
++++ b/macos/Onit/PanelStateManager/Pinned/PanelStatePinnedManager.swift
+@@ -238,22 +238,22 @@ class PanelStatePinnedManager: PanelStateBaseManager, ObservableObject {
+ 
+     override func resetFramesOnAppChange() {
+         let panelWidth = state.panelWidth - (TetheredButton.width / 2) + 1
+-        targetInitialFrames.forEach { element, initialFrame in
+-            // In Pinned mode, we should only reset the frame if it's still bordering the panel.
+-            // Instead of using the initial frame, we should add panelWidth back to the window, so it goes all the way to the edge of the screen.
+-            if let currentFrame = element.getFrame() {
++        
++        let windows = WindowHelpers.getAllOtherAppWindows()
++        
++        for window in windows {
++            if let currentFrame = window.getFrame() {
+                 let screenFrame = attachedScreen?.visibleFrame ?? NSScreen.main?.visibleFrame ?? .zero
+                 let isNearPanel = abs((screenFrame.maxX - panelWidth) - currentFrame.maxX) <= 2
+-
+-                if !isNearPanel {
+-                    return
++                if isNearPanel {
++                    let newWidth = currentFrame.width + panelWidth
++                    let newFrame = NSRect(origin: currentFrame.origin,
++                                            size: NSSize(width: newWidth, height: currentFrame.height))
++                    _ = window.setFrame(newFrame)
+                 }
+-                let newWidth = currentFrame.width + panelWidth
+-                let newFrame = NSRect(origin: currentFrame.origin,
+-                                        size: NSSize(width: newWidth, height: currentFrame.height))
+-                _ = element.setFrame(newFrame)
+             }
+         }
++        
+         targetInitialFrames.removeAll()
+     }
+ }
+diff --git a/macos/Onit/UI/Prompt/Files/ContextMenuWindows.swift b/macos/Onit/UI/Prompt/Files/ContextMenuWindows.swift
+index 2046146a..26de2d63 100644
+--- a/macos/Onit/UI/Prompt/Files/ContextMenuWindows.swift
++++ b/macos/Onit/UI/Prompt/Files/ContextMenuWindows.swift
+@@ -300,13 +300,7 @@ extension ContextMenuWindows {
+     private func captureOpenWindows() async -> [CapturedWindow] {
+         isCapturingWindows = true
+         
+-        let onitName = Bundle.main.object(forInfoDictionaryKey: "CFBundleName") as? String
+-        
+-        let windowPids = NSWorkspace.shared.runningApplications
+-            .filter { $0.activationPolicy == .regular }
+-            .filter { $0.localizedName != onitName }
+-            .map { $0.processIdentifier }
+-        
++        let windowPids = WindowHelpers.getAllOtherAppPids()
+         var capturedOpenWindows: [CapturedWindow] = []
+         
+         for pid in windowPids {
