@@ -1650,7 +1650,8 @@ class GitRepo:
         return self.to_oid(str(commit) + '^{commit}') is not None
 
     def are_valid_objects(self, objects: Iterable[str],
-                          object_type: Optional[str] = "commit") -> list[None|bool]:
+                          object_type: Optional[str] = "commit",
+                          single_use: bool = False) -> list[None|bool]:
         """Check which of given `objects` are present in the repository
 
         You can ensure that `objects` not only exist but are of a specific
@@ -1667,7 +1668,11 @@ class GitRepo:
             One of "commit", "tree", "blob", "tag", or None.
             If not None, the type is used to restrict the type of object:
             only objects of given `object_type` are considered valid,
-            which means that the object must exist and be of specified type.
+            which means that the object must exist and be of a specified type.
+
+        single_use
+            If True, do not keep the connection to `git cat-file --batch-command`
+            open, but close it automatically.
 
         Returns
         -------
@@ -1702,10 +1707,15 @@ class GitRepo:
             else:
                 results.append(True)
 
+        if single_use:
+            self.close_batch_command()
+
         return results
 
-    def filter_valid_commits(self, commits: Iterable[str], to_oid: bool = False) -> Iterable[str]:
-        """Filter out invalid commits from given list of commits
+    def filter_valid_commits(self, commits: Iterable[str],
+                             to_oid: bool = False,
+                             single_use: bool = False) -> Iterable[str]:
+        """Filter out invalid commits from the given list of commits
 
         Commit is considered invalid if it does not exist in the repository,
         or is not a commit.
@@ -1717,6 +1727,9 @@ class GitRepo:
         to_oid
             Whether to convert elements in `commits` to SHA-1 object identifiers,
             for example, "HEAD" to "3a27ee24b37a3e9572a0acc0aaecd22cc9c10bc7"
+        single_use
+            If True, do not keep the connection to `git cat-file --batch-command`
+            open, but close it automatically.
 
         Yields
         ------
@@ -1744,6 +1757,9 @@ class GitRepo:
             info = line.rstrip('\n').split(sep=' ')
             if len(info) == 3 and info[1] == 'commit':
                 yield info[0] if to_oid else commit_id
+
+        if single_use:
+            self.close_batch_command()
 
     def get_current_branch(self) -> Union[str, None]:
         """Return short name of the current branch
