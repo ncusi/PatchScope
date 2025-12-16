@@ -1031,7 +1031,7 @@ class AnnotatedPatchedFile:
                 print(f"{hunk}")
                 if tokens_list is not None:
                     print(f"{tokens_list.keys()=}")
-                print("Traceback:\n", err.__traceback__)
+                print("Traceback:\n", traceback.format_exc())
                 raise err
 
         return result
