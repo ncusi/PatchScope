@@ -65,7 +65,7 @@ from . import languages
 from .config import get_version, JSONFormat, JSONFormatExt, guess_format_version
 from .languages import Languages
 from .lexer import Lexer
-from .utils.git import GitRepo, ChangeSet, get_patched_file_mode, DiffSide, GitFileMode
+from .utils.git import GitRepo, ChangeSet, get_patched_file_mode, DiffSide, GitFileMode, decode_c_quoted_str
 
 # optional dependencies
 try:
@@ -758,8 +758,9 @@ class AnnotatedPatchedFile:
         self.patched_file: unidiff.PatchedFile = patched_file
 
         # get the names and drop "a/" and "b/"
-        self.source_file: str = patched_file.source_file
-        self.target_file: str = patched_file.target_file
+        # TODO: propose this fix in unidiff2
+        self.source_file: str = decode_c_quoted_str(patched_file.source_file)
+        self.target_file: str = decode_c_quoted_str(patched_file.target_file)
 
         if self.source_file[:2] == "a/":
             self.source_file = patched_file.source_file[2:]
