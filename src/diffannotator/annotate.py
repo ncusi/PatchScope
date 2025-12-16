@@ -640,7 +640,7 @@ class AnnotatedPatchSet:
             logger.error(msg=f"Error processing patch {self.patch_set!r}, at file no {i}\n"
                          f"in repo {self.repo} in commit "
                          f"{self.patch_set.commit_id if isinstance(self.patch_set, ChangeSet) else 'unknown'}\n"
-                         f"{self.patch_set!s}",
+                         f"{self.patch_set[i-1]!s}",
                          exc_info=True)
 
             if not ignore_annotation_errors:
