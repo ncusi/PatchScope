@@ -330,6 +330,10 @@ def test_filter_valid_commits(example_repo):
     filtered = example_repo.filter_valid_commits(['HEAD', 'non_existent', 'v1', 'v2', 'v3', 'HEAD~20'], to_oid=True)
     assert len(list(filtered)) == 3, "there were 3 valid commits (now oids)"
 
+    filtered = example_repo.filter_valid_commits(['HEAD', 'non_existent', 'v1', 'v2', 'v3', 'HEAD~20'],
+                                                 single_use=True)
+    assert list(filtered) == ['HEAD', 'v1', 'v2'], "filtering with `single_use=True` works"
+
 
 def test_get_current_branch(example_repo):
     """Basic test of GitRepo.get_current_branch"""
