@@ -44,7 +44,7 @@ from pathlib import Path
 import re
 import sys
 import time
-#import traceback  # replaced by exc_info (and possibly stack_info) when loging
+import traceback  # in _some_ cases it was replaced by exc_info (and possibly stack_info) when loging
 from textwrap import dedent
 from typing import TypeVar, Optional, Union, Literal, TYPE_CHECKING
 from collections.abc import Iterable, Iterator, Generator, Callable
