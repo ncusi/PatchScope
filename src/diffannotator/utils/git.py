@@ -893,7 +893,11 @@ class GitRepo:
             in the `--batch-command` mode, buffered (because of `--buffer`),
             see https://git-scm.com/docs/git-cat-file
         """
+        ## DEBUG
+        print(f"{self}.batch_command: ", end="")
         if self._cat_file is not None:
+            ## DEBUG
+            print(f"returning cached connection {self._cat_file!r}")
             return self._cat_file
 
         self._cat_file = subprocess.Popen(
@@ -907,6 +911,8 @@ class GitRepo:
             text=True,
             bufsize=1,  # line buffered
         )
+        ## DEBUG
+        print(f"created new connection {self._cat_file!r}")
         return self._cat_file
 
     def close_batch_command(self) -> None:
