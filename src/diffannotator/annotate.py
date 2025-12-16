@@ -1090,8 +1090,8 @@ class AnnotatedPatchedFile:
             })
 
         # Handle the case of change to submodule _without_ submodule checked out
-        # TODO: check possible cases, noy only if there is submodule in the post-image
-        if get_patched_file_mode(self.patched_file, side=DiffSide.POST) == GitFileMode.SUBMODULE:
+        if (get_patched_file_mode(self.patched_file, side=DiffSide.PRE)  == GitFileMode.SUBMODULE or
+            get_patched_file_mode(self.patched_file, side=DiffSide.POST) == GitFileMode.SUBMODULE):
             return Counter({
                 'n_files': 1,
                 'n_submodules': 1,
