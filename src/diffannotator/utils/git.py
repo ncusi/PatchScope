@@ -723,6 +723,7 @@ class GitRepo:
         # TODO: remember absolute path (it is safer)
         self.repo = Path(repo_dir)
         self._cat_file: Optional[subprocess.Popen] = None
+        # TODO: fix this - it does not work as intended (at least on Linux)
         self._finalizer = weakref.finalize(self, maybe_close_subprocess, self._cat_file)
 
     def __repr__(self):
@@ -1708,6 +1709,7 @@ class GitRepo:
                 results.append(True)
 
         if single_use:
+            maybe_close_subprocess(self._cat_file)
             self.close_batch_command()
 
         return results
@@ -1759,6 +1761,7 @@ class GitRepo:
                 yield info[0] if to_oid else commit_id
 
         if single_use:
+            maybe_close_subprocess(self._cat_file)
             self.close_batch_command()
 
     def get_current_branch(self) -> Union[str, None]:
