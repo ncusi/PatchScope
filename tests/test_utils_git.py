@@ -4,6 +4,7 @@ import subprocess
 import textwrap
 from typing import Optional
 
+import psutil
 import pytest
 from unidiff import PatchSet, PatchedFile
 
@@ -237,25 +238,36 @@ def test_batch_command(example_repo):
 
     maybe_close_subprocess(example_repo._cat_file)  # no error
 
-    import psutil
-    print(f"{psutil.pids()=}")
-    p = psutil.Process()
-    with p.oneshot():
-        print(f"{p}:")
-        for file in p.open_files():
-            print(f"- {file}")
-    procs = psutil.Process().children(recursive=True)
+    procs = psutil.Process().children()
+    ## DEBUG
+    print(f"{psutil.Process()}:")
     for p in procs:
-        print(f"* {p} (num_fds/handles={p.num_fds() if 'num_fds' in p.as_dict() else p.num_handles()}):")
-        for file in p.open_files():
-            print(f"  - {file}")
+        print(f"* {p}")
+        if p.name().startswith("git"):
+            print(f"  {p.cmdline()}")
     print("")
+    ## end DEBUG
+    assert not [p for p in procs if p.name() == 'git'], \
+        "there is no 'git' process running before .batch_command"
 
     proc_1 = example_repo.batch_command
     proc_2 = example_repo.batch_command
     assert proc_1 is proc_2, ".batch_command property is cached"
 
-    print("after example_repo.batch_command * 2")
+    procs = psutil.Process().children()
+    ## DEBUG
+    print(f"{psutil.Process()}:")
+    for p in procs:
+        print(f"* {p}")
+        if p.name().startswith("git"):
+            print(f"  {p.cmdline()}")
+    ## end DEBUG
+    # NOTE: on MS Windows the p.name() is 'git.exe', with p.cmdline()[0] of 'git.exe',
+    #       which calls process .name()d 'git.exe' with p.cmdline()[0] of 'git'
+    assert len([p for p in procs if p.name() in {'git', 'git.exe'}]) == 1, \
+        "there is a single 'git' process started after .batch_command"
+
+    print("\nafter example_repo.batch_command * 2")
     p = psutil.Process()
     with p.oneshot():
         print(f"{p} (num_fds/handles={p.num_fds() if 'num_fds' in p.as_dict() else p.num_handles()}):")
@@ -265,7 +277,8 @@ def test_batch_command(example_repo):
     for p in procs:
         print(f"* {p} (num_fds/handles={p.num_fds() if 'num_fds' in p.as_dict() else p.num_handles()}):")
         if p.name().startswith("git"):
-            print(f"  {p.cmdline()}")
+            print(f"  cmdline={p.cmdline()}")
+            print(f"  parent ={p.parent()}")
         for file in p.open_files():
             print(f"  - {file}")
     print("")
@@ -281,39 +294,15 @@ def test_batch_command(example_repo):
 
     maybe_close_subprocess(example_repo._cat_file)  # no error
 
-    print("after maybe_close_subprocess(example_repo._cat_file)")
-    procs = psutil.Process().children(recursive=True)
-    for p in procs:
-        print(f"* {p} (num_fds/handles={p.num_fds() if 'num_fds' in p.as_dict() else p.num_handles()}):")
-        for file in p.open_files():
-            print(f"  - {file}")
-    print("")
-
     proc = example_repo.batch_command
     assert isinstance(proc, subprocess.Popen), ".batch_command returns a Popen object"
     assert proc.returncode == 0, "the `git cat-file` returns success (process ended)"
-
-    print("after example_repo.batch_command, after maybe_close_subprocess()")
-    procs = psutil.Process().children(recursive=True)
-    for p in procs:
-        print(f"* {p} (num_fds/handles={p.num_fds() if 'num_fds' in p.as_dict() else p.num_handles()}):")
-        for file in p.open_files():
-            print(f"  - {file}")
-    print("")
 
     with pytest.raises(ValueError) as exc_info:
         example_repo.are_valid_objects(["HEAD"])
     assert "closed file" in str(exc_info.value), "the `git cat-file` process is closed"
 
     example_repo.close_batch_command()  # no errors
-
-    print("after example_repo.close_batch_command()")
-    procs = psutil.Process().children(recursive=True)
-    for p in procs:
-        print(f"* {p} (num_fds/handles={p.num_fds() if 'num_fds' in p.as_dict() else p.num_handles()}):")
-        for file in p.open_files():
-            print(f"  - {file}")
-    print("")
 
     #print(f"{example_repo._finalizer=}")
     #print(f"{example_repo._finalizer.alive=}")
