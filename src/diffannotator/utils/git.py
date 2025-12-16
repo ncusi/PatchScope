@@ -1401,6 +1401,8 @@ class GitRepo:
                 f"- repository path: '{self.repo}'\n"
                 f"- command: {' '.join(cmd)}\n"
             )
+            if process.stderr is not None:
+                logger.error(f"- stderr:\n{process.stderr.read().decode(encoding='utf-8', errors='replace')}")
 
     def _file_contents_process(self, commit: str, path: str) -> subprocess.Popen[bytes]:
         cmd = [
