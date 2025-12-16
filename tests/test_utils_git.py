@@ -283,6 +283,30 @@ def test_batch_command(example_repo):
     #print(f"{example_repo._finalizer.alive=}")
 
 
+@pytest.mark.xfail(reason="known failure of ._finalize() in .close_batch_command()")
+def test_close_batch_command(example_repo):
+    """Test that GitRepo.close_batch_command() works correctly"""
+    assert example_repo._cat_file is None, \
+        "the ._cat_file property is not initialized by default"
+
+    proc = example_repo.batch_command
+    assert example_repo._cat_file is not None, \
+        "the ._cat_file property is initialized by .batch_command"
+    assert proc.returncode is None, \
+        "the `git cat-file` didn't return (process is live)"
+    assert proc == example_repo._cat_file, \
+        "the ._cat_file property caches what .batch_command returns"
+
+    # main part of this test
+    example_repo.close_batch_command()
+    assert example_repo._cat_file is None, \
+        "the ._cat_file property is set to None by .close_batch_command()"
+
+    procs = psutil.Process().children(recursive=False)
+    assert not [p for p in procs if p.name() in {'git', 'git.exe'}], \
+        "there is no 'git' process running after calling .close_batch_command()"
+
+
 def test_are_valid_objects(example_repo):
     """Test that GitRepo.are_valid_objects returns the correct answer"""
     actual = example_repo.are_valid_objects(['HEAD', 'v1', 'v2'], object_type='commit')
