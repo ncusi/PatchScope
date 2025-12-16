@@ -1022,14 +1022,16 @@ class AnnotatedPatchedFile:
                 # the first line is 1; the first element has index 0
                 result[hunk_line_no] = tokens_list[line_no - 1]
             except KeyError as err:
-                ## DEBUG
+                ## DEBUG <-- TODO: make it a logger.warning()?
                 print(f"{err}")
                 print(f"{line_no=}")
                 print(f"{hunk_line_no=}")
                 print(f"{line=}")
                 print(f"{hunk=}")
+                print(f"{hunk}")
                 if tokens_list is not None:
                     print(f"{tokens_list.keys()=}")
+                print("Traceback:\n", err.__traceback__)
                 raise err
 
         return result
