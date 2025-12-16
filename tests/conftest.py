@@ -59,7 +59,8 @@ def example_repo(tmp_path_factory: pytest.TempPathFactory) -> GitRepo:
     repo_path = str(tmp_path / repo_name)
 
     # initialize repository and  configure it
-    subprocess.run(['git', 'init', repo_path], check=True, stdout=subprocess.DEVNULL)  # noisy
+    subprocess.run(['git', '-c', f'init.defaultBranch={default_branch}', 'init', repo_path],
+                   check=True, stdout=subprocess.DEVNULL)  # noisy
     subprocess.run(['git', '-C', repo_path, 'config', 'user.name', 'A U Thor'], check=True)
     subprocess.run(['git', '-C', repo_path, 'config', 'user.email', 'author@example.com'], check=True)
     subprocess.run(['git', '-C', repo_path, 'branch', '-m', default_branch], check=True)
@@ -116,7 +117,8 @@ def example_repo_utf8(tmp_path_factory: pytest.TempPathFactory) -> GitRepo:
     repo_path = str(tmp_path / repo_name)
 
     # initialize repository and  configure it
-    subprocess.run(['git', 'init', repo_path], check=True, stdout=subprocess.DEVNULL)  # noisy
+    subprocess.run(['git', '-c', f'init.defaultBranch={default_branch}', 'init', repo_path],
+                   check=True, stdout=subprocess.DEVNULL)  # noisy
     subprocess.run(['git', '-C', repo_path, 'config', 'user.name', 'A U Þór'], check=True)
     subprocess.run(['git', '-C', repo_path, 'config', 'user.email', 'author@example.com'], check=True)
     subprocess.run(['git', '-C', repo_path, 'branch', '-m', default_branch], check=True)
@@ -151,7 +153,8 @@ def example_repo_binary(tmp_path_factory: pytest.TempPathFactory) -> GitRepo:
     repo_path = str(tmp_path / repo_name)
 
     # initialize repository and  configure it
-    subprocess.run(['git', 'init', repo_path], check=True, stdout=subprocess.DEVNULL)  # noisy
+    subprocess.run(['git', '-c', f'init.defaultBranch={default_branch}', 'init', repo_path],
+                   check=True, stdout=subprocess.DEVNULL)  # noisy
     subprocess.run(['git', '-C', repo_path, 'config', 'user.name', 'Joe Random'], check=True)
     subprocess.run(['git', '-C', repo_path, 'config', 'user.email', 'joe@example.com'], check=True)
     subprocess.run(['git', '-C', repo_path, 'branch', '-m', default_branch], check=True)
