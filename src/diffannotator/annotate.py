@@ -1025,7 +1025,11 @@ class AnnotatedPatchedFile:
                 result[hunk_line_no] = tokens_list[line_no - 1]
             except KeyError as err:
                 ## DEBUG <-- TODO: make it a logger.warning()?
-                print(f"{err}")
+                logger.error(f"Error in .hunk_tokens_for_type({line_type=}, {hunk=}) "
+                             f"for {hunk_line_no=} and {line_no=} "
+                             f"in {self.patched_file=}: "
+                             f"{err!r}", exc_info=True)
+                print(f"{err=}")
                 print(f"{line_no=}")
                 print(f"{hunk_line_no=}")
                 print(f"{line=}")
