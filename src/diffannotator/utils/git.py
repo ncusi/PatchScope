@@ -2029,16 +2029,16 @@ class GitRepo:
 
         changes_info, file_diff_lines, patch = self.changed_lines_extents(commit, prev, side=DiffSide.POST)
 
-        # map from file name in changed files to unidiff.PatchedFile for that file
-        patched_files_map = {}
+        # map from the file name in changed files to unidiff.PatchedFile for that file
+        patched_files_map: dict[str, unidiff.PatchedFile] = {}
         patched_file: unidiff.PatchedFile
         for patched_file in patch:
-            # same key as used in .changed_lines_extents()
+            # the same key as used in .changed_lines_extents()
             patched_files_map[decode_c_quoted_str(patched_file.path)] = patched_file
 
         for file_path, line_extents in changes_info.items():
             if not line_extents:
-                # empty changes, for example pure rename
+                # empty changes, for example, pure rename
                 continue
 
             # TODO: make it configurable
