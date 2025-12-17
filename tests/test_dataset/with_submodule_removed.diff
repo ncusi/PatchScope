@@ -1,0 +1,7 @@
+diff --git a/ui/editor-ui b/ui/editor-ui
+deleted file mode 160000
+index b5a276f53..000000000
+--- a/ui/editor-ui
++++ /dev/null
+@@ -1,1 +0,0 @@
+-Subproject commit b5a276f5382964adf8155d20aab204dff96ff054

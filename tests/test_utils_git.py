@@ -604,7 +604,7 @@ def test_get_patched_file_mode(subtests):
         assert actual_dst == expected_dst, "destination file mode matches"
 
     with subtests.test("submodule without --recurse-submodules"):
-        diff_new_submodule = 'tests/test_dataset/with_submodule.diff'
+        diff_new_submodule = 'tests/test_dataset/with_submodule_added.diff'
         patch = ChangeSet.from_filename(diff_new_submodule)
         changed_file = patch[0]
         actual = get_patched_file_mode(changed_file)
@@ -617,8 +617,20 @@ def test_get_patched_file_mode(subtests):
                                            side=DiffSide.POST)
         expected_src = None  # the submodule was added
         expected_dst = '160000'
-        assert actual_src == expected_src, "source file mode matches"
-        assert actual_dst == expected_dst, "destination file mode matches"
+        assert actual_src == expected_src, "source file mode matches (submodule added)"
+        assert actual_dst == expected_dst, "destination file mode matches (submodule added)"
+
+        diff_rem_submodule = 'tests/test_dataset/with_submodule_removed.diff'
+        patch = ChangeSet.from_filename(diff_rem_submodule)
+        changed_file = patch[0]
+        actual_src = get_patched_file_mode(changed_file,
+                                           side=DiffSide.PRE)
+        actual_dst = get_patched_file_mode(changed_file,
+                                           side=DiffSide.POST)
+        expected_src = GitFileMode.SUBMODULE
+        expected_dst = None  # the submodule was removed
+        assert actual_src == expected_src, "source file mode matches (submodule removed)"
+        assert actual_dst == expected_dst, "destination file mode matches (submodule removed)"
 
 
 def test_submodule_avoidance_logic():

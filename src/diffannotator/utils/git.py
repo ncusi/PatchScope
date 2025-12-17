@@ -207,8 +207,10 @@ RE_DIFF_GIT_EXTENDED_HEADER_INDEX_MODE = re.compile(
     flags=re.MULTILINE,
 )
 RE_DIFF_GIT_EXTENDED_HEADER_MODE = re.compile(
-    # e.g. 'new mode 100644' or 'old mode 100755', or 'new file mode 100644'
-    pattern=r'^(?P<side>new|old) (?:file )?mode (?P<mode>[0-9]{6})',
+    # e.g. 'new mode 100644' or 'old mode 100755' for mode change,
+    # or 'new file mode 100644' for added files
+    # or 'deleted file mode 160000' for deleted files
+    pattern=r'^(?P<side>new|old|deleted) (?:file )?mode (?P<mode>[0-9]{6})',
     flags=re.MULTILINE,
 )
 
@@ -262,7 +264,7 @@ def get_patched_file_mode(patched_file: PatchedFile,
     for line in patched_file.patch_info:
         match = re.match(pattern=RE_DIFF_GIT_EXTENDED_HEADER_MODE, string=line)
         if match:
-            if side == DiffSide.PRE and match.group('side') == 'old':
+            if side == DiffSide.PRE and match.group('side') in {'old', 'deleted'}:
                 return match.group('mode')
             elif side == DiffSide.POST and match.group('side') == 'new':
                 return match.group('mode')
