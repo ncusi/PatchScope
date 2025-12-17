@@ -2044,7 +2044,7 @@ class GitRepo:
             # TODO: make it configurable
             # drop submodules from survival analysis
             if (file_path in patched_files_map and  # just in case
-                get_patched_file_mode(patched_files_map[file_path], file_path) == GitFileMode.SUBMODULE):
+                get_patched_file_mode(patched_files_map[file_path], DiffSide.POST) == GitFileMode.SUBMODULE):
                 continue
 
             # if file was added in commit, blame whole file
