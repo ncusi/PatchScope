@@ -611,6 +611,15 @@ def test_get_patched_file_mode(subtests):
         expected = '160000'
         assert actual == expected, "submodule file mode matches"
 
+        actual_src = get_patched_file_mode(changed_file,
+                                           side=DiffSide.PRE)
+        actual_dst = get_patched_file_mode(changed_file,
+                                           side=DiffSide.POST)
+        expected_src = None  # the submodule was added
+        expected_dst = '160000'
+        assert actual_src == expected_src, "source file mode matches"
+        assert actual_dst == expected_dst, "destination file mode matches"
+
 
 def test_submodule_avoidance_logic():
     """Test submodule avoidance logic in GitRepo.changes_survival()"""
