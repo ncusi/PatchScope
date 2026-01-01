@@ -470,6 +470,10 @@ Tools to generate HTML dashboard, or providing an interactive web application:
   providing visualization and analysis of git commit statistics.
   Requires exporting data from Git.  Has a [homepage with demo](https://assayo.online/).
   Its use is described in _[The visualization and analysis of git commit statistics for IT team leaders](https://dev.to/responsivecrocodile/the-visualization-and-analysis-of-git-commit-statistics-for-it-team-leaders-2pof)_.
+- [Git Repository Squirrel 🐿️](https://github.com/reposquirrel/reposquirrel) (reposquirrel)
+  is a Git repository analytics tool that provides detailed insights
+  into developer contributions, subsystem ownership, and codebase evolution over time.
+  Has a [demo](http://13.61.92.173:5555/).
 
 Visualizations for a specific repository:
 
