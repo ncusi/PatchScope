@@ -2194,13 +2194,21 @@ class GitRepo:
             perc
         )
 
-    def find_roots(self, start_from: str = StartLogFrom.CURRENT) -> list[str]:
-        """Find root commits (commits without parents), starting from `start_from`
+    def find_roots(self,
+                   start_from: str|list[str]|StartLogFrom|None = StartLogFrom.CURRENT) -> list[str]:
+        """Find root commits (commits without parents), starting from `start_from`.
+
+        You can provide multiple starting points by passing a list of them;
+        you can then also use `start_from` to provide additional options to `git rev-list`
+        command.
 
         Parameters
         ----------
-        start_from : str or StartLogFrom
-            where to start from to follow 'parent' links
+        start_from : str or list[str] or StartLogFrom, optional
+            where to start from to follow 'parent' links;
+            can be used to provide additional options to `git rev-list` command.
+
+            If None, defaults to 'HEAD' (current commit).
 
         Returns
         -------
@@ -2208,14 +2216,16 @@ class GitRepo:
             list of root commits, as SHA-1
         """
         if hasattr(start_from, 'value'):
-            start_from = start_from.value
+            start_from = [ str(start_from.value) ]
         elif start_from is None:
-            start_from = 'HEAD'
+            start_from = [ 'HEAD' ]
+        elif not isinstance(start_from, (list, tuple)):
+            start_from = [ str(start_from) ]
 
         cmd = [
             'git', '-C', self.repo,
             'rev-list', '--max-parents=0',  # gives all root commits
-            str(start_from),
+            *start_from,
         ]
         process = subprocess.run(cmd,
                                  capture_output=True, check=True,

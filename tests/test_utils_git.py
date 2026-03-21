@@ -508,6 +508,18 @@ def test_find_roots(example_repo):
     roots_list = example_repo.find_roots()
     assert len(roots_list) == 1, "has a single root commit"
 
+    roots_list = example_repo.find_roots(None)
+    assert len(roots_list) == 1, "has a single root commit, when passed None"
+
+    roots_list = example_repo.find_roots('HEAD')
+    assert len(roots_list) == 1, "has a single root commit, when passed 'HEAD'"
+
+    roots_list = example_repo.find_roots(['HEAD', 'v2'])
+    assert len(roots_list) == 1, "has a single root commit when passed ['HEAD', 'v2']"
+
+    roots_list = example_repo.find_roots(['HEAD', '--date-order'])
+    assert len(roots_list) == 1, "has a single root commit when passed ['HEAD', '--date-order']"
+
     v1_oid = example_repo.to_oid("v1")
     assert roots_list[0] == v1_oid, "root commit is v1"
 
