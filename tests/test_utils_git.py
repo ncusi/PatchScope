@@ -474,6 +474,13 @@ def test_count_commits(example_repo):
     actual = example_repo.count_commits('HEAD')
     assert expected == actual, "number of commits in repository matches (start_from='HEAD')"
 
+    actual = example_repo.count_commits(start_from=['HEAD', 'v1.5'])
+    assert expected == actual, "number of commits in repository matches (start_from=['HEAD', 'v1.5'])"
+
+    expected = 2  # v1.5, v2
+    actual = example_repo.count_commits(start_from='HEAD', until_commit='v1.5')
+    assert expected == actual, "number of commits in repository matches (start_from='HEAD', until_commit='v1.5')"
+
 
 def test_list_authors(example_repo):
     """Test GitRepo.list_authors_shortlog() and related methods"""

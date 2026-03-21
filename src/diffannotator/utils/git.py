@@ -2081,8 +2081,8 @@ class GitRepo:
         return all_commits_data, lines_survival
 
     def count_commits(self,
-                      start_from: str = StartLogFrom.CURRENT,
-                      until_commit: str = None,
+                      start_from: str|list[str] = StartLogFrom.CURRENT,
+                      until_commit: None|str|list[str] = None,
                       first_parent: bool = False) -> int:
         """Count number of commits in the repository
 
@@ -2094,14 +2094,14 @@ class GitRepo:
 
         Parameters
         ----------
-        start_from : str or StartLogFrom
-            where to start from to follow 'parent' links
-        until_commit : str or None
+        start_from : str or list[str] or StartLogFrom
+            where to start from to follow 'parent' links;
+            can be used to provide additional options to `git rev-list` command.
+        until_commit : str or list[str] or None
             where to stop following 'parent' links; also ensures that we
-            follow ancestry path to it, optional
+            follow ancestry path to it if `until_commit` is a single str, optional
         first_parent : bool
-            follow only the first parent commit upon seeing a merge
-            commit
+            follow only the first parent commit upon seeing a merge commit
 
         Returns
         -------
@@ -2110,12 +2110,17 @@ class GitRepo:
         """
         if hasattr(start_from, 'value'):
             start_from = start_from.value
+        if not isinstance(start_from, (list, tuple)):
+            start_from = [ str(start_from) ]
         cmd = [
             'git', '-C', self.repo,
-            'rev-list', '--count', str(start_from),
+            'rev-list', '--count', *start_from,
         ]
         if until_commit is not None:
-            cmd.extend(['--not', until_commit, f'--ancestry-path={until_commit}', '--boundary'])
+            if isinstance(until_commit, (list, tuple)):
+                cmd.extend(['--not', *until_commit, '--boundary'])
+            else:
+                cmd.extend(['--not', until_commit, f'--ancestry-path={until_commit}', '--boundary'])
         if first_parent:
             cmd.append('--first-parent')
         process = subprocess.run(cmd,
