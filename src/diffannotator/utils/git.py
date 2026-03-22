@@ -2243,6 +2243,10 @@ class GitRepo:
         This function determines the root commit(s) in a Git repository and provides
         metadata about the oldest one, according to committer date.
 
+        **NOTE:** for some versions of Git this method would not work,
+        because the invocation of `git rev-list` used by this method exits with
+        the following error "fatal: -z option used with unsupported option".
+
         Parameters
         ----------
         start_from : str or list[str] or StartLogFrom, optional
