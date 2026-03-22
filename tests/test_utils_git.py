@@ -474,6 +474,13 @@ def test_count_commits(example_repo):
     actual = example_repo.count_commits('HEAD')
     assert expected == actual, "number of commits in repository matches (start_from='HEAD')"
 
+    actual = example_repo.count_commits(start_from=['HEAD', 'v1.5'])
+    assert expected == actual, "number of commits in repository matches (start_from=['HEAD', 'v1.5'])"
+
+    expected = 2  # v1.5, v2
+    actual = example_repo.count_commits(start_from='HEAD', until_commit='v1.5')
+    assert expected == actual, "number of commits in repository matches (start_from='HEAD', until_commit='v1.5')"
+
 
 def test_list_authors(example_repo):
     """Test GitRepo.list_authors_shortlog() and related methods"""
@@ -501,8 +508,32 @@ def test_find_roots(example_repo):
     roots_list = example_repo.find_roots()
     assert len(roots_list) == 1, "has a single root commit"
 
+    roots_list = example_repo.find_roots(None)
+    assert len(roots_list) == 1, "has a single root commit, when passed None"
+
+    roots_list = example_repo.find_roots('HEAD')
+    assert len(roots_list) == 1, "has a single root commit, when passed 'HEAD'"
+
+    roots_list = example_repo.find_roots(['HEAD', 'v2'])
+    assert len(roots_list) == 1, "has a single root commit when passed ['HEAD', 'v2']"
+
+    roots_list = example_repo.find_roots(['HEAD', '--date-order'])
+    assert len(roots_list) == 1, "has a single root commit when passed ['HEAD', '--date-order']"
+
     v1_oid = example_repo.to_oid("v1")
     assert roots_list[0] == v1_oid, "root commit is v1"
+
+
+def test_oldest_root_metadata(example_repo):
+    """Test GitRepo.oldest_root_metadata() method"""
+    commit_info = example_repo.oldest_root_metadata()
+
+    assert commit_info['tree'] == 'a5928e3b2666774922364c3d5e16232e1b7f4114', \
+        "'tree' field did not change"
+    assert commit_info['message'] == 'Initial commit\n', \
+        "commit message matches"
+    assert commit_info['committer']['committer'] == 'A U Thor <author@example.com>', \
+        "committer matches repository setup"
 
 
 def test_get_config(example_repo):

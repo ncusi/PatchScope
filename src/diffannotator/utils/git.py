@@ -2081,8 +2081,8 @@ class GitRepo:
         return all_commits_data, lines_survival
 
     def count_commits(self,
-                      start_from: str = StartLogFrom.CURRENT,
-                      until_commit: str = None,
+                      start_from: str|list[str] = StartLogFrom.CURRENT,
+                      until_commit: None|str|list[str] = None,
                       first_parent: bool = False) -> int:
         """Count number of commits in the repository
 
@@ -2094,14 +2094,14 @@ class GitRepo:
 
         Parameters
         ----------
-        start_from : str or StartLogFrom
-            where to start from to follow 'parent' links
-        until_commit : str or None
+        start_from : str or list[str] or StartLogFrom
+            where to start from to follow 'parent' links;
+            can be used to provide additional options to `git rev-list` command.
+        until_commit : str or list[str] or None
             where to stop following 'parent' links; also ensures that we
-            follow ancestry path to it, optional
+            follow ancestry path to it if `until_commit` is a single str, optional
         first_parent : bool
-            follow only the first parent commit upon seeing a merge
-            commit
+            follow only the first parent commit upon seeing a merge commit
 
         Returns
         -------
@@ -2110,12 +2110,17 @@ class GitRepo:
         """
         if hasattr(start_from, 'value'):
             start_from = start_from.value
+        if not isinstance(start_from, (list, tuple)):
+            start_from = [ str(start_from) ]
         cmd = [
             'git', '-C', self.repo,
-            'rev-list', '--count', str(start_from),
+            'rev-list', '--count', *start_from,
         ]
         if until_commit is not None:
-            cmd.extend(['--not', until_commit, f'--ancestry-path={until_commit}', '--boundary'])
+            if isinstance(until_commit, (list, tuple)):
+                cmd.extend(['--not', *until_commit, '--boundary'])
+            else:
+                cmd.extend(['--not', until_commit, f'--ancestry-path={until_commit}', '--boundary'])
         if first_parent:
             cmd.append('--first-parent')
         process = subprocess.run(cmd,
@@ -2189,13 +2194,21 @@ class GitRepo:
             perc
         )
 
-    def find_roots(self, start_from: str = StartLogFrom.CURRENT) -> list[str]:
-        """Find root commits (commits without parents), starting from `start_from`
+    def find_roots(self,
+                   start_from: str|list[str]|StartLogFrom|None = StartLogFrom.CURRENT) -> list[str]:
+        """Find root commits (commits without parents), starting from `start_from`.
+
+        You can provide multiple starting points by passing a list of them;
+        you can then also use `start_from` to provide additional options to `git rev-list`
+        command.
 
         Parameters
         ----------
-        start_from : str or StartLogFrom
-            where to start from to follow 'parent' links
+        start_from : str or list[str] or StartLogFrom, optional
+            where to start from to follow 'parent' links;
+            can be used to provide additional options to `git rev-list` command.
+
+            If None, defaults to 'HEAD' (current commit).
 
         Returns
         -------
@@ -2203,14 +2216,16 @@ class GitRepo:
             list of root commits, as SHA-1
         """
         if hasattr(start_from, 'value'):
-            start_from = start_from.value
+            start_from = [ str(start_from.value) ]
         elif start_from is None:
-            start_from = 'HEAD'
+            start_from = [ 'HEAD' ]
+        elif not isinstance(start_from, (list, tuple)):
+            start_from = [ str(start_from) ]
 
         cmd = [
             'git', '-C', self.repo,
             'rev-list', '--max-parents=0',  # gives all root commits
-            str(start_from),
+            *start_from,
         ]
         process = subprocess.run(cmd,
                                  capture_output=True, check=True,
@@ -2218,6 +2233,83 @@ class GitRepo:
                                  # separated by newlines, therefore no '\r' in output possible
                                  text=True, errors=self.encoding_errors)
         return process.stdout.splitlines()
+
+    def oldest_root_metadata(
+            self,
+            start_from: str|list[str]|StartLogFrom|None = StartLogFrom.CURRENT
+    ) -> dict[str, Union[str, dict, list]]:
+        """Get the metadata of the oldest root commit in the Git repository.
+
+        This function determines the root commit(s) in a Git repository and provides
+        metadata about the oldest one, according to committer date.
+
+        Parameters
+        ----------
+        start_from : str or list[str] or StartLogFrom, optional
+            Specifies the starting reference point(s) for the `git rev-list` command.
+            Important if there are orphaned branches with separate lines of history.
+            Acceptable values include:
+                - A single string representing a commit reference.
+                - A list of strings representing multiple commit references.
+                - A `StartLogFrom` enumeration value.
+                - `None`, in which case the default reference `HEAD` is used.
+
+            Can be also used to pass additional options to the `git rev-list` command;
+            note that in this case you would still need to provide at least one
+            starting reference.
+
+        Returns
+        -------
+        dict
+            Information about selected parts of commit metadata, in the
+            following format:
+
+            {
+                'id': 'f8ffd4067d1f1b902ae06c52db4867f57a424f38',
+                'parents': ['fe4a622e5202cd990c8ec853d56e25922f263243'],
+                'tree': '5347fe7b8606e7a164ab5cd355ee5d86c99796c0'
+                'author': {
+                    'author': 'A U Thor <author@example.com>',
+                    'name': 'A U Thor',
+                    'email': 'author@example.com',
+                    'timestamp': 1112912053,
+                    'tz_info': '-0600',
+                },
+                'committer': {
+                    'committer': 'C O Mitter <committer@example.com>'
+                    'name': 'C O Mitter',
+                    'email': 'committer@example.com',
+                    'timestamp': 1693598847,
+                    'tz_info': '+0200',
+                },
+                'message': 'Commit summary\n\nOptional longer description\n',
+            }
+        """
+        if hasattr(start_from, 'value'):
+            start_from = [ str(start_from.value) ]
+        elif start_from is None:
+            start_from = [ 'HEAD' ]
+        elif not isinstance(start_from, (list, tuple)):
+            start_from = [ str(start_from) ]
+
+        cmd = [
+            'git', '-C', str(self.repo),
+            'rev-list',
+            '--max-parents=0',  # gives all root commits
+            '--date-order',  # sorts by committer date, in reverse chronological order, most recent first
+            '--reverse',  # reverse chronological order, which makes it oldest first
+            '--parents', '--header',  # for easier parsing of commit metadata
+            '-z',  # separate the commits with NULs instead of newlines.
+            *start_from,
+            '--',
+        ]
+
+        process = subprocess.run(cmd, capture_output=True, check=True)
+        return _parse_commit_text(
+            process.stdout.decode(GitRepo.log_encoding, errors=self.encoding_errors).split('\0', maxsplit=1)[0],
+            # next parameters depend on the git command used
+            with_parents_line=True, indented_body=True
+        )
 
     def get_config(self, name: str, value_type: Optional[str] = None) -> Union[str, None]:
         """Query specific git config option
