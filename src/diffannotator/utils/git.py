@@ -2234,6 +2234,83 @@ class GitRepo:
                                  text=True, errors=self.encoding_errors)
         return process.stdout.splitlines()
 
+    def oldest_root_metadata(
+            self,
+            start_from: str|list[str]|StartLogFrom|None = StartLogFrom.CURRENT
+    ) -> dict[str, Union[str, dict, list]]:
+        """Get the metadata of the oldest root commit in the Git repository.
+
+        This function determines the root commit(s) in a Git repository and provides
+        metadata about the oldest one, according to committer date.
+
+        Parameters
+        ----------
+        start_from : str or list[str] or StartLogFrom, optional
+            Specifies the starting reference point(s) for the `git rev-list` command.
+            Important if there are orphaned branches with separate lines of history.
+            Acceptable values include:
+                - A single string representing a commit reference.
+                - A list of strings representing multiple commit references.
+                - A `StartLogFrom` enumeration value.
+                - `None`, in which case the default reference `HEAD` is used.
+
+            Can be also used to pass additional options to the `git rev-list` command;
+            note that in this case you would still need to provide at least one
+            starting reference.
+
+        Returns
+        -------
+        dict
+            Information about selected parts of commit metadata, in the
+            following format:
+
+            {
+                'id': 'f8ffd4067d1f1b902ae06c52db4867f57a424f38',
+                'parents': ['fe4a622e5202cd990c8ec853d56e25922f263243'],
+                'tree': '5347fe7b8606e7a164ab5cd355ee5d86c99796c0'
+                'author': {
+                    'author': 'A U Thor <author@example.com>',
+                    'name': 'A U Thor',
+                    'email': 'author@example.com',
+                    'timestamp': 1112912053,
+                    'tz_info': '-0600',
+                },
+                'committer': {
+                    'committer': 'C O Mitter <committer@example.com>'
+                    'name': 'C O Mitter',
+                    'email': 'committer@example.com',
+                    'timestamp': 1693598847,
+                    'tz_info': '+0200',
+                },
+                'message': 'Commit summary\n\nOptional longer description\n',
+            }
+        """
+        if hasattr(start_from, 'value'):
+            start_from = [ str(start_from.value) ]
+        elif start_from is None:
+            start_from = [ 'HEAD' ]
+        elif not isinstance(start_from, (list, tuple)):
+            start_from = [ str(start_from) ]
+
+        cmd = [
+            'git', '-C', str(self.repo),
+            'rev-list',
+            '--max-parents=0',  # gives all root commits
+            '--date-order',  # sorts by committer date, in reverse chronological order, most recent first
+            '--reverse',  # reverse chronological order, which makes it oldest first
+            '--parents', '--header',  # for easier parsing of commit metadata
+            '-z',  # separate the commits with NULs instead of newlines.
+            *start_from,
+            '--',
+        ]
+
+        process = subprocess.run(cmd, capture_output=True, check=True)
+        return _parse_commit_text(
+            process.stdout.decode(GitRepo.log_encoding, errors=self.encoding_errors).split('\0', maxsplit=1)[0],
+            # next parameters depend on the git command used
+            with_parents_line=True, indented_body=True
+        )
+
     def get_config(self, name: str, value_type: Optional[str] = None) -> Union[str, None]:
         """Query specific git config option
 

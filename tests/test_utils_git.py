@@ -524,6 +524,18 @@ def test_find_roots(example_repo):
     assert roots_list[0] == v1_oid, "root commit is v1"
 
 
+def test_oldest_root_metadata(example_repo):
+    """Test GitRepo.oldest_root_metadata() method"""
+    commit_info = example_repo.oldest_root_metadata()
+
+    assert commit_info['tree'] == 'a5928e3b2666774922364c3d5e16232e1b7f4114', \
+        "'tree' field did not change"
+    assert commit_info['message'] == 'Initial commit\n', \
+        "commit message matches"
+    assert commit_info['committer']['committer'] == 'A U Thor <author@example.com>', \
+        "committer matches repository setup"
+
+
 def test_get_config(example_repo):
     """Test GitRepo.get_config() method"""
     expected = 'A U Thor'  # set up in setUpClass() class method
