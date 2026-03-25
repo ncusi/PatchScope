@@ -524,7 +524,6 @@ def test_find_roots(example_repo):
     assert roots_list[0] == v1_oid, "root commit is v1"
 
 
-@pytest.mark.xfail(reason="may fail with 'fatal: -z option used with unsupported option'", strict=False)
 def test_oldest_root_metadata(example_repo):
     """Test GitRepo.oldest_root_metadata() method"""
     commit_info = example_repo.oldest_root_metadata()
