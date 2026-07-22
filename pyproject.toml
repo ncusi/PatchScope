@@ -99,7 +99,7 @@ web = [
   "pandas==2.3.3",
   "python-dateutil==2.9.0.post0",
   # data serialization
-  "pyarrow==22.0.0",
+  "pyarrow==23.0.1",
   # plots
   "holoviews==1.22.1",
   "hvplot==0.12.1",
