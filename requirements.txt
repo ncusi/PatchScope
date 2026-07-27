@@ -1,4 +1,4 @@
-click>=8.3.1
+click>=8.4.2
 joblib~=1.5.3
 pygments~=2.19.2
 pyyaml~=6.0.3
